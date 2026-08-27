@@ -1,0 +1,6 @@
+{
+  "name": "AllKurma",
+  "description": "Platform Toko Online Kurma Impor Premium & Grosir B2B/B2C Terpadu dengan Banner Interaktif, Live Chat Customer Support, Poin Kurma & Game Harian, Voucher Diskon & Gratis Ongkir XTRA, KurmaPay & PayLater, Ulasan Produk, Wishlist, Portal Seller Center Lengkap, dan Manajemen Inventaris.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

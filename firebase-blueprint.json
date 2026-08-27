@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account and profile data for authentication and role-based access control.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "description": "Email address" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "role": { 
+          "type": "string", 
+          "enum": ["customer", "seller", "wholesale_partner", "super_admin", "warehouse_manager", "sales_rep", "marketing_admin"],
+          "description": "Access control role" 
+        },
+        "avatar": { "type": "string", "description": "Avatar image URL" },
+        "tier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"], "description": "Loyalty tier" },
+        "rewardPoints": { "type": "number", "description": "Reward points balance" },
+        "totalOrders": { "type": "number", "description": "Total completed orders count" },
+        "annualSpend": { "type": "number", "description": "Annual spend in Rupiah" },
+        "companyName": { "type": "string", "description": "Company name if wholesale" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "CustomerAddress": {
+      "title": "CustomerAddress",
+      "description": "Saved shipping address for a customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "phone": { "type": "string" },
+        "label": { "type": "string" },
+        "fullAddress": { "type": "string" },
+        "city": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "recipientName", "phone", "fullAddress", "city"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["Belum Dibayar", "Diproses", "Dikirim", "Selesai", "Dibatalkan", "Komplain/Retur"] 
+        },
+        "totalAmount": { "type": "number" },
+        "items": { "type": "array" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["Menunggu Pembayaran", "Lunas", "Gagal", "Dibatalkan"] },
+        "shippingAddress": { "type": "object" },
+        "trackingNumber": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "customerId", "status", "totalAmount", "items"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "UserProfile",
+      "description": "Stores user profiles with RBAC roles."
+    },
+    "addresses": {
+      "schema": "CustomerAddress",
+      "description": "Stores user shipping addresses."
+    },
+    "orders": {
+      "schema": "Order",
+      "description": "Stores customer orders."
+    }
+  }
+}
