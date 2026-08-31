@@ -157,27 +157,55 @@ export interface Product {
 }
 
 export interface CartItem {
+  id?: string;
+  userId?: string;
   product: Product;
   quantity: number;
   selectedTierPrice?: number;
   selectedVariation?: ProductVariation;
+  isSelected?: boolean;
+  weightGram?: number;
 }
 
 export interface Address {
   id: string;
+  userId?: string;
   label: 'Home' | 'Office' | 'Warehouse' | string;
   recipientName: string;
   phone: string;
   streetAddress?: string;
   fullAddress?: string;
   city: string;
+  district?: string;
   province?: string;
   postalCode: string;
   country?: string;
+  notes?: string;
   isDefault: boolean;
 }
 
-export type OrderStatus = 'Belum Bayar' | 'Belum Dibayar' | 'Diproses' | 'Dikirim' | 'Selesai' | 'Dibatalkan' | 'Retur' | 'Komplain/Retur';
+export type DetailedOrderStatus = 
+  | 'PENDING_PAYMENT'
+  | 'PAYMENT_CONFIRMED'
+  | 'PROCESSING'
+  | 'PACKED'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export type OrderStatus = 
+  | 'Belum Bayar' 
+  | 'Belum Dibayar' 
+  | 'Diproses' 
+  | 'Dikemas'
+  | 'Dikirim' 
+  | 'Selesai' 
+  | 'Dibatalkan' 
+  | 'Retur' 
+  | 'Komplain/Retur'
+  | DetailedOrderStatus;
 
 export interface OrderItem {
   productId: string;
@@ -187,8 +215,20 @@ export interface OrderItem {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  weightGram?: number;
   product?: Product;
   selectedVariation?: ProductVariation;
+}
+
+export interface OrderActivityLog {
+  id: string;
+  timestamp: string;
+  status: OrderStatus;
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  notes?: string;
 }
 
 export interface Order {
@@ -196,6 +236,7 @@ export interface Order {
   orderNumber: string;
   invoiceCode?: string;
   createdAt: string;
+  updatedAt?: string;
   customerId: string;
   customerName: string;
   customerEmail: string;
@@ -206,20 +247,36 @@ export interface Order {
   wholesaleDiscount: number;
   voucherDiscount: number;
   voucherCode?: string;
+  coinsDiscount?: number;
   shippingCost: number;
+  shippingDiscount?: number;
   tax: number;
   total: number;
   totalAmount?: number;
+  totalWeightGram?: number;
   status: OrderStatus;
+  detailedStatus?: DetailedOrderStatus;
   paymentMethod: string;
-  paymentStatus: 'Pending' | 'Paid' | 'Refunded' | 'Lunas' | 'Belum Lunas';
+  paymentMethodCategory?: string;
+  paymentStatus: 'Pending' | 'Paid' | 'Refunded' | 'Lunas' | 'Belum Lunas' | 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
   shippingAddress: Address;
   courierName?: string;
   courier?: string;
+  courierCode?: string;
+  shippingService?: string;
+  serviceCode?: string;
   trackingNumber?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  completedAt?: string;
   notes?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
   poNumber?: string;
   appliedTier?: string;
+  idempotencyKey?: string;
+  paymentTransactionId?: string;
+  activityLogs?: OrderActivityLog[];
 }
 
 export interface StockMovement {

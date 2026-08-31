@@ -10,9 +10,12 @@ import {
   Users, 
   Tag, 
   ShieldCheck, 
-  ArrowLeft 
+  ArrowLeft,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { exportSalesReportToExcel } from '../../utils/exportReport';
 
 export const AdminDashboardScreen: React.FC = () => {
   const { 
@@ -26,6 +29,15 @@ export const AdminDashboardScreen: React.FC = () => {
 
   const lowStockProducts = products.filter(p => p.stock <= p.minStockAlert);
   const recentOrders = orders.slice(0, 4);
+
+  const handleDownloadExcel = () => {
+    try {
+      exportSalesReportToExcel(orders, 'Laporan_Penjualan_AllKurma_Admin');
+      showToast('Laporan penjualan (.csv / Excel) berhasil diunduh!', 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Gagal mengunduh laporan', 'error');
+    }
+  };
 
   // Quick stats
   const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
@@ -51,13 +63,24 @@ export const AdminDashboardScreen: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setCurrentView('admin-add-product')}
-          className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-xs"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>+ Produk</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadExcel}
+            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-xs"
+            title="Download Rekap Laporan Penjualan (.csv / Excel)"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tarik Excel</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentView('admin-add-product')}
+            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Produk</span>
+          </button>
+        </div>
       </div>
 
       {/* 1. Metric Cards Grid (Matching Screenshot 2 screen 4) */}

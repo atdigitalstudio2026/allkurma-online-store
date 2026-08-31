@@ -52,9 +52,9 @@ export const ShopeeNotificationModal: React.FC = () => {
     if (notif.type === 'order') {
       setCurrentView('my-orders');
     } else if (notif.type === 'finance') {
-      setCurrentView('shopee-coins');
+      setCurrentView('allkurma-games');
     } else if (notif.type === 'promo') {
-      setCurrentView('shopee-vouchers');
+      setCurrentView('allkurma-vouchers');
     }
   };
 

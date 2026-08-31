@@ -113,6 +113,24 @@ export const getCustomerOrdersFromFirestore = async (userId: string): Promise<Or
   }
 };
 
+export const getAllOrdersFromFirestore = async (): Promise<Order[]> => {
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    const list: Order[] = [];
+    querySnapshot.forEach((d) => {
+      list.push({ id: d.id, ...(d.data() as Omit<Order, 'id'>) });
+    });
+    return list;
+  } catch (error) {
+    console.warn('Firestore getAllOrders fallback:', error);
+    return [];
+  }
+};
+
 export const saveOrderToFirestore = async (order: Order): Promise<void> => {
   try {
     await setDoc(doc(db, 'orders', order.id), {
@@ -121,5 +139,46 @@ export const saveOrderToFirestore = async (order: Order): Promise<void> => {
     }, { merge: true });
   } catch (error) {
     console.warn('Firestore saveOrder fallback:', error);
+  }
+};
+
+export const updateOrderStatusInFirestore = async (
+  orderId: string, 
+  updates: Partial<Order>
+): Promise<void> => {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Firestore updateOrderStatus fallback:', error);
+  }
+};
+
+// Cart per User
+export const getUserCartFromFirestore = async (userId: string): Promise<any[]> => {
+  try {
+    const cartDoc = await getDoc(doc(db, 'carts', userId));
+    if (cartDoc.exists()) {
+      return cartDoc.data().items || [];
+    }
+    return [];
+  } catch (error) {
+    console.warn('Firestore getUserCart fallback:', error);
+    return [];
+  }
+};
+
+export const saveUserCartToFirestore = async (userId: string, items: any[]): Promise<void> => {
+  try {
+    await setDoc(doc(db, 'carts', userId), {
+      userId,
+      items,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    console.warn('Firestore saveUserCart fallback:', error);
   }
 };

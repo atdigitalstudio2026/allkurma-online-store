@@ -14,7 +14,8 @@ import {
   Truck,
   ShieldCheck,
   Coins,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CheckoutModal } from './CheckoutModal';
@@ -30,13 +31,35 @@ export const CartScreen: React.FC = () => {
     removeVoucher, 
     setCurrentView,
     shopeeCoins,
-    isUsingCoins,
-    setIsUsingCoins
+    useCoinsInCheckout,
+    setUseCoinsInCheckout,
+    showToast
   } = useApp();
 
   const [voucherInput, setVoucherInput] = useState('');
   const [isVoucherSectionOpen, setIsVoucherSectionOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+
+  // Selection state for cart items (defaults to all selected)
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>(() => 
+    cart.map(c => `${c.product.id}-${c.selectedVariation?.id || 'def'}`)
+  );
+
+  const toggleItemSelect = (idKey: string) => {
+    setSelectedItemIds(prev =>
+      prev.includes(idKey) ? prev.filter(id => id !== idKey) : [...prev, idKey]
+    );
+  };
+
+  const isAllSelected = cart.length > 0 && selectedItemIds.length === cart.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedItemIds([]);
+    } else {
+      setSelectedItemIds(cart.map(c => `${c.product.id}-${c.selectedVariation?.id || 'def'}`));
+    }
+  };
 
   const handleApplyVoucher = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +68,25 @@ export const CartScreen: React.FC = () => {
       setVoucherInput('');
     }
   };
+
+  // Filter selected items
+  const selectedCartItems = cart.filter(c => 
+    selectedItemIds.includes(`${c.product.id}-${c.selectedVariation?.id || 'def'}`)
+  );
+
+  const selectedCount = selectedCartItems.reduce((acc, it) => acc + it.quantity, 0);
+
+  const selectedSubtotal = selectedCartItems.reduce((acc, it) => {
+    const basePrice = it.selectedVariation
+      ? (it.selectedVariation.discountPrice || it.selectedVariation.regularPrice)
+      : (it.product.discountPrice || it.product.regularPrice);
+    return acc + (basePrice * it.quantity);
+  }, 0);
+
+  const selectedWeightKg = (selectedCartItems.reduce((acc, it) => {
+    const unitWeight = it.selectedVariation?.weightGram || it.product.weightGram || 500;
+    return acc + (unitWeight * it.quantity);
+  }, 0) / 1000).toFixed(2);
 
   return (
     <div className="pb-36 max-w-lg mx-auto bg-stone-50 min-h-screen">
@@ -79,32 +121,54 @@ export const CartScreen: React.FC = () => {
             Keranjang Anda Kosong
           </h2>
           <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-            Jelajahi koleksi kurma berkualitas impor dan produk organik pilihan kami.
+            Jelajahi koleksi kurma premium impor terlengkap dari Timur Tengah dan Madinah.
           </p>
           <button
             onClick={() => setCurrentView('catalog')}
-            className="mt-6 px-6 py-2.5 bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="mt-6 px-6 py-2.5 bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
           >
             Mulai Belanja Sekarang
           </button>
         </div>
       ) : (
         <>
-          {/* 1. Wholesale Tier Announcement Banner */}
-          <div className="p-4">
-            <div className="p-3 bg-amber-100/70 border border-amber-300/80 rounded-xl flex items-center gap-2.5 text-xs text-amber-950">
+          {/* Wholesale and Free Shipping Banner */}
+          <div className="p-4 space-y-2">
+            <div className="p-3 bg-amber-100/80 border border-amber-300 rounded-xl flex items-center gap-2.5 text-xs text-amber-950 shadow-xs">
               <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
               <span className="font-medium">
                 {cartTotals.wholesaleDiscount > 0 
-                  ? `Selamat! Diskon Grosir hemat Rp ${cartTotals.wholesaleDiscount.toLocaleString('id-ID')} otomatis diterapkan.`
-                  : 'Tambah produk atau kuantitas untuk mendapatkan harga grosir spesial!'}
+                  ? `Diskon Grosir hemat Rp ${cartTotals.wholesaleDiscount.toLocaleString('id-ID')} aktif!`
+                  : 'Gratis Ongkir hingga Rp 20.000 untuk transaksi di atas Rp 250.000!'}
+              </span>
+            </div>
+
+            {/* Select All Bar */}
+            <div className="bg-white rounded-xl border border-stone-200 px-3.5 py-2.5 flex items-center justify-between text-xs">
+              <label className="flex items-center gap-2 font-bold text-stone-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 text-amber-800 rounded-sm focus:ring-amber-800"
+                />
+                <span>Pilih Semua ({cart.length} Produk)</span>
+              </label>
+
+              <span className="text-stone-500 text-[11px]">
+                Total Berat: <strong className="text-stone-900 font-mono">{selectedWeightKg} kg</strong>
               </span>
             </div>
           </div>
 
-          {/* 2. Items List */}
+          {/* Items List */}
           <div className="px-4 space-y-3">
             {cart.map(({ product, selectedVariation, quantity }) => {
+              const itemKey = `${product.id}-${selectedVariation?.id || 'def'}`;
+              const isChecked = selectedItemIds.includes(itemKey);
+              const maxStock = selectedVariation ? selectedVariation.stock : product.stock;
+              const isOutOfStock = maxStock <= 0;
+
               const basePrice = selectedVariation
                 ? (selectedVariation.discountPrice || selectedVariation.regularPrice)
                 : (product.discountPrice || product.regularPrice);
@@ -112,9 +176,20 @@ export const CartScreen: React.FC = () => {
 
               return (
                 <div
-                  key={`${product.id}-${selectedVariation?.id || 'def'}`}
-                  className="bg-white rounded-2xl border border-stone-200 p-3 shadow-xs flex items-center gap-3"
+                  key={itemKey}
+                  className={`bg-white rounded-2xl border p-3 shadow-xs flex items-center gap-3 transition-all ${
+                    isChecked ? 'border-amber-300' : 'border-stone-200 opacity-80'
+                  }`}
                 >
+                  {/* Select checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={isOutOfStock}
+                    onChange={() => toggleItemSelect(itemKey)}
+                    className="w-4 h-4 text-amber-800 rounded-sm focus:ring-amber-800 shrink-0"
+                  />
+
                   {/* Image */}
                   <img
                     src={product.images[0]}
@@ -137,14 +212,18 @@ export const CartScreen: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Variation Pill */}
-                    <div className="flex items-center gap-1.5 mt-1">
+                    {/* Variation Pill & Weight */}
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       <span className="text-[10px] text-amber-950 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-200">
                         {selectedVariation ? selectedVariation.name : `${product.weightGram}g Pack`}
                       </span>
-                      {product.wholesalePrices && product.wholesalePrices.length > 0 && (
-                        <span className="text-[9px] font-bold bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded-md">
-                          Grosir Ready
+                      <span className="text-[10px] text-stone-500 font-mono">
+                        {selectedVariation?.weightGram || product.weightGram}g
+                      </span>
+                      {isOutOfStock && (
+                        <span className="text-[9px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                          <AlertCircle className="w-2.5 h-2.5" />
+                          Stok Habis
                         </span>
                       )}
                     </div>
@@ -166,7 +245,13 @@ export const CartScreen: React.FC = () => {
                           {quantity}
                         </span>
                         <button
-                          onClick={() => updateCartQuantity(product.id, quantity + 1, selectedVariation?.id)}
+                          onClick={() => {
+                            if (quantity >= maxStock) {
+                              showToast(`Stok maksimal tersedia: ${maxStock} pcs`, 'error');
+                              return;
+                            }
+                            updateCartQuantity(product.id, quantity + 1, selectedVariation?.id);
+                          }}
                           className="p-1 px-2 text-stone-600 hover:bg-stone-200 active:scale-95 transition-all"
                         >
                           <Plus className="w-3 h-3" />
@@ -179,183 +264,102 @@ export const CartScreen: React.FC = () => {
             })}
           </div>
 
-          {/* 3. Shopee Coins Redemption Checkbox Toggle */}
-          <div className="p-4 pt-3">
-            <div className="bg-white rounded-2xl border border-stone-200 p-3.5 shadow-xs flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                  <Coins className="w-4 h-4 text-amber-600" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h4 className="text-xs font-bold text-stone-900">Tukarkan Koin Shopee</h4>
-                    <span className="text-[9px] bg-amber-500 text-black px-1.5 py-0.2 rounded-xs font-black">
-                      HEMAT
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500">
-                    Saldo: <b className="text-amber-900">{shopeeCoins.toLocaleString('id-ID')} Koin</b> (Maks. potong 25%)
-                  </p>
-                </div>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={isUsingCoins} 
-                  onChange={(e) => setIsUsingCoins(e.target.checked)} 
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-stone-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-              </label>
-            </div>
-          </div>
-
-          {/* 4. Voucher Accordion & Quick Claim */}
-          <div className="px-4 pb-1">
-            <div className="bg-white rounded-2xl border border-stone-200 p-3.5 shadow-xs">
-              <button
+          {/* Voucher & Loyalty Options */}
+          <div className="p-4 space-y-3">
+            {/* Voucher Box */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-3 shadow-xs space-y-2">
+              <div
                 onClick={() => setIsVoucherSectionOpen(!isVoucherSectionOpen)}
-                className="w-full flex items-center justify-between text-xs font-bold text-stone-800"
+                className="flex items-center justify-between cursor-pointer text-xs"
               >
                 <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-red-600" />
-                  <span>
-                    {appliedVoucher ? `Voucher Aktif: ${appliedVoucher.code}` : 'Voucher Shopee & Toko'}
+                  <Tag className="w-4 h-4 text-amber-800" />
+                  <span className="font-bold text-stone-800">
+                    {appliedVoucher ? `Voucher: ${appliedVoucher.code}` : 'Gunakan / Masukkan Kode Voucher'}
                   </span>
                 </div>
-                <span className="text-amber-800 text-xs font-semibold flex items-center gap-0.5">
-                  {isVoucherSectionOpen ? 'Tutup' : 'Pilih Voucher >'}
-                </span>
-              </button>
+                <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${isVoucherSectionOpen ? 'rotate-90' : ''}`} />
+              </div>
 
               {isVoucherSectionOpen && (
-                <div className="mt-3 pt-3 border-t border-stone-100 space-y-2.5 animate-in fade-in">
-                  {appliedVoucher ? (
-                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
-                      <div>
-                        <span className="font-bold text-emerald-900 block">{appliedVoucher.code}</span>
-                        <span className="text-[10px] text-emerald-700">{appliedVoucher.description}</span>
-                      </div>
-                      <button
-                        onClick={removeVoucher}
-                        className="text-xs text-red-600 font-bold hover:underline"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleApplyVoucher} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Contoh: ONGKIR0 / LIVE35K"
-                        value={voucherInput}
-                        onChange={(e) => setVoucherInput(e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs bg-stone-50 border border-stone-200 rounded-xl uppercase tracking-wider font-mono font-bold"
-                      />
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
-                      >
-                        Pasang
-                      </button>
-                    </form>
-                  )}
+                <form onSubmit={handleApplyVoucher} className="pt-2 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Contoh: BERKAHRAMADHAN / KURMA10"
+                    value={voucherInput}
+                    onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                    className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-800 text-white rounded-xl text-xs font-bold hover:bg-amber-900"
+                  >
+                    Pakai
+                  </button>
+                </form>
+              )}
 
-                  {/* Voucher Links */}
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentView('shopee-vouchers')}
-                      className="text-[11px] text-amber-800 font-bold flex items-center gap-1 hover:underline"
-                    >
-                      <span>Lihat Semua Voucher Toko</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
+              {appliedVoucher && (
+                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs text-emerald-900">
+                  <span>Diskon Voucher: <strong>-Rp {cartTotals.voucherDiscount.toLocaleString('id-ID')}</strong></span>
+                  <button onClick={removeVoucher} className="text-xs font-bold text-red-600">Hapus</button>
+                </div>
+              )}
+            </div>
+
+            {/* Coins Redemption Box */}
+            {shopeeCoins > 0 && (
+              <div className="bg-white rounded-2xl border border-stone-200 p-3 shadow-xs flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-amber-600" />
+                  <div>
+                    <span className="font-bold text-stone-800 block">Tukarkan Koin Kurma</span>
+                    <span className="text-[10px] text-stone-500">Saldo: {shopeeCoins.toLocaleString('id-ID')} Koin</span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* 5. Ringkasan Belanja */}
-          <div className="px-4 mt-3">
-            <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-2 text-xs">
-              <h3 className="font-bold text-stone-900 text-xs tracking-tight border-b border-stone-100 pb-2">
-                Rincian Pembayaran
-              </h3>
-
-              <div className="flex items-center justify-between text-stone-600">
-                <span>Subtotal ({cartTotals.totalItems} Barang)</span>
-                <span className="font-semibold text-stone-900 font-mono">
-                  Rp {cartTotals.subtotal.toLocaleString('id-ID')}
-                </span>
+                <label className="flex items-center gap-1.5 cursor-pointer font-bold text-amber-900">
+                  <input
+                    type="checkbox"
+                    checked={useCoinsInCheckout}
+                    onChange={(e) => setUseCoinsInCheckout(e.target.checked)}
+                    className="w-4 h-4 text-amber-800 rounded-sm focus:ring-amber-800"
+                  />
+                  <span>Gunakan</span>
+                </label>
               </div>
-
-              {cartTotals.wholesaleDiscount > 0 && (
-                <div className="flex items-center justify-between text-emerald-700">
-                  <span className="flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>Diskon Grosir Volume</span>
-                  </span>
-                  <span className="font-bold font-mono">
-                    -Rp {cartTotals.wholesaleDiscount.toLocaleString('id-ID')}
-                  </span>
-                </div>
-              )}
-
-              {cartTotals.voucherDiscount > 0 && (
-                <div className="flex items-center justify-between text-emerald-700">
-                  <span>Diskon Voucher ({appliedVoucher?.code})</span>
-                  <span className="font-bold font-mono">
-                    -Rp {cartTotals.voucherDiscount.toLocaleString('id-ID')}
-                  </span>
-                </div>
-              )}
-
-              {cartTotals.coinsDiscount > 0 && (
-                <div className="flex items-center justify-between text-amber-800">
-                  <span className="flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Koin Shopee Digunakan</span>
-                  </span>
-                  <span className="font-bold font-mono">
-                    -Rp {cartTotals.coinsDiscount.toLocaleString('id-ID')}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-stone-600">
-                <span>Pengiriman</span>
-                <span className="text-[11px] font-bold text-emerald-700">
-                  {cartTotals.shippingCost === 0 ? 'GRATIS ONGKIR XTRA' : `Rp ${cartTotals.shippingCost.toLocaleString('id-ID')}`}
-                </span>
+            )}
+            {/* Notice Kurir & Pengiriman */}
+            <div className="bg-gradient-to-r from-amber-50 to-emerald-50 rounded-2xl border border-amber-200/80 p-3 shadow-xs flex items-center gap-2.5 text-xs">
+              <div className="w-8 h-8 rounded-xl bg-amber-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Truck className="w-4 h-4" />
               </div>
-
-              <div className="border-t border-stone-200 pt-2.5 flex items-center justify-between font-bold text-sm text-stone-900">
-                <span className="font-['Playfair_Display',serif]">Total Tagihan</span>
-                <span className="text-base font-black text-amber-950 font-mono">
-                  Rp {cartTotals.total.toLocaleString('id-ID')}
-                </span>
+              <div className="flex-1 min-w-0">
+                <span className="font-bold text-amber-950 block">Pilihan Kurir & Ongkir Tersedia</span>
+                <p className="text-[11px] text-stone-600">
+                  Pengiriman Toko, Pickup Toko (Gratis Rp0), JNE, J&T, SiCepat, dll. dipilih di halaman Checkout selanjutnya.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* 6. Fixed Checkout Button */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 p-3 shadow-xl">
-            <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
-              <div className="text-left">
-                <span className="text-[10px] text-stone-500 block">Total Pembayaran</span>
-                <span className="text-base font-black text-amber-950 font-mono">
-                  Rp {cartTotals.total.toLocaleString('id-ID')}
+          {/* Sticky Bottom Checkout Action */}
+          <div className="fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 p-4 shadow-lg max-w-lg mx-auto">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] text-stone-500 block">Total ({selectedCount} Produk)</span>
+                <span className="font-black text-base text-amber-950 font-mono">
+                  Rp {selectedSubtotal.toLocaleString('id-ID')}
                 </span>
               </div>
 
               <button
+                disabled={selectedCartItems.length === 0}
                 onClick={() => setIsCheckoutModalOpen(true)}
-                className="flex-1 py-3 bg-amber-800 hover:bg-amber-900 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                className="flex-1 py-3 bg-amber-800 hover:bg-amber-900 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
-                <span>Checkout ({cartTotals.totalItems})</span>
+                <Truck className="w-4 h-4" />
+                <span>Pilih Kurir & Checkout ({selectedCount})</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -363,11 +367,10 @@ export const CartScreen: React.FC = () => {
         </>
       )}
 
-      {/* Checkout Modal Flow */}
+      {/* Checkout Modal Dialog */}
       {isCheckoutModalOpen && (
         <CheckoutModal onClose={() => setIsCheckoutModalOpen(false)} />
       )}
-
     </div>
   );
 };

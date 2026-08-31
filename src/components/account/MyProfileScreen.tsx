@@ -161,7 +161,7 @@ export const MyProfileScreen: React.FC = () => {
         {/* 2 Quick Navigation Bars: Vouchers & Wishlist */}
         <div className="grid grid-cols-2 gap-2 mt-2">
           <button
-            onClick={() => setCurrentView('shopee-vouchers')}
+            onClick={() => setCurrentView('allkurma-vouchers')}
             className="bg-white/5 hover:bg-white/10 p-2 rounded-xl text-center border border-white/5 transition-all cursor-pointer"
           >
             <div className="flex items-center justify-center gap-1 text-red-400">
@@ -326,7 +326,7 @@ export const MyProfileScreen: React.FC = () => {
         <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs divide-y divide-stone-100">
           
           <button
-            onClick={() => setCurrentView('shopee-vouchers')}
+            onClick={() => setCurrentView('allkurma-vouchers')}
             className="w-full p-3.5 flex items-center justify-between hover:bg-stone-50 transition-colors text-left cursor-pointer"
           >
             <div className="flex items-center gap-3">

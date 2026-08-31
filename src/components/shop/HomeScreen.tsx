@@ -558,7 +558,7 @@ export const HomeScreen: React.FC = () => {
         {/* Quick Points & Wallet Summary Bar */}
         <div className="flex items-center justify-between bg-gradient-to-r from-blue-50/80 via-emerald-50/80 to-blue-50/80 border border-blue-100 rounded-xl px-3 py-1.5 text-[11px]">
           <div 
-            onClick={() => setCurrentView('shopee-games')}
+            onClick={() => setCurrentView('allkurma-games')}
             className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
           >
             <div className="w-5 h-5 rounded-full bg-amber-500 text-stone-900 flex items-center justify-center font-bold text-[9px] shadow-2xs">
@@ -768,7 +768,7 @@ export const HomeScreen: React.FC = () => {
 
           {/* 2. Voucher & Diskon */}
           <button
-            onClick={() => setCurrentView('shopee-vouchers')}
+            onClick={() => setCurrentView('allkurma-vouchers')}
             className="flex flex-col items-center p-2 bg-white hover:bg-red-50/50 rounded-2xl border border-stone-200 shadow-2xs group transition-all cursor-pointer"
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">

@@ -345,7 +345,7 @@ export const ShopeeCoinsGameScreen: React.FC = () => {
               </div>
             </div>
             <button 
-              onClick={() => setCurrentView('shopee-vouchers')}
+              onClick={() => setCurrentView('allkurma-vouchers')}
               className="text-[11px] text-amber-800 font-bold flex items-center gap-0.5"
             >
               <span>Semua Voucher</span>

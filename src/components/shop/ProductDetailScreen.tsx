@@ -271,15 +271,15 @@ export const ProductDetailScreen: React.FC = () => {
           <div className="flex items-center gap-2 text-stone-700 pt-1.5 border-t border-stone-200/60">
             <Coins className="w-4 h-4 text-amber-600 shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="font-bold text-stone-900">Cashback & Koin Shopee</span>
-              <p className="text-[11px] text-stone-500">Dapatkan hingga 15.000 Koin Shopee untuk pesanan ini</p>
+              <span className="font-bold text-stone-900">Cashback & Koin AllKurma</span>
+              <p className="text-[11px] text-stone-500">Dapatkan hingga 15.000 Koin AllKurma untuk pesanan ini</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-stone-700 pt-1.5 border-t border-stone-200/60">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="font-bold text-stone-900">Shopee Garansi Tepat Waktu</span>
+              <span className="font-bold text-stone-900">Garansi Resmi AllKurma Segar & Asli</span>
               <p className="text-[11px] text-stone-500">Jaminan uang kembali 100% jika produk tidak original</p>
             </div>
           </div>

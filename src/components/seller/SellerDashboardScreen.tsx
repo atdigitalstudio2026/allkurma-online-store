@@ -36,10 +36,12 @@ import {
   FileText,
   Lock,
   LogIn,
-  ArrowLeft
+  ArrowLeft,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher } from '../../types';
+import { exportSalesReportToExcel } from '../../utils/exportReport';
 
 export const SellerDashboardScreen: React.FC = () => {
   const {
@@ -62,6 +64,7 @@ export const SellerDashboardScreen: React.FC = () => {
     setCurrentView,
     setSelectedProductId,
     showToast,
+    loginSeller,
     setIsAuthModalOpen,
     setAuthModalMode
   } = useApp();
@@ -178,6 +181,17 @@ export const SellerDashboardScreen: React.FC = () => {
     }
   };
 
+  // Handle Export Sales Report to Excel
+  const handleExportSellerOrders = () => {
+    try {
+      const dataToExport = filteredOrders.length > 0 ? filteredOrders : orders;
+      exportSalesReportToExcel(dataToExport, `Laporan_Penjualan_${sellerStore.storeName.replace(/\s+/g, '_')}`);
+      showToast(`Berhasil mengekspor ${dataToExport.length} pesanan ke Excel (.csv)!`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Gagal mengekspor laporan', 'error');
+    }
+  };
+
   // Quick stats calculation
   const totalRevenue = orders
     .filter(o => o.status === 'Selesai' || o.paymentStatus === 'Paid')
@@ -192,8 +206,8 @@ export const SellerDashboardScreen: React.FC = () => {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4 bg-stone-100 font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-amber-200 shadow-xl text-center space-y-5">
-          <div className="w-16 h-16 bg-amber-100 text-amber-900 rounded-3xl mx-auto flex items-center justify-center shadow-inner">
-            <Lock className="w-8 h-8 text-amber-800" />
+          <div className="w-16 h-16 bg-amber-100 text-[#1E3A8A] rounded-3xl mx-auto flex items-center justify-center shadow-inner">
+            <Store className="w-8 h-8 text-[#1E3A8A]" />
           </div>
 
           <div className="space-y-2">
@@ -201,7 +215,7 @@ export const SellerDashboardScreen: React.FC = () => {
               Akses Khusus Toko Seller
             </h2>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Anda saat ini sedang login dengan akun <strong className="text-amber-900">{user.email}</strong> ({user.name}) sebagai <strong>Pelanggan (Customer)</strong>.
+              Anda saat ini sedang login dengan akun <strong className="text-[#1E3A8A]">{user.email}</strong> ({user.name}) sebagai <strong>Pelanggan (Customer)</strong>.
             </p>
             <p className="text-xs text-stone-600 bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 leading-relaxed text-left">
               🔒 <strong>Pemisahan Akses Pelanggan & Seller:</strong> Dashboard Pengaturan Toko Seller dan manajemen produk/pesanan hanya dapat diakses oleh akun Seller resmi AllKurma.
@@ -210,19 +224,35 @@ export const SellerDashboardScreen: React.FC = () => {
 
           <div className="space-y-2.5 pt-2">
             <button
-              onClick={() => {
-                setAuthModalMode('seller_login');
-                setIsAuthModalOpen(true);
-              }}
-              className="w-full py-3 bg-amber-800 hover:bg-amber-900 active:scale-95 text-white font-bold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              onClick={() => setCurrentView('seller-login')}
+              className="w-full py-3 bg-[#1E3A8A] hover:bg-[#172554] active:scale-95 text-white font-bold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               <span>Masuk dengan Akun Seller Toko</span>
             </button>
 
             <button
+              onClick={() => {
+                loginSeller('seller@allkurma.id');
+                showToast('Login Demo Toko Official Berhasil!', 'success');
+              }}
+              className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 active:scale-95 text-[#009A44] font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>Masuk Instan (Demo Toko Official)</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('seller-register')}
+              className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>Daftar / Buka Toko Seller Baru</span>
+            </button>
+
+            <button
               onClick={() => setCurrentView('home')}
-              className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 active:scale-95 text-stone-700 font-semibold rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2 text-stone-500 hover:text-stone-800 text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Kembali ke Beranda Belanja</span>
@@ -460,6 +490,14 @@ export const SellerDashboardScreen: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={handleExportSellerOrders}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                    title="Download Rekap Laporan Penjualan Toko ke Excel (.csv)"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Tarik Laporan Excel</span>
+                  </button>
                   <button
                     onClick={() => setIsAddProductOpen(true)}
                     className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
@@ -901,21 +939,32 @@ export const SellerDashboardScreen: React.FC = () => {
         {/* 3. TAB: PESANAN TOKO (ORDERS) */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {/* Filter Tabs */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-3 shadow-2xs flex items-center gap-2 overflow-x-auto">
-              {(['All', 'Perlu Diproses', 'Dikirim', 'Selesai', 'Retur'] as const).map(status => (
-                <button
-                  key={status}
-                  onClick={() => setOrderStatusFilter(status)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-                    orderStatusFilter === status
-                      ? 'bg-stone-900 text-white'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                  }`}
-                >
-                  {status} ({orders.filter(o => status === 'All' ? true : status === 'Perlu Diproses' ? (o.status === 'Belum Bayar' || o.status === 'Diproses') : o.status === status).length})
-                </button>
-              ))}
+            {/* Filter Tabs & Export Button */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {(['All', 'Perlu Diproses', 'Dikirim', 'Selesai', 'Retur'] as const).map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setOrderStatusFilter(status)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
+                      orderStatusFilter === status
+                        ? 'bg-stone-900 text-white'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                    }`}
+                  >
+                    {status} ({orders.filter(o => status === 'All' ? true : status === 'Perlu Diproses' ? (o.status === 'Belum Bayar' || o.status === 'Diproses') : o.status === status).length})
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleExportSellerOrders}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition-colors shrink-0 self-end sm:self-auto cursor-pointer"
+                title="Download Laporan Pesanan Ini ke Excel (.csv)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Unduh Excel ({filteredOrders.length})</span>
+              </button>
             </div>
 
             {/* Orders List */}

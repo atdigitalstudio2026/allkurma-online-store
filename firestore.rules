@@ -44,6 +44,11 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Carts Collection (User-scoped Shopping Cart)
+    match /carts/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
     // Orders Collection
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (resource.data.customerId == request.auth.uid || isAdmin() || isSeller());

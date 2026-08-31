@@ -74,6 +74,9 @@ export type AppView =
   | 'my-profile'
   | 'account-settings'
   | 'address-book'
+  | 'allkurma-games'
+  | 'allkurma-vouchers'
+  | 'allkurma-wallet'
   | 'shopee-games'
   | 'shopee-vouchers'
   | 'shopee-wallet'
@@ -87,6 +90,8 @@ export type AppView =
   | 'seller-vouchers'
   | 'seller-finances'
   | 'seller-reviews'
+  | 'seller-login'
+  | 'seller-register'
   | 'customer-login'
   | 'customer-register'
   | 'customer-forgot-password'
@@ -1150,17 +1155,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     } catch {}
 
-    showToast(`Berhasil check-in Hari ke-${nextStreak}! +${coinsWon} Koin Shopee ditambahkan!`, 'success');
+    showToast(`Berhasil check-in Hari ke-${nextStreak}! +${coinsWon} Koin AllKurma ditambahkan!`, 'success');
     return true;
   };
 
   const spinWheel = (): { prizeName: string; coins?: number; voucherCode?: string } => {
     const prizes = [
-      { prizeName: '500 Koin Shopee', coins: 500 },
+      { prizeName: '500 Koin AllKurma', coins: 500 },
       { prizeName: 'Voucher Diskon Rp 30.000', voucherCode: 'KURMA30K' },
-      { prizeName: '1.000 Koin Shopee', coins: 1000 },
+      { prizeName: '1.000 Koin AllKurma', coins: 1000 },
       { prizeName: 'Gratis Ongkir XTRA', voucherCode: 'ONGKIR0' },
-      { prizeName: '2.500 Koin Shopee', coins: 2500 },
+      { prizeName: '2.500 Koin AllKurma', coins: 2500 },
       { prizeName: 'Voucher Cashback 50%', voucherCode: 'CASHBACK50' }
     ];
     const picked = prizes[Math.floor(Math.random() * prizes.length)];
@@ -1188,7 +1193,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (nextLevel >= 100) {
         harvested = true;
         setShopeeCoins(c => c + 500);
-        showToast('Pohon Koin Panen! +500 Koin Shopee masuk ke saldo Anda!', 'success');
+        showToast('Pohon Koin Panen! +500 Koin AllKurma masuk ke saldo Anda!', 'success');
         try {
           confetti({
             particleCount: 90,

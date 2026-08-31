@@ -8,6 +8,8 @@ import { ToastContainer } from './components/common/ToastContainer';
 import { CustomerLoginScreen } from './auth/CustomerLoginScreen';
 import { CustomerRegisterScreen } from './auth/CustomerRegisterScreen';
 import { CustomerForgotPasswordScreen } from './auth/CustomerForgotPasswordScreen';
+import { SellerLoginScreen } from './auth/SellerLoginScreen';
+import { SellerRegisterScreen } from './auth/SellerRegisterScreen';
 import { AccessDeniedScreen } from './auth/AccessDeniedScreen';
 import { AuthGuard } from './auth/AuthGuard';
 
@@ -50,19 +52,24 @@ import { AdminStockScreen } from './components/admin/AdminStockScreen';
 import { AdminCustomersScreen } from './components/admin/AdminCustomersScreen';
 import { AdminPromotionsScreen } from './components/admin/AdminPromotionsScreen';
 import { AdminRolesScreen } from './components/admin/AdminRolesScreen';
+import { AdminSettingsScreen } from './components/admin/AdminSettingsScreen';
 
 export default function App() {
   const { currentView } = useApp();
 
   const renderCurrentView = () => {
     switch (currentView) {
-      // 1. Customer Authentication Suite
+      // 1. Customer & Seller Authentication Suite
       case 'customer-login':
         return <CustomerLoginScreen />;
       case 'customer-register':
         return <CustomerRegisterScreen />;
       case 'customer-forgot-password':
         return <CustomerForgotPasswordScreen />;
+      case 'seller-login':
+        return <SellerLoginScreen />;
+      case 'seller-register':
+        return <SellerRegisterScreen />;
       case 'customer-dashboard':
         return (
           <AuthGuard allowedRoles={['customer', 'wholesale_partner', 'seller', 'super_admin']}>
@@ -81,9 +88,11 @@ export default function App() {
         return <ProductDetailScreen />;
       case 'cart':
         return <CartScreen />;
+      case 'allkurma-games':
       case 'shopee-coins':
       case 'shopee-games':
         return <ShopeeCoinsGameScreen />;
+      case 'allkurma-vouchers':
       case 'shopee-vouchers':
         return <ShopeeClaimVouchersScreen />;
       case 'wishlist':
@@ -181,7 +190,7 @@ export default function App() {
       case 'admin-settings':
         return (
           <AuthGuard allowedRoles={['super_admin']} targetModuleName="Admin Konfigurasi Sistem">
-            <AccountSettingsScreen />
+            <AdminSettingsScreen />
           </AuthGuard>
         );
 
@@ -190,7 +199,13 @@ export default function App() {
     }
   };
 
-  const isStandaloneAuthView = ['customer-login', 'customer-register', 'customer-forgot-password'].includes(currentView);
+  const isStandaloneAuthView = [
+    'customer-login', 
+    'customer-register', 
+    'customer-forgot-password',
+    'seller-login',
+    'seller-register'
+  ].includes(currentView);
   const isAdminView = currentView.startsWith('admin-');
 
   return (

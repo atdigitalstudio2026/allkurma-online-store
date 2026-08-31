@@ -12,7 +12,7 @@ export const BottomNav: React.FC = () => {
 
   const isHomeActive = currentView === 'home';
   const isCatalogActive = ['catalog', 'product-detail', 'wishlist'].includes(currentView);
-  const isVouchersActive = currentView === 'shopee-vouchers';
+  const isVouchersActive = currentView === 'allkurma-vouchers' || currentView === 'shopee-vouchers';
   const isCartActive = currentView === 'cart';
   const isAccountActive = [
     'my-profile', 'customer-dashboard', 'customer-login', 'customer-register', 'customer-forgot-password',
@@ -54,7 +54,7 @@ export const BottomNav: React.FC = () => {
 
         {/* 3. Voucher */}
         <button
-          onClick={() => setCurrentView('shopee-vouchers')}
+          onClick={() => setCurrentView('allkurma-vouchers')}
           className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
             isVouchersActive ? 'text-[#009A44] font-bold' : 'text-slate-500 hover:text-slate-800'
           }`}

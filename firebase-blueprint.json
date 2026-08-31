@@ -43,6 +43,17 @@
       },
       "required": ["id", "userId", "recipientName", "phone", "fullAddress", "city"]
     },
+    "Cart": {
+      "title": "Cart",
+      "description": "User shopping cart state for cross-device persistence.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "items"]
+    },
     "Order": {
       "title": "Order",
       "description": "Customer purchase order.",
@@ -77,6 +88,10 @@
     "addresses": {
       "schema": "CustomerAddress",
       "description": "Stores user shipping addresses."
+    },
+    "carts": {
+      "schema": "Cart",
+      "description": "Stores user specific shopping carts."
     },
     "orders": {
       "schema": "Order",

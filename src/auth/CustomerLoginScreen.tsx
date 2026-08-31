@@ -323,13 +323,10 @@ export const CustomerLoginScreen: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  loginSeller('seller@allkurma.id');
-                  setCurrentView('seller-dashboard');
-                }}
+                onClick={() => setCurrentView('seller-login')}
                 className="font-bold text-[#1E3A8A] hover:text-[#009A44] hover:underline cursor-pointer transition-colors"
               >
-                Portal Seller →
+                Masuk Seller Center →
               </button>
             </div>
 

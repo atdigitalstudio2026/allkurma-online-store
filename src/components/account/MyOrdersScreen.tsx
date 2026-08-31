@@ -5,48 +5,86 @@ import {
   Truck, 
   Repeat, 
   RotateCcw, 
-  X
+  X,
+  CreditCard,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  AlertTriangle,
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
+import { shippingService } from '../../services/shippingService';
 
 export const MyOrdersScreen: React.FC = () => {
-  const { orders, products, setCurrentView, addToCart, showToast } = useApp();
+  const { orders, updateOrderStatus, products, setCurrentView, addToCart, showToast } = useApp();
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>('all');
+  
+  // Tracking Modal State
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
-  const [isRmaModalOpen, setIsRmaModalOpen] = useState(false);
-  const [rmaReason, setRmaReason] = useState('');
-  const [rmaOrder, setRmaOrder] = useState<Order | null>(null);
+
+  // Cancellation Modal State
+  const [cancelModalOrder, setCancelModalOrder] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState('Ingin mengubah pesanan/alamat');
+
+  // Pay Now Modal State
+  const [payNowOrder, setPayNowOrder] = useState<Order | null>(null);
 
   const tabs = [
     { id: 'all', label: 'Semua' },
     { id: 'Belum Bayar', label: 'Belum Bayar' },
-    { id: 'Diproses', label: 'Diproses' },
+    { id: 'Diproses', label: 'Dikemas' },
     { id: 'Dikirim', label: 'Dikirim' },
     { id: 'Selesai', label: 'Selesai' },
+    { id: 'Dibatalkan', label: 'Dibatalkan' },
   ];
 
   const filteredOrders = orders.filter(o => {
     if (selectedStatusTab === 'all') return true;
+    if (selectedStatusTab === 'Diproses') {
+      return o.status === 'Diproses' || o.status === 'Dikemas' || o.status === 'PROCESSING' || o.status === 'PACKED';
+    }
+    if (selectedStatusTab === 'Belum Bayar') {
+      return o.status === 'Belum Bayar' || o.status === 'Belum Dibayar' || o.status === 'PENDING_PAYMENT';
+    }
+    if (selectedStatusTab === 'Dikirim') {
+      return o.status === 'Dikirim' || o.status === 'SHIPPED' || o.status === 'DELIVERED';
+    }
+    if (selectedStatusTab === 'Selesai') {
+      return o.status === 'Selesai' || o.status === 'COMPLETED';
+    }
+    if (selectedStatusTab === 'Dibatalkan') {
+      return o.status === 'Dibatalkan' || o.status === 'CANCELLED';
+    }
     return o.status === selectedStatusTab;
   });
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'Belum Bayar':
-        return <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">Belum Bayar</span>;
+      case 'Belum Dibayar':
+      case 'PENDING_PAYMENT':
+        return <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 text-[10px] font-extrabold rounded-full">Menunggu Pembayaran</span>;
       case 'Diproses':
-        return <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-full">Diproses</span>;
+      case 'Dikemas':
+      case 'PAYMENT_CONFIRMED':
+      case 'PROCESSING':
+      case 'PACKED':
+        return <span className="px-2.5 py-0.5 bg-blue-100 text-blue-900 text-[10px] font-extrabold rounded-full">Sedang Dikemas</span>;
       case 'Dikirim':
-        return <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">Dalam Pengiriman</span>;
+      case 'SHIPPED':
+      case 'DELIVERED':
+        return <span className="px-2.5 py-0.5 bg-purple-100 text-purple-900 text-[10px] font-extrabold rounded-full">Dalam Pengiriman</span>;
       case 'Selesai':
-        return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">Selesai</span>;
+      case 'COMPLETED':
+        return <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-extrabold rounded-full">Selesai</span>;
       case 'Dibatalkan':
-        return <span className="px-2 py-0.5 bg-red-100 text-red-800 text-[10px] font-bold rounded-full">Dibatalkan</span>;
-      case 'Retur':
-        return <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-bold rounded-full">Retur / RMA</span>;
+      case 'CANCELLED':
+        return <span className="px-2.5 py-0.5 bg-red-100 text-red-900 text-[10px] font-extrabold rounded-full">Dibatalkan</span>;
       default:
-        return <span className="px-2 py-0.5 bg-stone-100 text-stone-700 text-[10px] font-bold rounded-full">{status}</span>;
+        return <span className="px-2.5 py-0.5 bg-stone-100 text-stone-700 text-[10px] font-bold rounded-full">{status}</span>;
     }
   };
 
@@ -61,18 +99,30 @@ export const MyOrdersScreen: React.FC = () => {
     setCurrentView('cart');
   };
 
-  const handleRmaSubmit = (e: React.FormEvent) => {
+  const handleConfirmReceived = (orderId: string) => {
+    updateOrderStatus(orderId, 'Selesai');
+    showToast('Terima kasih! Pesanan telah selesai dan koin loyalitas telah dikreditkan.', 'success');
+  };
+
+  const handleCancelOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast(`Pengajuan retur/komplain untuk ${rmaOrder?.orderNumber} berhasil dicatat dengan nomor tiket #RMA-2026-${Math.floor(1000 + Math.random() * 9000)}. Tim QC akan menghubungi Anda dalam 1x24 jam.`, 'success');
-    setIsRmaModalOpen(false);
-    setRmaReason('');
+    if (!cancelModalOrder) return;
+    updateOrderStatus(cancelModalOrder.id, 'Dibatalkan');
+    showToast(`Pesanan #${cancelModalOrder.orderNumber} berhasil dibatalkan. Alasan: ${cancelReason}`, 'info');
+    setCancelModalOrder(null);
+  };
+
+  const handleSimulatePayment = (orderId: string) => {
+    updateOrderStatus(orderId, 'Diproses');
+    showToast('Pembayaran berhasil diverifikasi secara instan!', 'success');
+    setPayNowOrder(null);
   };
 
   return (
     <div className="pb-28 max-w-lg mx-auto bg-stone-50 min-h-screen">
       
       {/* Top Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-xs">
         <button
           onClick={() => setCurrentView('my-profile')}
           className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
@@ -81,14 +131,14 @@ export const MyOrdersScreen: React.FC = () => {
         </button>
 
         <h1 className="text-sm font-bold text-stone-900 font-['Playfair_Display',serif]">
-          Riwayat Pesanan & Belanja
+          Pesanan & Belanja Saya
         </h1>
 
         <div className="w-8" />
       </div>
 
-      {/* 1. Status Filter Tabs (Matching Screenshot 2 screen 2) */}
-      <div className="bg-white border-b border-stone-200 px-4 py-2 overflow-x-auto scrollbar-none">
+      {/* Status Filter Tabs */}
+      <div className="bg-white border-b border-stone-200 px-4 py-2 overflow-x-auto scrollbar-none sticky top-12 z-20 shadow-2xs">
         <div className="flex gap-1.5">
           {tabs.map(tab => (
             <button
@@ -106,228 +156,322 @@ export const MyOrdersScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Orders Cards List (Matching Screenshot 2 screen 2 & 3) */}
+      {/* Orders Cards List */}
       <div className="p-4 space-y-4">
         {filteredOrders.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-stone-200 p-6">
+          <div className="text-center py-16 bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
             <Package className="w-10 h-10 text-stone-300 mx-auto mb-2" />
             <h3 className="font-bold text-stone-800 text-sm">Tidak Ada Pesanan</h3>
-            <p className="text-xs text-stone-500 mt-1">Belum ada pesanan pada status ini.</p>
+            <p className="text-xs text-stone-500 mt-1">Belum ada catatan transaksi pada tab status ini.</p>
             <button
               onClick={() => setCurrentView('catalog')}
-              className="mt-4 px-4 py-2 bg-amber-800 text-white rounded-xl text-xs font-bold"
+              className="mt-4 px-5 py-2.5 bg-amber-800 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-amber-900 transition-colors"
             >
-              Belanja Sekarang
+              Mulai Belanja Kurma
             </button>
           </div>
         ) : (
-          filteredOrders.map(order => (
-            <div
-              key={order.id}
-              className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-3"
-            >
-              {/* Card Header */}
-              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-amber-800" />
-                  <span className="font-bold text-xs text-stone-900 font-mono">
-                    {order.orderNumber}
-                  </span>
-                </div>
-                {getStatusBadge(order.status)}
-              </div>
+          filteredOrders.map(order => {
+            const isUnpaid = order.status === 'Belum Bayar' || order.status === 'Belum Dibayar' || order.status === 'PENDING_PAYMENT';
+            const isShipped = order.status === 'Dikirim' || order.status === 'SHIPPED' || order.status === 'DELIVERED';
+            const isProcessing = order.status === 'Diproses' || order.status === 'Dikemas' || order.status === 'PACKED';
+            const isCompleted = order.status === 'Selesai' || order.status === 'COMPLETED';
 
-              {/* Items in order */}
-              <div className="space-y-2">
-                {order.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <img
-                      src={item.image}
-                      alt={item.productName}
-                      className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-stone-900 truncate">
-                        {item.productName}
-                      </h4>
-                      <p className="text-[11px] text-stone-500">
-                        {item.quantity} x Rp {item.unitPrice.toLocaleString('id-ID')}
-                      </p>
-                    </div>
-                    <span className="text-xs font-bold text-amber-950 font-mono">
-                      Rp {item.lineTotal.toLocaleString('id-ID')}
+            return (
+              <div
+                key={order.id}
+                className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-3"
+              >
+                {/* Card Header */}
+                <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-amber-800" />
+                    <span className="font-bold text-xs text-stone-900 font-mono">
+                      {order.orderNumber}
                     </span>
                   </div>
-                ))}
-              </div>
-
-              {/* Total & Logistics */}
-              <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-stone-500 block">
-                    {order.courierName} {order.trackingNumber && `• Resi: ${order.trackingNumber}`}
-                  </span>
-                  <span className="text-[10px] text-stone-400">{order.createdAt}</span>
+                  {getStatusBadge(order.status)}
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] text-stone-400 block">Total Tagihan</span>
-                  <span className="font-black text-amber-950 text-sm font-mono">
-                    Rp {order.total.toLocaleString('id-ID')}
-                  </span>
+                {/* Items in order */}
+                <div className="space-y-2">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <img
+                        src={item.image}
+                        alt={item.productName}
+                        className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0 bg-stone-50"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-stone-900 truncate">
+                          {item.productName}
+                        </h4>
+                        <p className="text-[11px] text-stone-500">
+                          {item.quantity}x • Rp {item.unitPrice.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-amber-950 font-mono">
+                        Rp {item.lineTotal.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Total & Logistics */}
+                <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-stone-600 font-semibold block">
+                      {order.courierName || order.courier} {order.trackingNumber && `• Resi: ${order.trackingNumber}`}
+                    </span>
+                    <span className="text-[10px] text-stone-400">{order.createdAt}</span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] text-stone-400 block">Total Tagihan</span>
+                    <span className="font-black text-amber-950 text-sm font-mono">
+                      Rp {order.total.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Actions Bar */}
+                <div className="pt-2 border-t border-stone-100 flex items-center justify-end gap-2 flex-wrap">
+                  {/* Tracking Button */}
+                  {(isShipped || isProcessing || isCompleted) && (
+                    <button
+                      onClick={() => setTrackingOrder(order)}
+                      className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <Truck className="w-3.5 h-3.5 text-amber-800" />
+                      <span>Lacak Pengiriman</span>
+                    </button>
+                  )}
+
+                  {/* Pay Now Button */}
+                  {isUnpaid && (
+                    <button
+                      onClick={() => setPayNowOrder(order)}
+                      className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Bayar Sekarang</span>
+                    </button>
+                  )}
+
+                  {/* Cancel Order Button */}
+                  {(isUnpaid || isProcessing) && (
+                    <button
+                      onClick={() => setCancelModalOrder(order)}
+                      className="px-2.5 py-1.5 border border-stone-200 hover:bg-red-50 hover:text-red-700 text-stone-600 rounded-xl text-xs font-semibold transition-colors"
+                    >
+                      Batalkan
+                    </button>
+                  )}
+
+                  {/* Confirm Received */}
+                  {isShipped && (
+                    <button
+                      onClick={() => handleConfirmReceived(order.id)}
+                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-colors"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Pesanan Diterima</span>
+                    </button>
+                  )}
+
+                  {/* Reorder Button */}
+                  {isCompleted && (
+                    <button
+                      onClick={() => handleReorder(order)}
+                      className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+                    >
+                      <Repeat className="w-3.5 h-3.5 text-amber-800" />
+                      <span>Beli Lagi</span>
+                    </button>
+                  )}
+                </div>
+
               </div>
-
-              {/* Action Buttons Row */}
-              <div className="pt-2 border-t border-stone-100 flex flex-wrap gap-2 justify-end">
-                {order.trackingNumber && (
-                  <button
-                    onClick={() => setTrackingOrder(order)}
-                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors"
-                  >
-                    <Truck className="w-3.5 h-3.5" />
-                    <span>Lacak Resi</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    setRmaOrder(order);
-                    setIsRmaModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-medium flex items-center gap-1 transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Komplain / RMA</span>
-                </button>
-
-                <button
-                  onClick={() => handleReorder(order)}
-                  className="px-3 py-1.5 bg-amber-800 hover:bg-amber-900 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs transition-all"
-                >
-                  <Repeat className="w-3.5 h-3.5" />
-                  <span>Beli Lagi</span>
-                </button>
-              </div>
-
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* 3. Tracking Modal with Timeline */}
+      {/* TRACKING TIMELINE MODAL */}
       {trackingOrder && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-4 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="font-bold text-stone-900 text-sm">Lacak Pengiriman Kurir</h3>
-                <p className="text-[11px] font-mono text-amber-800">
-                  {trackingOrder.courierName} • {trackingOrder.trackingNumber}
-                </p>
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-amber-800" />
+                <h3 className="font-bold text-stone-900 text-sm font-['Playfair_Display',serif]">
+                  Lacak Paket Pengiriman
+                </h3>
               </div>
-              <button
-                onClick={() => setTrackingOrder(null)}
-                className="text-stone-400 hover:text-stone-700"
+              <button 
+                onClick={() => setTrackingOrder(null)} 
+                className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Visual Milestones */}
-            <div className="space-y-4 text-xs pl-2 relative border-l-2 border-amber-300 ml-2">
-              <div className="relative pl-4">
-                <span className="w-3 h-3 rounded-full bg-emerald-600 absolute -left-[23px] top-0.5 ring-4 ring-emerald-100" />
-                <span className="font-bold text-stone-900 block">Paket Sedang Dibawa Kurir Menuju Alamat</span>
-                <span className="text-[10px] text-stone-500">Jakarta Selatan Hub • Hari ini 14:30 WIB</span>
-              </div>
-              <div className="relative pl-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-600 absolute -left-[22px] top-0.5" />
-                <span className="font-bold text-stone-900 block">Tiba di Sorting Center Jakarta Hub 1</span>
-                <span className="text-[10px] text-stone-500">Kemarin 21:15 WIB</span>
-              </div>
-              <div className="relative pl-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-600 absolute -left-[22px] top-0.5" />
-                <span className="font-bold text-stone-900 block">Diserahkan ke Kurir dari Gudang Pusat</span>
-                <span className="text-[10px] text-stone-500">2 hari lalu 10:00 WIB</span>
-              </div>
-              <div className="relative pl-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-stone-400 absolute -left-[22px] top-0.5" />
-                <span className="font-bold text-stone-600 block">Pesanan Dibuat & Pembayaran Terverifikasi</span>
-                <span className="text-[10px] text-stone-400">{trackingOrder.createdAt}</span>
-              </div>
-            </div>
+            {/* Tracking Summary Info */}
+            {(() => {
+              const trk = shippingService.getTracking(
+                trackingOrder.courierCode || 'jne',
+                trackingOrder.trackingNumber || `TRK${Date.now()}`,
+                trackingOrder
+              );
 
-            <button
-              onClick={() => setTrackingOrder(null)}
-              className="w-full py-2 bg-amber-800 text-white rounded-xl font-bold text-xs"
-            >
-              Tutup Pelacakan
-            </button>
+              return (
+                <div className="space-y-4 text-xs">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-amber-950 text-sm">{trk.courierName}</span>
+                      <span className="font-mono font-bold text-stone-800 bg-white px-2 py-0.5 rounded border border-amber-200 text-[11px]">
+                        {trk.trackingNumber}
+                      </span>
+                    </div>
+                    <p className="text-stone-600 text-[11px]">
+                      Penerima: <strong>{trk.recipient}</strong>
+                    </p>
+                    <p className="text-stone-600 text-[11px]">
+                      Tujuan: <strong>{trk.destinationAddress}</strong>
+                    </p>
+                  </div>
+
+                  {/* Stepper Timeline */}
+                  <div className="space-y-3 pl-2">
+                    <h4 className="font-bold text-stone-900 text-xs">Status Perjalanan Paket:</h4>
+                    <div className="space-y-3 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                      {trk.milestones.map((m, idx) => (
+                        <div key={m.id} className="relative flex items-start gap-3.5">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                            m.isCompleted ? 'bg-amber-800 text-white' : 'bg-stone-200 text-stone-400'
+                          }`}>
+                            <div className="w-2 h-2 bg-current rounded-full" />
+                          </div>
+
+                          <div className="space-y-0.5 flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h5 className={`font-bold text-xs ${m.isCompleted ? 'text-stone-900' : 'text-stone-400'}`}>
+                                {m.title}
+                              </h5>
+                              <span className="text-[10px] text-stone-400 font-mono">{m.timestamp}</span>
+                            </div>
+                            <p className="text-[11px] text-stone-600 leading-relaxed">{m.description}</p>
+                            <span className="text-[10px] text-stone-400 block">{m.location}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setTrackingOrder(null)}
+                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs"
+                  >
+                    Tutup Pelacakan
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
 
-      {/* 4. RMA Complaint Modal */}
-      {isRmaModalOpen && (
+      {/* CANCELLATION MODAL */}
+      {cancelModalOrder && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="font-bold text-stone-900 text-sm">Form Pengajuan Retur / Komplain</h3>
-                <p className="text-[11px] font-mono text-stone-500">{rmaOrder?.orderNumber}</p>
-              </div>
-              <button
-                onClick={() => setIsRmaModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700"
-              >
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+              <h3 className="font-bold text-stone-900 text-sm">Konfirmasi Pembatalan</h3>
+              <button onClick={() => setCancelModalOrder(null)} className="text-stone-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRmaSubmit} className="space-y-3 text-xs">
+            <form onSubmit={handleCancelOrderSubmit} className="space-y-3">
+              <p className="text-stone-600">
+                Apakah Anda yakin ingin membatalkan pesanan <strong>{cancelModalOrder.orderNumber}</strong>?
+              </p>
+
               <div>
-                <label className="font-semibold text-stone-700 block mb-1">Alasan Komplain</label>
-                <select className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs">
-                  <option>Kemasan Rusak saat Pengiriman</option>
-                  <option>Kualitas Buah Kurma Tidak Sesuai Standar</option>
-                  <option>Jumlah / SKU Tidak Sesuai Faktur</option>
-                  <option>Lainnya</option>
+                <label className="font-semibold text-stone-700 block mb-1">Pilih Alasan Pembatalan:</label>
+                <select
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                >
+                  <option value="Ingin mengubah pesanan/alamat">Ingin mengubah varian kurma / alamat pengiriman</option>
+                  <option value="Menemukan harga lebih murah">Menemukan promo lain</option>
+                  <option value="Ingin ganti metode pembayaran">Ingin ganti metode pembayaran</option>
+                  <option value="Lainnya">Lainnya</option>
                 </select>
               </div>
 
-              <div>
-                <label className="font-semibold text-stone-700 block mb-1">Deskripsi Detail Masalah</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Jelaskan kondisi kemasan, segel, dan batch panen..."
-                  value={rmaReason}
-                  onChange={(e) => setRmaReason(e.target.value)}
-                  className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs"
-                />
-              </div>
-
-              <div className="p-2.5 bg-amber-50 rounded-xl text-[11px] text-amber-900">
-                Garansi AllKurma: Penggantian produk baru atau pengembalian dana 100% jika ditemukan cacat kualitas.
-              </div>
-
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setIsRmaModalOpen(false)}
-                  className="flex-1 py-2 border border-stone-200 rounded-xl text-stone-600 font-semibold"
+                  onClick={() => setCancelModalOrder(null)}
+                  className="flex-1 py-2 border border-stone-200 rounded-xl text-stone-600"
                 >
-                  Batal
+                  Kembali
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-amber-800 text-white rounded-xl font-bold"
+                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl"
                 >
-                  Kirim Tiket RMA
+                  Batalkan Pesanan
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PAY NOW MODAL */}
+      {payNowOrder && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs text-center">
+            <div className="w-12 h-12 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center mx-auto">
+              <CreditCard className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-bold text-stone-900 text-sm">Pembayaran Pesanan</h3>
+            <p className="text-stone-600">
+              Nomor: <strong className="font-mono">{payNowOrder.orderNumber}</strong>
+            </p>
+            <p className="text-base font-black text-amber-950 font-mono">
+              Rp {payNowOrder.total.toLocaleString('id-ID')}
+            </p>
+
+            <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-left text-[11px] space-y-1">
+              <div className="flex justify-between">
+                <span>Metode:</span>
+                <strong className="text-stone-900">{payNowOrder.paymentMethod}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Status:</span>
+                <span className="text-amber-800 font-bold">Menunggu Verifikasi</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => handleSimulatePayment(payNowOrder.id)}
+                className="w-full py-2.5 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-xl shadow-xs"
+              >
+                Konfirmasi Pembayaran Selesai
+              </button>
+              <button
+                onClick={() => setPayNowOrder(null)}
+                className="w-full py-2 border border-stone-200 text-stone-600 rounded-xl"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
