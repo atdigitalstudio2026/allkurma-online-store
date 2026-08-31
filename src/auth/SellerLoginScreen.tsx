@@ -29,9 +29,8 @@ export const SellerLoginScreen: React.FC = () => {
     setUser, 
     setCurrentView, 
     showToast,
-    loginSeller,
     sellerStore,
-    updateSellerStore
+    isEmailAuthorizedSeller
   } = useApp();
 
   const [identifier, setIdentifier] = useState('seller@allkurma.id');
@@ -41,21 +40,6 @@ export const SellerLoginScreen: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Quick Demo Buttons
-  const handleQuickDemoOfficial = () => {
-    setIdentifier('seller@allkurma.id');
-    setPassword('seller123');
-    setSellerPin('123456');
-    setErrorMessage(null);
-  };
-
-  const handleQuickDemoPartner = () => {
-    setIdentifier('mitra.madinah@allkurma.id');
-    setPassword('madinah2026');
-    setSellerPin('888999');
-    setErrorMessage(null);
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,14 +58,32 @@ export const SellerLoginScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // 1. Try real Firebase Email Auth
+      // 1. Authenticate with Firebase Email Auth
       const { profile } = await authService.loginWithEmail(identifier, password);
       
-      // Enforce seller profile properties
+      const authEmail = profile.email || identifier;
+      
+      // 2. Strict Whitelist Check: verify if email is registered as authorized staff
+      if (!isEmailAuthorizedSeller(authEmail)) {
+        await authService.logout();
+        setErrorMessage(
+          `Akses Ditolak: Email "${authEmail}" tidak terdaftar sebagai staf / pengelola resmi AllKurma. ` +
+          `Hanya akun yang telah didaftarkan oleh Administrator di menu Pengaturan Toko yang diizinkan masuk.`
+        );
+        showToast('Akses Ditolak: Akun Anda tidak terdaftar sebagai staf seller resmi.', 'error');
+        return;
+      }
+
+      // 3. Enforce official seller profile
+      const staffInfo = (sellerStore.authorizedStaff || []).find(
+        s => s.email.trim().toLowerCase() === authEmail.trim().toLowerCase()
+      );
+
       const sellerProfile: UserProfile = {
         ...profile,
+        name: staffInfo?.name || profile.name || 'Staff Toko AllKurma',
         role: 'seller',
-        companyName: profile.companyName || sellerStore.storeName || 'AllKurma Official Store',
+        companyName: sellerStore.storeName || 'AllKurma Official Store',
         tier: 'Platinum'
       };
 
@@ -89,60 +91,13 @@ export const SellerLoginScreen: React.FC = () => {
       if (rememberMe) {
         localStorage.setItem('allkurma_user', JSON.stringify(sellerProfile));
       }
-      showToast(`Selamat datang di Seller Center, ${sellerProfile.name}!`, 'success');
+      showToast(`Selamat datang di Seller Center AllKurma, ${sellerProfile.name}!`, 'success');
       setCurrentView('seller-dashboard');
     } catch (err: any) {
-      // 2. Demo & local store fallback
-      if (
-        identifier.toLowerCase().includes('seller') || 
-        identifier.toLowerCase().includes('toko') || 
-        identifier.toLowerCase().includes('mitra') || 
-        identifier === 'seller@allkurma.id' ||
-        identifier === 'mitra.madinah@allkurma.id'
-      ) {
-        const isPartner = identifier.includes('madinah') || identifier.includes('mitra');
-        const storeName = isPartner ? 'Kurma Madinah Hub' : 'AllKurma Official Store';
-        
-        const sellerProfile: UserProfile = {
-          id: isPartner ? 'seller-partner-02' : 'seller-001',
-          name: isPartner ? 'H. Faisal Rahman (Mitra Madinah)' : 'AllKurma Official Store',
-          email: identifier.includes('@') ? identifier : `${identifier}@allkurma.id`,
-          phone: '+62 811-2345-6789',
-          role: 'seller',
-          avatar: isPartner 
-            ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80'
-            : 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&auto=format&fit=crop&q=80',
-          tier: 'Platinum',
-          rewardPoints: 12500,
-          totalOrders: isPartner ? 186 : 540,
-          savedLists: 8,
-          annualSpend: isPartner ? 120000000 : 350000000,
-          companyName: storeName,
-          defaultAddressId: 'addr-01'
-        };
-
-        setUser(sellerProfile);
-        if (rememberMe) {
-          localStorage.setItem('allkurma_user', JSON.stringify(sellerProfile));
-        }
-
-        if (isPartner) {
-          updateSellerStore({
-            storeName: 'Kurma Madinah Hub',
-            storeHandle: 'kurmamadinah_hub',
-            city: 'Surabaya, Jawa Timur',
-            fullAddress: 'Kawasan Niaga Ampel No. 45, Surabaya, Jawa Timur 60151'
-          });
-        }
-
-        showToast(`Login Seller Berhasil! Sesi Toko "${storeName}" Aktif.`, 'success');
-        setCurrentView('seller-dashboard');
-      } else {
-        // Direct local activation
-        loginSeller(identifier);
-        showToast('Login Seller Berhasil! Sesi Aktif.', 'success');
-        setCurrentView('seller-dashboard');
-      }
+      const errMsg = err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
+        ? 'Email toko atau kata sandi seller tidak sesuai. Silakan periksa kembali.'
+        : err.message || 'Gagal masuk akun seller.';
+      setErrorMessage(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -153,18 +108,36 @@ export const SellerLoginScreen: React.FC = () => {
     setErrorMessage(null);
     try {
       const { profile } = await authService.loginWithGoogle();
+      const googleEmail = profile.email;
+
+      // Strict Whitelist Check: verify if Google Email is registered as authorized seller staff
+      if (!isEmailAuthorizedSeller(googleEmail)) {
+        await authService.logout();
+        setErrorMessage(
+          `Akses Ditolak: Akun Google "${googleEmail}" belum terdaftar sebagai staf resmi AllKurma. ` +
+          `Toko ini eksklusif milik AllKurma dan hanya dapat diakses oleh email staf yang didaftarkan oleh Admin di Pengaturan Seller.`
+        );
+        showToast('Akses Ditolak: Akun Google Anda tidak terdaftar di staf seller.', 'error');
+        return;
+      }
+
+      const staffInfo = (sellerStore.authorizedStaff || []).find(
+        s => s.email.trim().toLowerCase() === googleEmail.trim().toLowerCase()
+      );
+
       const sellerProfile: UserProfile = {
         ...profile,
+        name: staffInfo?.name || profile.name || 'Staff Toko AllKurma',
         role: 'seller',
-        companyName: sellerStore.storeName || `${profile.name} Kurma Store`,
+        companyName: sellerStore.storeName || 'AllKurma Official Store',
         tier: 'Platinum'
       };
       setUser(sellerProfile);
       localStorage.setItem('allkurma_user', JSON.stringify(sellerProfile));
-      showToast(`Login Google Seller Berhasil! Selamat datang, ${sellerProfile.name}`, 'success');
+      showToast(`Login Google Staf Berhasil! Selamat datang, ${sellerProfile.name}`, 'success');
       setCurrentView('seller-dashboard');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Gagal masuk dengan Google Seller.');
+      setErrorMessage(err.message || 'Gagal masuk dengan Akun Google Seller.');
     } finally {
       setIsLoading(false);
     }
@@ -207,20 +180,28 @@ export const SellerLoginScreen: React.FC = () => {
             </div>
             
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-emerald-300 text-[11px] font-bold uppercase tracking-wider mb-2">
-              <Store className="w-3.5 h-3.5" />
-              <span>Seller Center & Merchant Portal</span>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Portal Internal Staf Toko AllKurma</span>
             </div>
 
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-['Playfair_Display',serif]">
-              Masuk ke Toko Seller AllKurma
+              Seller Center & Manajemen Toko
             </h1>
             <p className="text-xs text-blue-200/90 mt-1 max-w-sm mx-auto leading-relaxed">
-              Kelola inventaris kurma, pesanan masuk, resi pengiriman, saldo payout, dan promo toko Anda.
+              Khusus pengelola & staf resmi AllKurma (PT Exindokarsa Agung). Akses login dibatasi berdasarkan otorisasi Administrator.
             </p>
           </div>
 
           {/* Form Body */}
           <div className="p-6 sm:p-8 space-y-5">
+
+            {/* Whitelist Security Notice */}
+            <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-amber-700 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-bold">Keamanan Akses Staf:</span> Hanya akun email (Email Toko / Akun Google Staf) yang telah didaftarkan oleh Super Admin di menu <strong>Pengaturan Toko &gt; Manajemen Staf</strong> yang diizinkan masuk.
+              </div>
+            </div>
 
             {/* Error Alert */}
             {errorMessage && (
@@ -384,50 +365,17 @@ export const SellerLoginScreen: React.FC = () => {
               <span>Masuk Seller via Akun Google</span>
             </button>
 
-            {/* Quick Demo Fast-Login Buttons */}
-            <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-              <div className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Pilihan Akun Demo Seller Terverifikasi:</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickDemoOfficial}
-                  className="py-1.5 px-2.5 bg-white hover:bg-blue-50 border border-blue-200 rounded-xl text-left transition-colors cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold text-[#1E3A8A] group-hover:text-blue-900">
-                    👑 AllKurma Official Store
-                  </div>
-                  <div className="text-[10px] text-stone-500 truncate">
-                    seller@allkurma.id
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleQuickDemoPartner}
-                  className="py-1.5 px-2.5 bg-white hover:bg-emerald-50 border border-emerald-200 rounded-xl text-left transition-colors cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold text-[#009A44] group-hover:text-emerald-900">
-                    🌴 Kurma Madinah Hub
-                  </div>
-                  <div className="text-[10px] text-stone-500 truncate">
-                    mitra.madinah@allkurma.id
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Register New Merchant Store */}
+            {/* Staff Registration Info */}
             <div className="pt-3 border-t border-stone-100 text-center text-xs text-stone-600">
-              Ingin berjualan dan buka toko di AllKurma?{' '}
+              Belum memiliki izin akses staf toko?{' '}
               <button
                 type="button"
-                onClick={() => setCurrentView('seller-register')}
+                onClick={() => {
+                  showToast('Pendaftaran staf baru hanya dapat dilakukan oleh Super Admin dari Dashboard Pengaturan Toko.', 'info');
+                }}
                 className="font-bold text-[#1E3A8A] hover:text-[#009A44] hover:underline cursor-pointer transition-colors"
               >
-                Daftar Toko Seller Baru →
+                Panduan Akses Staf Toko ℹ️
               </button>
             </div>
 

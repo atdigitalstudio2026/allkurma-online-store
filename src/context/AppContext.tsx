@@ -21,6 +21,7 @@ import {
   ChatMessage,
   AppNotification,
   SellerStoreProfile,
+  SellerStaffMember,
   ShopeeChatMessage,
   ShopeeNotification
 } from '../types';
@@ -228,6 +229,10 @@ interface AppContextType {
   withdrawSellerBalance: (amount: number) => boolean;
   toggleSellerCourier: (courierId: string) => void;
   replySellerReview: (reviewId: string, replyText: string) => void;
+  addSellerStaff: (staff: Omit<SellerStaffMember, 'id' | 'addedAt'>) => void;
+  removeSellerStaff: (id: string) => void;
+  toggleSellerStaffStatus: (id: string) => void;
+  isEmailAuthorizedSeller: (email: string) => boolean;
   
   // Wholesale Invoices
   invoices: WholesaleInvoice[];
@@ -490,6 +495,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('allkurma_invoices', JSON.stringify(invoices));
   }, [invoices]);
+
+  useEffect(() => {
+    localStorage.setItem('allkurma_seller_store', JSON.stringify(sellerStore));
+  }, [sellerStore]);
 
   // Listen to Firebase Auth State changes for secure session persistence
   useEffect(() => {
@@ -1249,6 +1258,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Balasan ulasan toko berhasil dikirim ke pembeli!', 'success');
   };
 
+  const addSellerStaff = (staffData: Omit<SellerStaffMember, 'id' | 'addedAt'>) => {
+    const cleanEmail = staffData.email.trim().toLowerCase();
+    if (!cleanEmail) {
+      showToast('Harap masukkan email staf yang valid!', 'error');
+      return;
+    }
+    const currentStaff = sellerStore.authorizedStaff || [];
+    if (currentStaff.some(s => s.email.trim().toLowerCase() === cleanEmail)) {
+      showToast(`Email ${cleanEmail} sudah ada di daftar staf!`, 'error');
+      return;
+    }
+
+    const newStaff: SellerStaffMember = {
+      ...staffData,
+      id: `staff-${Date.now().toString(36)}`,
+      email: cleanEmail,
+      addedAt: new Date().toISOString().split('T')[0],
+      status: 'active'
+    };
+
+    setSellerStore(prev => ({
+      ...prev,
+      authorizedStaff: [...(prev.authorizedStaff || []), newStaff]
+    }));
+    showToast(`Staf "${staffData.name}" (${cleanEmail}) berhasil ditambahkan ke daftar akses seller!`, 'success');
+  };
+
+  const removeSellerStaff = (id: string) => {
+    setSellerStore(prev => ({
+      ...prev,
+      authorizedStaff: (prev.authorizedStaff || []).filter(s => s.id !== id)
+    }));
+    showToast('Akses staf berhasil dicabut dari sistem.', 'info');
+  };
+
+  const toggleSellerStaffStatus = (id: string) => {
+    setSellerStore(prev => ({
+      ...prev,
+      authorizedStaff: (prev.authorizedStaff || []).map(s => 
+        s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s
+      )
+    }));
+    showToast('Status izin akses staf berhasil diperbarui.', 'info');
+  };
+
+  const isEmailAuthorizedSeller = (emailToTest: string): boolean => {
+    if (!emailToTest) return false;
+    const clean = emailToTest.trim().toLowerCase();
+    
+    // 1. Primary Owner Account
+    if (clean === 'atdigitalstudio2026@gmail.com') return true;
+    
+    // 2. Default AllKurma internal domain accounts
+    if (clean === 'admin@allkurma.id' || clean === 'seller@allkurma.id' || clean === 'operasional@allkurma.id' || clean === 'management@allkurma.id') return true;
+    
+    // 3. Registered staff whitelist inside sellerStore
+    const staff = sellerStore?.authorizedStaff || [];
+    return staff.some(s => s.email.trim().toLowerCase() === clean && s.status === 'active');
+  };
+
   // Wishlist
   const toggleWishlist = (productId: string) => {
     setWishlistProductIds(prev => {
@@ -1472,6 +1541,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         withdrawSellerBalance,
         toggleSellerCourier,
         replySellerReview,
+        addSellerStaff,
+        removeSellerStaff,
+        toggleSellerStaffStatus,
+        isEmailAuthorizedSeller,
         claimedVoucherIds,
         claimVoucher,
         claimAllVouchers

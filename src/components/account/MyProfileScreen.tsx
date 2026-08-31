@@ -311,10 +311,7 @@ export const MyProfileScreen: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => {
-                setAuthModalMode('seller_login');
-                setIsAuthModalOpen(true);
-              }}
+              onClick={() => setCurrentView('seller-login')}
               className="py-1.5 px-3 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs transition-colors cursor-pointer"
             >
               Login Seller

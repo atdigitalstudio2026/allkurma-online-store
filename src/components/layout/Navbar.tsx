@@ -539,13 +539,16 @@ export const Navbar: React.FC = () => {
 
             {/* Drawer Footer */}
             <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between text-xs text-stone-500">
-              <span>AllKurma Enterprise</span>
+              <span className="font-semibold">AllKurma Store</span>
               <button 
-                onClick={() => switchRole('customer')}
-                className="flex items-center gap-1 text-stone-700 hover:text-red-600 font-medium"
+                onClick={() => {
+                  logout();
+                  setIsDrawerOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-red-600 hover:text-red-700 font-semibold cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span>Keluar Akun</span>
               </button>
             </div>
           </div>

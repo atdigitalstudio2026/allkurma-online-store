@@ -89,6 +89,16 @@ export interface AppNotification {
 // Backward compatibility alias
 export type ShopeeNotification = AppNotification;
 
+export interface SellerStaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Super Admin Toko' | 'Manajer Operasional' | 'Staff Gudang & Pesanan' | 'Customer Support CS';
+  addedAt: string;
+  status: 'active' | 'inactive';
+  phone?: string;
+}
+
 export interface SellerStoreProfile {
   storeName: string;
   storeHandle: string;
@@ -107,6 +117,7 @@ export interface SellerStoreProfile {
   enableAutoReply: boolean;
   autoReplyGreeting: string;
   autoReplyOffHours: string;
+  authorizedStaff: SellerStaffMember[];
   couriers: {
     id: string;
     name: string;

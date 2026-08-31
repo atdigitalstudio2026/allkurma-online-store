@@ -19,18 +19,18 @@ import {
 } from '../types';
 
 export const INITIAL_USER: UserProfile = {
-  id: 'user-001',
-  name: 'Budi Santoso',
-  email: 'budi.santoso@gmail.com',
-  phone: '+62 812-9876-5432',
+  id: 'guest-allkurma',
+  name: 'Tamu AllKurma',
+  email: '',
+  phone: '',
   role: 'customer',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-  tier: 'Silver',
-  rewardPoints: 2450,
-  totalOrders: 4,
-  savedLists: 2,
-  annualSpend: 3450000,
-  defaultAddressId: 'addr-01'
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+  tier: 'Bronze',
+  rewardPoints: 0,
+  totalOrders: 0,
+  savedLists: 0,
+  annualSpend: 0,
+  defaultAddressId: undefined
 };
 
 export const WHOLESALE_TIERS: WholesaleTier[] = [
@@ -1048,6 +1048,35 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
   enableAutoReply: true,
   autoReplyGreeting: 'Halo Kak! Terima kasih sudah menghubungi AllKurma Official. Tim CS kami akan membalas pertanyaan Anda dalam beberapa saat. Pesanan sebelum 16:00 dikirim hari ini!',
   autoReplyOffHours: 'Terima kasih atas pesanan Anda. Saat ini toko sedang di luar jam operasional (Tutup 18:00 WIB). Pesanan Anda akan diproses esok pagi jam 08:00 WIB.',
+  authorizedStaff: [
+    {
+      id: 'staff-001',
+      name: 'Admin Utama (Owner)',
+      email: 'atdigitalstudio2026@gmail.com',
+      role: 'Super Admin Toko',
+      addedAt: '2026-01-01',
+      status: 'active',
+      phone: '+62 812-8899-7711'
+    },
+    {
+      id: 'staff-002',
+      name: 'Operasional Toko AllKurma',
+      email: 'seller@allkurma.id',
+      role: 'Manajer Operasional',
+      addedAt: '2026-01-15',
+      status: 'active',
+      phone: '+62 811-2233-4455'
+    },
+    {
+      id: 'staff-003',
+      name: 'Administrator Pusat',
+      email: 'admin@allkurma.id',
+      role: 'Super Admin Toko',
+      addedAt: '2026-02-01',
+      status: 'active',
+      phone: '+62 813-4455-6677'
+    }
+  ],
   couriers: [
     { id: 'c-01', name: 'Kurma Express Reguler (J&T / SiCepat)', type: 'Reguler', active: true, freeShippingEnabled: true },
     { id: 'c-02', name: 'Grosir Kargo (JNE Trucking / Indah Cargo)', type: 'Kargo', active: true, freeShippingEnabled: true },

@@ -18,15 +18,9 @@ export const AccessDeniedScreen: React.FC<AccessDeniedScreenProps> = ({
   targetViewName = 'Admin Command Center',
   isSellerPortal = false
 }) => {
-  const { user, setCurrentView, loginSeller, showToast } = useApp();
+  const { user, setCurrentView, showToast } = useApp();
 
   const isSellerTarget = isSellerPortal || targetViewName.toLowerCase().includes('seller') || targetViewName.toLowerCase().includes('toko');
-
-  const handleInstantDemoSeller = () => {
-    loginSeller('seller@allkurma.id');
-    showToast('Berhasil masuk dengan akun Demo Toko Seller Official.', 'success');
-    setCurrentView('seller-dashboard');
-  };
 
   return (
     <div className="min-h-[85vh] bg-stone-100/90 py-12 px-4 flex items-center justify-center font-['Plus_Jakarta_Sans',sans-serif]">

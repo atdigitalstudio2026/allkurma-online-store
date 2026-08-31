@@ -33,12 +33,6 @@ export const CustomerLoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Quick Demo Fast-Login Option for reviewers/testers
-  const handleQuickDemoCustomer = () => {
-    setIdentifier('budi.santoso@gmail.com');
-    setPassword('password123');
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -64,28 +58,10 @@ export const CustomerLoginScreen: React.FC = () => {
       showToast(`Selamat datang kembali, ${profile.name}!`, 'success');
       setCurrentView('customer-dashboard');
     } catch (err: any) {
-      // Fallback demo simulation if Firebase demo credentials aren't yet in cloud Auth
-      if (identifier.includes('budi') || identifier === 'customer@allkurma.id') {
-        const mockProfile = {
-          id: 'usr-customer-01',
-          name: 'Budi Santoso',
-          email: identifier.includes('@') ? identifier : 'budi.santoso@gmail.com',
-          phone: '+62 812-3456-7890',
-          role: 'customer' as const,
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          tier: 'Gold' as const,
-          rewardPoints: 2450,
-          totalOrders: 14,
-          savedLists: 6,
-          annualSpend: 14500000
-        };
-        setUser(mockProfile);
-        localStorage.setItem('allkurma_user', JSON.stringify(mockProfile));
-        showToast('Login berhasil (Sesi Customer Aktif)', 'success');
-        setCurrentView('customer-dashboard');
-      } else {
-        setErrorMessage(err.message || 'Gagal masuk akun. Silakan periksa kembali email dan password.');
-      }
+      const errMsg = err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
+        ? 'Email atau kata sandi yang Anda masukkan salah. Silakan coba lagi.'
+        : err.message || 'Gagal masuk akun. Silakan periksa kembali email dan password.';
+      setErrorMessage(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -291,17 +267,6 @@ export const CustomerLoginScreen: React.FC = () => {
               </svg>
               <span>Lanjutkan dengan Google</span>
             </button>
-
-            {/* Quick Demo Pill */}
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={handleQuickDemoCustomer}
-                className="text-[11px] text-[#1E3A8A] hover:text-[#009A44] bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/80 px-3.5 py-1 rounded-full font-medium transition-colors cursor-pointer"
-              >
-                Gunakan Akun Demo Pelanggan (Budi Santoso)
-              </button>
-            </div>
 
             {/* Register Link Footer */}
             <div className="pt-3 border-t border-stone-100 text-center text-xs text-stone-600">

@@ -37,7 +37,12 @@ import {
   Lock,
   LogIn,
   ArrowLeft,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users,
+  UserPlus,
+  Mail,
+  KeyRound,
+  UserCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher } from '../../types';
@@ -51,6 +56,9 @@ export const SellerDashboardScreen: React.FC = () => {
     withdrawSellerBalance,
     toggleSellerCourier,
     replySellerReview,
+    addSellerStaff,
+    removeSellerStaff,
+    toggleSellerStaffStatus,
     products,
     addProduct,
     updateProduct,
@@ -137,6 +145,36 @@ export const SellerDashboardScreen: React.FC = () => {
   // Review Reply State
   const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  // Staff Access Management State
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffEmail, setNewStaffEmail] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState<'Super Admin Toko' | 'Manajer Operasional' | 'Staff Gudang & Pesanan' | 'Customer Support CS'>('Manajer Operasional');
+  const [newStaffPhone, setNewStaffPhone] = useState('');
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+
+  const handleAddNewStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffName.trim()) {
+      showToast('Harap masukkan nama staf pengelola!', 'error');
+      return;
+    }
+    if (!newStaffEmail.trim() || !newStaffEmail.includes('@')) {
+      showToast('Harap masukkan format email yang valid!', 'error');
+      return;
+    }
+    addSellerStaff({
+      name: newStaffName.trim(),
+      email: newStaffEmail.trim().toLowerCase(),
+      role: newStaffRole,
+      phone: newStaffPhone.trim() || undefined,
+      status: 'active'
+    });
+    setNewStaffName('');
+    setNewStaffEmail('');
+    setNewStaffPhone('');
+    setIsAddingStaff(false);
+  };
 
   // Order filter in Seller Center
   const [orderStatusFilter, setOrderStatusFilter] = useState<'All' | 'Perlu Diproses' | 'Dikirim' | 'Selesai' | 'Retur'>('All');
@@ -228,18 +266,7 @@ export const SellerDashboardScreen: React.FC = () => {
               className="w-full py-3 bg-[#1E3A8A] hover:bg-[#172554] active:scale-95 text-white font-bold rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              <span>Masuk dengan Akun Seller Toko</span>
-            </button>
-
-            <button
-              onClick={() => {
-                loginSeller('seller@allkurma.id');
-                showToast('Login Demo Toko Official Berhasil!', 'success');
-              }}
-              className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 active:scale-95 text-[#009A44] font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Masuk Instan (Demo Toko Official)</span>
+              <span>Masuk dengan Kredensial Toko Seller</span>
             </button>
 
             <button
@@ -247,7 +274,7 @@ export const SellerDashboardScreen: React.FC = () => {
               className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Store className="w-3.5 h-3.5" />
-              <span>Daftar / Buka Toko Seller Baru</span>
+              <span>Pendaftaran Mitra Penjual / Buka Toko Baru</span>
             </button>
 
             <button
@@ -910,7 +937,7 @@ export const SellerDashboardScreen: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => toggleSellerCourier(courier.id)}
-                        className={`text-xs font-bold px-3 py-1 rounded-lg border transition-colors ${
+                        className={`text-xs font-bold px-3 py-1 rounded-lg border transition-colors cursor-pointer ${
                           courier.active
                             ? 'bg-emerald-600 text-white border-emerald-600'
                             : 'bg-stone-200 text-stone-600 border-stone-300'
@@ -921,6 +948,248 @@ export const SellerDashboardScreen: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* SELLER STAFF ACCESS CONTROL & WHITELIST (PENGATURAN AKSES LOGIN SELLER) */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-100">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-[#009A44] flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                      Manajemen Staf & Otorisasi Login Seller (Whitelist)
+                    </h3>
+                    <p className="text-xs text-stone-500 mt-0.5 max-w-2xl leading-relaxed">
+                      Sistem Toko Tunggal Resmi AllKurma (PT Exindokarsa Agung). Hanya alamat email yang terdaftar aktif di bawah ini yang diizinkan masuk ke Seller Center (baik via Email/Password maupun via Akun Google).
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddingStaff(!isAddingStaff)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1E3A8A] hover:bg-[#172554] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
+                >
+                  {isAddingStaff ? (
+                    <>
+                      <X className="w-3.5 h-3.5" />
+                      <span>Tutup Form</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>+ Daftarkan Staf Baru</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Form Tambah Staf Baru */}
+              {isAddingStaff && (
+                <div className="p-4 sm:p-5 bg-stone-50 rounded-2xl border border-blue-200 shadow-2xs animate-in fade-in space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#1E3A8A]">
+                    <UserPlus className="w-4 h-4" />
+                    <span>Form Pendaftaran Email Staf Pengelola Toko Baru</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        Nama Lengkap Staf <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newStaffName}
+                        onChange={(e) => setNewStaffName(e.target.value)}
+                        placeholder="Contoh: Budi Santoso"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        Email Login / Google Akun <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={newStaffEmail}
+                        onChange={(e) => setNewStaffEmail(e.target.value)}
+                        placeholder="staf.nama@gmail.com"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        Peran / Tanggung Jawab
+                      </label>
+                      <select
+                        value={newStaffRole}
+                        onChange={(e) => setNewStaffRole(e.target.value as any)}
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A] font-medium"
+                      >
+                        <option value="Manajer Operasional">Manajer Operasional</option>
+                        <option value="Staff Gudang & Pesanan">Staff Gudang & Pesanan</option>
+                        <option value="Customer Support CS">Customer Support CS</option>
+                        <option value="Super Admin Toko">Super Admin Toko</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        No. HP / WhatsApp
+                      </label>
+                      <input
+                        type="tel"
+                        value={newStaffPhone}
+                        onChange={(e) => setNewStaffPhone(e.target.value)}
+                        placeholder="0812-xxxx-xxxx"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingStaff(false)}
+                      className="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddNewStaff}
+                      className="px-5 py-2 text-xs font-bold text-white bg-[#009A44] hover:bg-[#047857] rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Simpan & Beri Hak Akses</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Daftar Staf Terdaftar */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-stone-200 bg-stone-50/80 text-stone-600 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-4 rounded-l-xl">Nama & Email Staf</th>
+                      <th className="py-3 px-3">Peran / Jabatan</th>
+                      <th className="py-3 px-3">Kontak WA</th>
+                      <th className="py-3 px-3">Terdaftar</th>
+                      <th className="py-3 px-3">Status Izin</th>
+                      <th className="py-3 px-4 text-right rounded-r-xl">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 font-normal">
+                    {(sellerStore.authorizedStaff || []).map((staff) => {
+                      const isOwner = staff.email.toLowerCase() === 'atdigitalstudio2026@gmail.com' || staff.email.toLowerCase() === 'admin@allkurma.id';
+                      const isActive = staff.status === 'active';
+
+                      return (
+                        <tr key={staff.id} className="hover:bg-stone-50/80 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center font-bold text-stone-700 text-xs shrink-0">
+                                {staff.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-bold text-stone-900 flex items-center gap-1.5">
+                                  <span>{staff.name}</span>
+                                  {isOwner && (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-[9px]">
+                                      Owner Utama
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-stone-500 font-mono flex items-center gap-1 mt-0.5">
+                                  <Mail className="w-3 h-3 text-stone-400" />
+                                  <span>{staff.email}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              staff.role === 'Super Admin Toko'
+                                ? 'bg-purple-100 text-purple-800'
+                                : staff.role === 'Manajer Operasional'
+                                ? 'bg-amber-100 text-amber-800'
+                                : staff.role === 'Staff Gudang & Pesanan'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {staff.role}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-3 text-stone-600 font-mono text-[11px]">
+                            {staff.phone || '-'}
+                          </td>
+
+                          <td className="py-3.5 px-3 text-stone-500 text-[11px]">
+                            {staff.addedAt || '2026-01-01'}
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              isActive
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+                              <span>{isActive ? 'Aktif (Diizinkan)' : 'Non-Aktif (Diblokir)'}</span>
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              {!isOwner && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSellerStaffStatus(staff.id)}
+                                    title={isActive ? "Non-aktifkan izin login staf ini" : "Aktifkan kembali izin login staf"}
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                                      isActive 
+                                        ? 'border-rose-200 text-rose-700 hover:bg-rose-50' 
+                                        : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                                    }`}
+                                  >
+                                    {isActive ? 'Blokir' : 'Aktifkan'}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Yakin ingin mencabut izin akses staf "${staff.name}" (${staff.email})?`)) {
+                                        removeSellerStaff(staff.id);
+                                      }
+                                    }}
+                                    title="Hapus dari daftar staf resmi"
+                                    className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              {isOwner && (
+                                <span className="text-[10px] font-bold text-stone-400 italic">
+                                  Akun Permanen
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 

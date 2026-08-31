@@ -84,24 +84,12 @@ export const CustomerRegisterScreen: React.FC = () => {
       showToast(`Pendaftaran Berhasil! Selamat datang di ALLKURMA, ${profile.name}. Bonus 250 Poin telah ditambahkan!`, 'success');
       setCurrentView('customer-dashboard');
     } catch (err: any) {
-      // Fallback demo simulation if offline
-      const mockProfile = {
-        id: 'usr-customer-' + Date.now(),
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        role: 'customer' as const,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        tier: 'Bronze' as const,
-        rewardPoints: 250,
-        totalOrders: 0,
-        savedLists: 0,
-        annualSpend: 0
-      };
-      setUser(mockProfile);
-      localStorage.setItem('allkurma_user', JSON.stringify(mockProfile));
-      showToast(`Pendaftaran Berhasil! Selamat datang di ALLKURMA, ${name}.`, 'success');
-      setCurrentView('customer-dashboard');
+      const errMsg = err.code === 'auth/email-already-in-use'
+        ? 'Email ini sudah terdaftar. Silakan masuk menggunakan akun Anda atau gunakan email lain.'
+        : err.code === 'auth/weak-password'
+        ? 'Kata sandi terlalu lemah. Gunakan minimal 6-8 karakter kombinasi huruf dan angka.'
+        : err.message || 'Pendaftaran akun gagal. Silakan periksa kembali data Anda.';
+      setErrorMessage(errMsg);
     } finally {
       setIsLoading(false);
     }

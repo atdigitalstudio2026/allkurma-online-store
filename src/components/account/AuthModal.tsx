@@ -373,44 +373,6 @@ export const AuthModal: React.FC = () => {
             </div>
           )}
 
-          {/* Quick Demo Switcher for Evaluation */}
-          <div className="pt-3 border-t border-stone-200">
-            <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider block mb-2 text-center">
-              Akses Cepat Mode Akun Demo:
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => {
-                  switchRole('customer');
-                  setIsAuthModalOpen(false);
-                }}
-                className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-950 font-semibold flex items-center gap-1.5 text-left transition-colors cursor-pointer"
-              >
-                <User className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                <div className="truncate">
-                  <span className="font-bold block text-[10px]">Akun Pembeli</span>
-                  <span className="text-[9px] text-stone-500 truncate">Budi Santoso (Customer)</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  switchRole('seller');
-                  setIsAuthModalOpen(false);
-                }}
-                className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-semibold flex items-center gap-1.5 text-left transition-colors cursor-pointer border border-amber-400/20"
-              >
-                <Store className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <div className="truncate">
-                  <span className="font-bold text-amber-300 block text-[10px]">Akun Seller</span>
-                  <span className="text-[9px] text-stone-300 truncate">AllKurma Official</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
         </div>
 
       </div>

@@ -28,7 +28,8 @@ export const SellerRegisterScreen: React.FC = () => {
     setUser, 
     setCurrentView, 
     showToast,
-    updateSellerStore
+    updateSellerStore,
+    addSellerStaff
   } = useApp();
 
   const [formData, setFormData] = useState({
@@ -142,6 +143,15 @@ export const SellerRegisterScreen: React.FC = () => {
           holderName: formData.holderName || formData.ownerName,
           verified: true
         }
+      });
+
+      // 4. Authorize in staff whitelist
+      addSellerStaff({
+        name: formData.ownerName,
+        email: formData.email.toLowerCase(),
+        role: 'Super Admin Toko',
+        phone: formData.phone,
+        status: 'active'
       });
 
       setUser(newSellerProfile);
