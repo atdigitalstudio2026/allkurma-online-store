@@ -19,7 +19,12 @@ import {
   BadgePercent,
   Coins,
   DollarSign,
-  PackageCheck
+  PackageCheck,
+  Barcode,
+  Layers,
+  CalendarDays,
+  Shield,
+  Box
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductVariation } from '../../types';
@@ -345,24 +350,97 @@ export const ProductDetailScreen: React.FC = () => {
           </p>
         </div>
 
-        <div className="border-t border-stone-100 pt-3 space-y-2">
-          <h4 className="font-bold text-stone-900">Spesifikasi & Detail Panen</h4>
+        <div className="border-t border-stone-100 pt-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-stone-900 flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-amber-600" />
+              <span>Spesifikasi Produk, Panen & Inventori</span>
+            </h4>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
+              QC Lulus Grade A
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 gap-2 text-stone-600">
-            <div className="bg-stone-50 p-2 rounded-lg">
-              <span className="text-[10px] text-stone-400 block">SKU / Kode Produk</span>
-              <span className="font-bold text-stone-800 font-mono">{selectedVariation?.sku || product.sku}</span>
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70">
+              <span className="text-[10px] text-stone-400 block font-semibold flex items-center gap-1">
+                <Barcode className="w-3 h-3 text-stone-500" />
+                <span>SKU & Barcode</span>
+              </span>
+              <span className="font-bold text-stone-900 font-mono text-[11px] block mt-0.5">
+                {selectedVariation?.sku || product.sku}
+              </span>
+              <span className="text-[10px] text-stone-500 font-mono">
+                EAN: {selectedVariation?.barcode || product.barcode || '-'}
+              </span>
             </div>
-            <div className="bg-stone-50 p-2 rounded-lg">
-              <span className="text-[10px] text-stone-400 block">Berat Kemasan</span>
-              <span className="font-bold text-stone-800">{selectedVariation?.weightGram || product.weightGram} gram</span>
+
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70">
+              <span className="text-[10px] text-stone-400 block font-semibold flex items-center gap-1">
+                <Box className="w-3 h-3 text-stone-500" />
+                <span>Kemasan & Netto</span>
+              </span>
+              <span className="font-bold text-stone-900 text-[11px] block mt-0.5">
+                {selectedVariation?.weightGram || product.weightGram} gram
+              </span>
+              <span className="text-[10px] text-stone-500">
+                {selectedVariation?.packagingType || product.packagingType || 'Food-Grade Sealed'}
+              </span>
             </div>
-            <div className="bg-stone-50 p-2 rounded-lg">
-              <span className="text-[10px] text-stone-400 block">Asal Negara</span>
-              <span className="font-bold text-stone-800">{product.origin}</span>
+
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70">
+              <span className="text-[10px] text-stone-400 block font-semibold flex items-center gap-1">
+                <CalendarDays className="w-3 h-3 text-stone-500" />
+                <span>Asal & Musim Panen</span>
+              </span>
+              <span className="font-bold text-stone-900 text-[11px] block mt-0.5">
+                {product.origin}
+              </span>
+              <span className="text-[10px] text-stone-500">
+                {product.harvestYear || 'Panen Terbaru 2025/2026'}
+              </span>
             </div>
-            <div className="bg-stone-50 p-2 rounded-lg">
-              <span className="text-[10px] text-stone-400 block">Stok Gudang</span>
-              <span className="font-bold text-emerald-700">{selectedVariation?.stock || product.stock} pcs</span>
+
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70">
+              <span className="text-[10px] text-stone-400 block font-semibold flex items-center gap-1">
+                <Shield className="w-3 h-3 text-stone-500" />
+                <span>Sertifikasi & Garansi</span>
+              </span>
+              <span className="font-bold text-emerald-800 text-[11px] block mt-0.5">
+                {product.certification || 'Halal MUI & Kementan RI'}
+              </span>
+              <span className="text-[10px] text-stone-500">
+                100% Produk Original
+              </span>
+            </div>
+
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70 col-span-2 sm:col-span-1">
+              <span className="text-[10px] text-stone-400 block font-semibold">
+                Penyimpanan & Expired
+              </span>
+              <span className="font-bold text-stone-800 text-[11px] block mt-0.5">
+                {product.storageCondition || 'Suhu Sejuk (Simpan Kulkas)'}
+              </span>
+              <span className="text-[10px] text-stone-500">
+                Masa Simpan: {product.shelfLife || '18 Bulan'} (Exp: {product.expiryDate || '2027'})
+              </span>
+            </div>
+
+            <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70 col-span-2 sm:col-span-1">
+              <span className="text-[10px] text-stone-400 block font-semibold">
+                Lokasi Rak & Stok Gudang
+              </span>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="font-bold text-emerald-700 text-xs">
+                  {selectedVariation?.stock || product.stock} unit ready
+                </span>
+                <span className="text-[10px] font-mono text-stone-500 bg-stone-200/60 px-1.5 py-0.5 rounded">
+                  Rak: {selectedVariation?.warehouseRack || product.warehouseRack || product.warehouseLocation}
+                </span>
+              </div>
+              <span className="text-[10px] text-stone-500">
+                Gudang Hub: {product.warehouseLocation}
+              </span>
             </div>
           </div>
         </div>

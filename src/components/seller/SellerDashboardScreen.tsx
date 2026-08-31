@@ -30,6 +30,8 @@ import {
   ToggleRight,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Layers,
   ArrowDownLeft,
   X,
@@ -43,11 +45,19 @@ import {
   Mail,
   KeyRound,
   UserCheck,
-  Tag
+  Tag,
+  Barcode,
+  Boxes,
+  RefreshCw,
+  Box,
+  Warehouse,
+  CalendarDays
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Product, Order, PromotionVoucher } from '../../types';
-import { exportSalesReportToExcel } from '../../utils/exportReport';
+import { Product, Order, PromotionVoucher, ProductVariation } from '../../types';
+import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../utils/exportReport';
+import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
+import { SkuStockAdjustmentModal } from './SkuStockAdjustmentModal';
 
 export const SellerDashboardScreen: React.FC = () => {
   const {
@@ -121,21 +131,46 @@ export const SellerDashboardScreen: React.FC = () => {
 
   // New Product Modal
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productFormTab, setProductFormTab] = useState<'general' | 'pricing' | 'inventory' | 'variations' | 'wholesale'>('general');
+  const [selectedProductForBarcode, setSelectedProductForBarcode] = useState<Product | null>(null);
+  const [selectedProductForStockAdjust, setSelectedProductForStockAdjust] = useState<Product | null>(null);
+  
+  // SKU Search & Filter States
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('Semua');
+  const [productStockFilter, setProductStockFilter] = useState<'all' | 'safe' | 'low' | 'empty'>('all');
+  const [productSortBy, setProductSortBy] = useState<'default' | 'stock-desc' | 'stock-asc' | 'price-desc' | 'margin-desc'>('default');
+  const [expandedProductVariations, setExpandedProductVariations] = useState<Record<string, boolean>>({
+    'prod-01': true,
+    'prod-02': true
+  });
+
   const [newProd, setNewProd] = useState<Partial<Product>>({
     name: '',
     sku: '',
+    barcode: '',
     category: 'Medjool',
+    costPrice: 90000,
     regularPrice: 150000,
     discountPrice: 135000,
     stock: 50,
     minStockAlert: 10,
     origin: 'Madinah, Saudi Arabia',
+    harvestYear: 'Panen 2025/2026',
+    shelfLife: '18 Bulan',
+    expiryDate: '2027-12-31',
+    storageCondition: 'Suhu Sejuk (Simpan Kulkas)',
+    packagingType: 'Pouch Kedap Udara Food-Grade',
+    certification: 'Halal MUI & Kementan RI',
     description: '',
+    warehouseRack: 'Rak A1-01',
     warehouseLocation: 'Gudang Utama - Jakarta Pusat',
     weightGram: 500,
     images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
     freeShippingExtra: true,
-    cashbackExtra: true
+    cashbackExtra: true,
+    variations: []
   });
 
   // New Voucher Modal
@@ -237,6 +272,185 @@ export const SellerDashboardScreen: React.FC = () => {
       showToast(e.message || 'Gagal mengekspor laporan', 'error');
     }
   };
+
+  // Handle Export Inventory / SKU Report to Excel
+  const handleExportInventoryExcel = () => {
+    try {
+      exportInventoryReportToExcel(products, `Laporan_Stok_Inventori_${sellerStore.storeName.replace(/\s+/g, '_')}`);
+      showToast(`Berhasil mengekspor data ${products.length} master SKU ke Excel (.csv)!`, 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Gagal mengekspor inventori', 'error');
+    }
+  };
+
+  // Handle SKU Stock Adjustment Confirmation
+  const handleConfirmSkuStockAdjustment = (
+    productId: string,
+    variationId: string | null,
+    newStock: number,
+    logDetails: {
+      type: string;
+      qtyChange: number;
+      refDoc: string;
+      notes: string;
+      officer: string;
+    }
+  ) => {
+    const targetProd = products.find(p => p.id === productId);
+    if (!targetProd) return;
+
+    if (variationId && targetProd.variations && targetProd.variations.length > 0) {
+      const updatedVariations = targetProd.variations.map(v => {
+        if (v.id === variationId) {
+          return { ...v, stock: newStock };
+        }
+        return v;
+      });
+      const calculatedTotalStock = updatedVariations.reduce((sum, v) => sum + v.stock, 0);
+      updateProduct(productId, {
+        variations: updatedVariations,
+        stock: calculatedTotalStock
+      });
+      showToast(`Stok SKU ${logDetails.refDoc} berhasil disesuaikan menjadi ${newStock} unit (${logDetails.type})`, 'success');
+    } else {
+      updateProduct(productId, { stock: newStock });
+      showToast(`Stok ${targetProd.name} berhasil disesuaikan menjadi ${newStock} unit (${logDetails.type})`, 'success');
+    }
+
+    setSelectedProductForStockAdjust(null);
+  };
+
+  const handleOpenEditProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setNewProd({
+      name: prod.name,
+      sku: prod.sku,
+      barcode: prod.barcode || '',
+      category: prod.category,
+      costPrice: prod.costPrice || Math.round((prod.discountPrice || prod.regularPrice) * 0.6),
+      regularPrice: prod.regularPrice,
+      discountPrice: prod.discountPrice,
+      stock: prod.stock,
+      minStockAlert: prod.minStockAlert || 10,
+      origin: prod.origin,
+      harvestYear: prod.harvestYear || 'Panen 2025/2026',
+      shelfLife: prod.shelfLife || '18 Bulan',
+      expiryDate: prod.expiryDate || '2027-12-31',
+      storageCondition: prod.storageCondition || 'Suhu Sejuk (Simpan Kulkas)',
+      packagingType: prod.packagingType || 'Pouch Kedap Udara Food-Grade',
+      certification: prod.certification || 'Halal MUI & Kementan RI',
+      description: prod.description,
+      warehouseRack: prod.warehouseRack || 'Rak A1-01',
+      warehouseLocation: prod.warehouseLocation,
+      weightGram: prod.weightGram,
+      images: prod.images,
+      freeShippingExtra: prod.freeShippingExtra,
+      cashbackExtra: prod.cashbackExtra,
+      variations: prod.variations ? JSON.parse(JSON.stringify(prod.variations)) : [],
+      wholesalePrices: prod.wholesalePrices ? JSON.parse(JSON.stringify(prod.wholesalePrices)) : []
+    });
+    setProductFormTab('general');
+    setIsAddProductOpen(true);
+  };
+
+  const handleToggleExpandVariation = (prodId: string) => {
+    setExpandedProductVariations(prev => ({
+      ...prev,
+      [prodId]: !prev[prodId]
+    }));
+  };
+
+  // Inventory & SKU Metrics
+  let totalMasterSkus = products.length;
+  let totalActiveSkus = 0;
+  let totalPhysicalStockUnits = 0;
+  let totalInventoryHpp = 0;
+  let totalInventoryRevenue = 0;
+  let lowStockSkuCount = 0;
+  let outOfStockSkuCount = 0;
+
+  products.forEach(p => {
+    if (p.variations && p.variations.length > 0) {
+      totalActiveSkus += p.variations.length;
+      p.variations.forEach(v => {
+        const cost = v.costPrice || p.costPrice || Math.round((v.discountPrice || v.regularPrice) * 0.6);
+        const sellPrice = v.discountPrice || v.regularPrice;
+        totalPhysicalStockUnits += v.stock;
+        totalInventoryHpp += cost * v.stock;
+        totalInventoryRevenue += sellPrice * v.stock;
+        if (v.stock === 0) outOfStockSkuCount++;
+        else if (v.stock <= (v.minStockAlert || p.minStockAlert || 10)) lowStockSkuCount++;
+      });
+    } else {
+      totalActiveSkus += 1;
+      const cost = p.costPrice || Math.round((p.discountPrice || p.regularPrice) * 0.6);
+      const sellPrice = p.discountPrice || p.regularPrice;
+      totalPhysicalStockUnits += p.stock;
+      totalInventoryHpp += cost * p.stock;
+      totalInventoryRevenue += sellPrice * p.stock;
+      if (p.stock === 0) outOfStockSkuCount++;
+      else if (p.stock <= (p.minStockAlert || 10)) lowStockSkuCount++;
+    }
+  });
+
+  const averageGrossMarginPct = totalInventoryRevenue > 0
+    ? Math.round(((totalInventoryRevenue - totalInventoryHpp) / totalInventoryRevenue) * 100)
+    : 0;
+
+  // Filtered Products for Table
+  const filteredProductsForTable = products.filter(p => {
+    // Search filter
+    if (productSearchQuery.trim() !== '') {
+      const q = productSearchQuery.toLowerCase();
+      const matchName = p.name.toLowerCase().includes(q);
+      const matchSku = p.sku.toLowerCase().includes(q);
+      const matchBarcode = (p.barcode || '').toLowerCase().includes(q);
+      const matchCat = p.category.toLowerCase().includes(q);
+      const matchRack = (p.warehouseRack || '').toLowerCase().includes(q);
+      const matchVar = p.variations?.some(v => 
+        v.name.toLowerCase().includes(q) || 
+        v.sku.toLowerCase().includes(q) || 
+        (v.barcode || '').toLowerCase().includes(q)
+      );
+      if (!matchName && !matchSku && !matchBarcode && !matchCat && !matchRack && !matchVar) {
+        return false;
+      }
+    }
+
+    // Category filter
+    if (productCategoryFilter !== 'Semua' && p.category !== productCategoryFilter) {
+      return false;
+    }
+
+    // Stock status filter
+    if (productStockFilter === 'safe') {
+      if (p.stock <= (p.minStockAlert || 10)) return false;
+    } else if (productStockFilter === 'low') {
+      if (p.stock === 0 || p.stock > (p.minStockAlert || 10)) return false;
+    } else if (productStockFilter === 'empty') {
+      if (p.stock > 0) return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    if (productSortBy === 'stock-desc') return b.stock - a.stock;
+    if (productSortBy === 'stock-asc') return a.stock - b.stock;
+    if (productSortBy === 'price-desc') {
+      const priceA = a.discountPrice || a.regularPrice;
+      const priceB = b.discountPrice || b.regularPrice;
+      return priceB - priceA;
+    }
+    if (productSortBy === 'margin-desc') {
+      const costA = a.costPrice || (a.discountPrice || a.regularPrice) * 0.6;
+      const priceA = a.discountPrice || a.regularPrice;
+      const marginA = priceA - costA;
+      const costB = b.costPrice || (b.discountPrice || b.regularPrice) * 0.6;
+      const priceB = b.discountPrice || b.regularPrice;
+      const marginB = priceB - costB;
+      return marginB - marginA;
+    }
+    return 0;
+  });
 
   // Quick stats calculation
   const totalRevenue = orders
@@ -1350,117 +1564,592 @@ export const SellerDashboardScreen: React.FC = () => {
 
         {/* 4. TAB: PRODUK & STOK TOKO */}
         {activeTab === 'products' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+          <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif]">
+            
+            {/* Header Title & Top Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
               <div>
-                <h3 className="text-sm font-bold text-stone-900">Manajemen Katalog Produk & SKU</h3>
-                <p className="text-xs text-stone-500">Kelola harga eceran, harga grosir bertingkat, dan stok real-time</p>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-amber-100 text-amber-900 rounded-xl">
+                    <Boxes className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-stone-900">
+                      Manajemen Katalog Master Produk & SKU Gudang
+                    </h3>
+                    <p className="text-xs text-stone-500">
+                      Kontrol real-time stok varian SKU, lokasi rak fisik, barcode EAN-13, dan analisis HPP modal
+                    </p>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setIsAddProductOpen(true)}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Produk Baru
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportInventoryExcel}
+                  className="bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-stone-300 shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Ekspor seluruh data SKU & Valuasi ke spreadsheet Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>Unduh Rekap Stok (Excel)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setNewProd({
+                      name: '',
+                      sku: `AK-${Date.now().toString(36).toUpperCase().slice(-5)}`,
+                      barcode: `899723456${Math.floor(1000 + Math.random() * 9000)}`,
+                      category: 'Medjool',
+                      costPrice: 90000,
+                      regularPrice: 150000,
+                      discountPrice: 135000,
+                      stock: 50,
+                      minStockAlert: 10,
+                      origin: 'Madinah, Saudi Arabia',
+                      harvestYear: 'Panen 2025/2026',
+                      shelfLife: '18 Bulan',
+                      expiryDate: '2027-12-31',
+                      storageCondition: 'Suhu Sejuk (Simpan Kulkas)',
+                      packagingType: 'Pouch Kedap Udara Food-Grade',
+                      certification: 'Halal MUI & Kementan RI',
+                      description: '',
+                      warehouseRack: 'Rak A1-01',
+                      warehouseLocation: 'Gudang Utama - Jakarta Pusat',
+                      weightGram: 500,
+                      images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
+                      freeShippingExtra: true,
+                      cashbackExtra: true,
+                      variations: [],
+                      wholesalePrices: [
+                        { minQty: 11, maxQty: 50, pricePerUnit: 125000 },
+                        { minQty: 51, maxQty: undefined, pricePerUnit: 115000 }
+                      ]
+                    });
+                    setProductFormTab('general');
+                    setIsAddProductOpen(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Produk & SKU Baru</span>
+                </button>
+              </div>
             </div>
 
-            {/* Products Table */}
+            {/* KPI Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Total SKU Terdaftar
+                </span>
+                <div className="text-xl font-black text-stone-900 mt-1 font-mono">
+                  {totalMasterSkus} <span className="text-xs font-semibold text-stone-500">Master</span> • {totalActiveSkus} <span className="text-xs font-semibold text-stone-500">SKU</span>
+                </div>
+                <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
+                  ✓ 100% Barcode EAN-13 Aktif
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Valuasi Modal Stok (HPP)
+                </span>
+                <div className="text-xl font-black text-stone-900 mt-1 font-mono">
+                  Rp {totalInventoryHpp.toLocaleString('id-ID')}
+                </div>
+                <span className="text-[10px] text-stone-500 font-semibold block mt-1">
+                  {totalPhysicalStockUnits.toLocaleString('id-ID')} unit fisik di gudang
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Estimasi Nilai Jual & Margin
+                </span>
+                <div className="text-xl font-black text-emerald-700 mt-1 font-mono">
+                  Rp {totalInventoryRevenue.toLocaleString('id-ID')}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-semibold block mt-1">
+                  Margin Gross: ~{averageGrossMarginPct}%
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Kesehatan Inventori
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setProductStockFilter(productStockFilter === 'low' ? 'all' : 'low')}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold font-mono transition-colors ${
+                      lowStockSkuCount > 0
+                        ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+                        : 'bg-stone-100 text-stone-600'
+                    }`}
+                  >
+                    {lowStockSkuCount} Menipis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProductStockFilter(productStockFilter === 'empty' ? 'all' : 'empty')}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold font-mono transition-colors ${
+                      outOfStockSkuCount > 0
+                        ? 'bg-rose-100 text-rose-900 hover:bg-rose-200'
+                        : 'bg-stone-100 text-stone-600'
+                    }`}
+                  >
+                    {outOfStockSkuCount} Habis
+                  </button>
+                </div>
+                <span className="text-[10px] text-stone-400 block mt-1">
+                  Klik untuk filter stok kritis
+                </span>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+                
+                {/* Search Bar */}
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                    placeholder="Cari Master SKU (AK-AJW), Barcode EAN, Nama Kurma, atau Rak Gudang..."
+                    className="w-full pl-9 pr-8 py-2.5 bg-stone-50 focus:bg-white rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                  />
+                  {productSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={productCategoryFilter}
+                    onChange={(e) => setProductCategoryFilter(e.target.value)}
+                    className="px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-300 font-semibold text-stone-800 text-xs focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="Semua">Semua Kategori</option>
+                    <option value="Ajwa">Kurma Ajwa</option>
+                    <option value="Sukari">Kurma Sukari</option>
+                    <option value="Medjool">Kurma Medjool</option>
+                    <option value="Tunisia">Kurma Tunisia</option>
+                    <option value="Khalas">Kurma Khalas</option>
+                    <option value="Grosir">Paket Grosir Kartonan</option>
+                    <option value="Hampers">Hampers & Souvenir</option>
+                    <option value="Madu">Madu & Herbal</option>
+                  </select>
+
+                  {/* Sort Filter */}
+                  <select
+                    value={productSortBy}
+                    onChange={(e: any) => setProductSortBy(e.target.value)}
+                    className="px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-300 font-semibold text-stone-800 text-xs focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="default">Urutan Standar</option>
+                    <option value="stock-desc">Stok Terbanyak (Tinggi ke Rendah)</option>
+                    <option value="stock-asc">Stok Tersedikit (Perlu Restock)</option>
+                    <option value="price-desc">Harga Jual Tertinggi</option>
+                    <option value="margin-desc">Estimasi Margin Tertinggi</option>
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Status Quick Pills */}
+              <div className="flex items-center gap-1.5 pt-1 border-t border-stone-100 overflow-x-auto pb-1 text-xs">
+                <span className="text-[11px] font-bold text-stone-400 mr-1 shrink-0">Filter Status:</span>
+                {[
+                  { id: 'all', label: `Semua (${products.length})` },
+                  { id: 'safe', label: 'Stok Aman' },
+                  { id: 'low', label: `⚠️ Menipis (${lowStockSkuCount})` },
+                  { id: 'empty', label: `🚫 Habis (${outOfStockSkuCount})` }
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setProductStockFilter(st.id as any)}
+                    className={`px-3 py-1 rounded-lg font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                      productStockFilter === st.id
+                        ? 'bg-stone-900 text-white shadow-2xs'
+                        : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Products & SKU Detailed Table */}
             <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-50 text-stone-600 font-bold border-b border-stone-200">
+                  <thead className="bg-stone-900 text-stone-200 font-bold border-b border-stone-800">
                     <tr>
-                      <th className="p-3.5">Produk / SKU</th>
-                      <th className="p-3.5">Kategori</th>
-                      <th className="p-3.5">Harga Eceran</th>
-                      <th className="p-3.5">Harga Diskon</th>
-                      <th className="p-3.5">Stok Unit</th>
-                      <th className="p-3.5">Terjual</th>
-                      <th className="p-3.5 text-right">Aksi</th>
+                      <th className="p-3.5 w-10 text-center">#</th>
+                      <th className="p-3.5 min-w-[280px]">Produk, Master SKU & Barcode</th>
+                      <th className="p-3.5 min-w-[150px]">Lokasi Rak & Penyimpanan</th>
+                      <th className="p-3.5 min-w-[150px]">HPP & Harga Jual</th>
+                      <th className="p-3.5 min-w-[130px]">Status Stok Fisik</th>
+                      <th className="p-3.5 min-w-[90px]">Terjual</th>
+                      <th className="p-3.5 text-right min-w-[170px]">Aksi Manajemen</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {products.map(prod => (
-                      <tr key={prod.id} className="hover:bg-stone-50/60 transition-colors">
-                        <td className="p-3.5">
-                          <div className="flex items-center gap-3">
-                            <img src={prod.images[0]} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-stone-200" />
-                            <div>
-                              <div className="font-bold text-stone-900 line-clamp-1">{prod.name}</div>
-                              <div className="text-[10px] text-stone-500 font-mono">SKU: {prod.sku} • {prod.origin}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3.5">
-                          <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-semibold text-[10px]">
-                            {prod.category}
-                          </span>
-                        </td>
-                        <td className="p-3.5 font-bold text-stone-800">
-                          Rp {prod.regularPrice.toLocaleString('id-ID')}
-                        </td>
-                        <td className="p-3.5 font-bold text-emerald-700">
-                          {prod.discountPrice ? `Rp ${prod.discountPrice.toLocaleString('id-ID')}` : '-'}
-                        </td>
-                        <td className="p-3.5">
-                          <span className={`font-bold ${prod.stock <= prod.minStockAlert ? 'text-rose-600 font-black' : 'text-stone-800'}`}>
-                            {prod.stock} unit
-                          </span>
-                          {prod.stock <= prod.minStockAlert && (
-                            <span className="block text-[9px] text-rose-600 font-bold">Stok Kritis!</span>
-                          )}
-                        </td>
-                        <td className="p-3.5 font-semibold text-stone-600">
-                          {prod.soldCount} terjual
-                        </td>
-                        <td className="p-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => {
-                                setSelectedProductId(prod.id);
-                                setCurrentView('product-detail');
-                              }}
-                              className="p-1.5 text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
-                              title="Lihat Detail"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                const newStock = prompt(`Update stok untuk ${prod.name}:`, prod.stock.toString());
-                                if (newStock !== null) {
-                                  const parsed = parseInt(newStock, 10);
-                                  if (!isNaN(parsed) && parsed >= 0) {
-                                    updateProduct(prod.id, { stock: parsed });
-                                    showToast(`Stok ${prod.name} diupdate menjadi ${parsed} unit`, 'success');
-                                  }
-                                }
-                              }}
-                              className="p-1.5 text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                              title="Edit Stok Cepat"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Hapus produk ${prod.name}?`)) {
-                                  deleteProduct(prod.id);
-                                }
-                              }}
-                              className="p-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
-                              title="Hapus Produk"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                  <tbody className="divide-y divide-stone-200">
+                    {filteredProductsForTable.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-12 text-stone-400">
+                          <Boxes className="w-10 h-10 mx-auto text-stone-300 mb-2" />
+                          <div className="font-bold text-sm text-stone-700">Tidak ada SKU yang cocok dengan filter</div>
+                          <p className="text-xs text-stone-400 mt-0.5">Coba ubah kata kunci pencarian atau reset filter.</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredProductsForTable.map((prod, idx) => {
+                        const hasVariations = prod.variations && prod.variations.length > 0;
+                        const isExpanded = expandedProductVariations[prod.id] ?? true;
+                        const hpp = prod.costPrice || Math.round((prod.discountPrice || prod.regularPrice) * 0.6);
+                        const sellPrice = prod.discountPrice || prod.regularPrice;
+                        const profitMargin = sellPrice - hpp;
+                        const marginPercent = sellPrice > 0 ? Math.round((profitMargin / sellPrice) * 100) : 0;
+                        const isStockLow = prod.stock <= (prod.minStockAlert || 10);
+                        const isOutOfStock = prod.stock === 0;
+
+                        return (
+                          <React.Fragment key={prod.id}>
+                            {/* Master Product Row */}
+                            <tr className={`hover:bg-amber-50/40 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'}`}>
+                              
+                              {/* Expand Variant Toggle */}
+                              <td className="p-3 text-center align-top">
+                                {hasVariations ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleExpandVariation(prod.id)}
+                                    className="p-1 rounded-md text-stone-500 hover:text-amber-800 hover:bg-amber-100 transition-colors"
+                                    title={isExpanded ? 'Sembunyikan Varian SKU' : 'Tampilkan Varian SKU'}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-stone-400 font-mono">{idx + 1}</span>
+                                )}
+                              </td>
+
+                              {/* Product Info, SKU & Barcode */}
+                              <td className="p-3 align-top">
+                                <div className="flex items-start gap-3">
+                                  <img
+                                    src={prod.images[0]}
+                                    alt={prod.name}
+                                    className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 mt-0.5 shadow-2xs"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="font-extrabold text-stone-900 text-xs line-clamp-1">
+                                      {prod.name}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5 mt-1 font-mono text-[10px]">
+                                      <span className="bg-stone-900 text-white font-bold px-1.5 py-0.5 rounded-sm">
+                                        SKU: {prod.sku}
+                                      </span>
+                                      <span className="bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded-sm border border-stone-200">
+                                        EAN: {prod.barcode || '-'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-stone-500">
+                                      <span>Origin: <b>{prod.origin}</b></span>
+                                      <span>•</span>
+                                      <span className="text-amber-700 font-semibold">{prod.harvestYear || 'Panen 2026'}</span>
+                                      {hasVariations && (
+                                        <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded-full text-[9px]">
+                                          {prod.variations!.length} Varian Kemasan
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Storage & Warehouse Rack */}
+                              <td className="p-3 align-top">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1 text-stone-800 font-bold">
+                                    <Warehouse className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                                    <span>{prod.warehouseRack || prod.warehouseLocation}</span>
+                                  </div>
+                                  <div className="text-[10px] text-stone-500 font-medium">
+                                    {prod.storageCondition || 'Suhu Sejuk (Simpan Kulkas)'}
+                                  </div>
+                                  <div className="text-[9px] text-stone-400 font-mono">
+                                    Exp: {prod.expiryDate || '2027'} ({prod.shelfLife || '18 Bulan'})
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Financials: HPP vs Selling Price vs Margin */}
+                              <td className="p-3 align-top">
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-stone-400 text-[10px]">HPP Modal:</span>
+                                    <span className="font-mono font-bold text-stone-700">
+                                      Rp {hpp.toLocaleString('id-ID')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-stone-400 text-[10px]">Harga Jual:</span>
+                                    <span className="font-mono font-black text-stone-900">
+                                      Rp {sellPrice.toLocaleString('id-ID')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between pt-0.5 border-t border-stone-200/80">
+                                    <span className="text-[9px] text-emerald-700 font-bold">Margin Laba:</span>
+                                    <span className="text-[10px] font-mono font-bold text-emerald-700">
+                                      Rp {profitMargin.toLocaleString('id-ID')} ({marginPercent}%)
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Physical Stock Status */}
+                              <td className="p-3 align-top">
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className={`font-mono text-sm font-black ${
+                                      isOutOfStock ? 'text-rose-600' : isStockLow ? 'text-amber-700' : 'text-stone-900'
+                                    }`}>
+                                      {prod.stock} unit
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                      isOutOfStock 
+                                        ? 'bg-rose-100 text-rose-900'
+                                        : isStockLow 
+                                        ? 'bg-amber-100 text-amber-900 animate-pulse'
+                                        : 'bg-emerald-100 text-emerald-900'
+                                    }`}>
+                                      {isOutOfStock ? 'HABIS' : isStockLow ? 'KRITIS' : 'AMAN'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Progress bar */}
+                                  <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        isOutOfStock ? 'bg-rose-500 w-0' : isStockLow ? 'bg-amber-500 w-1/4' : 'bg-emerald-500 w-full'
+                                      }`}
+                                    />
+                                  </div>
+                                  <span className="text-[9px] text-stone-400 block font-mono">
+                                    Min. Alert: {prod.minStockAlert || 10} unit
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Sold Count */}
+                              <td className="p-3 align-top font-semibold text-stone-700 font-mono">
+                                {prod.soldCount} terjual
+                              </td>
+
+                              {/* Action Buttons */}
+                              <td className="p-3 align-top text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* Quick Stock Opname / Adjust */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedProductForStockAdjust(prod)}
+                                    className="p-1.5 text-stone-700 hover:text-white bg-stone-100 hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+                                    title="Stock Opname & Penyesuaian Stok Gudang"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Print SKU Barcode */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedProductForBarcode(prod)}
+                                    className="p-1.5 text-stone-700 hover:text-white bg-stone-100 hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+                                    title="Cetak Label Barcode & Price Tag Thermal"
+                                  >
+                                    <Barcode className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Edit Product */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditProduct(prod)}
+                                    className="p-1.5 text-amber-800 hover:text-white bg-amber-100 hover:bg-amber-700 rounded-lg transition-colors cursor-pointer"
+                                    title="Edit Detail Lengkap Produk & SKU"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* View in Shop */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedProductId(prod.id);
+                                      setCurrentView('product-detail');
+                                    }}
+                                    className="p-1.5 text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
+                                    title="Lihat Tampilan Pembeli"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Delete */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (confirm(`Hapus produk ${prod.name}? Data stok dan SKU terkait akan dihapus.`)) {
+                                        deleteProduct(prod.id);
+                                      }
+                                    }}
+                                    className="p-1.5 text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 rounded-lg transition-colors cursor-pointer"
+                                    title="Hapus Produk"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Nested Multi-SKU Variations Sub-Table */}
+                            {hasVariations && isExpanded && (
+                              <tr className="bg-amber-50/20 border-b border-amber-200/60">
+                                <td colSpan={7} className="p-0 pl-10 pr-3 py-2.5">
+                                  <div className="bg-white rounded-xl border border-amber-200/80 p-3 shadow-2xs">
+                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-100 text-[11px] font-bold text-amber-950">
+                                      <div className="flex items-center gap-1.5">
+                                        <Tag className="w-3.5 h-3.5 text-amber-600" />
+                                        <span>Rincian SKU Varian Kemasan ({prod.variations!.length} Varian Terdaftar):</span>
+                                      </div>
+                                      <span className="text-[10px] text-stone-500 font-mono">
+                                        Total Stok Varian: {prod.variations!.reduce((s, v) => s + v.stock, 0)} unit
+                                      </span>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      {prod.variations!.map((v, vIdx) => {
+                                        const vCost = v.costPrice || prod.costPrice || Math.round((v.discountPrice || v.regularPrice) * 0.6);
+                                        const vPrice = v.discountPrice || v.regularPrice;
+                                        const vMargin = vPrice - vCost;
+                                        const vMarginPct = vPrice > 0 ? Math.round((vMargin / vPrice) * 100) : 0;
+                                        const isVLow = v.stock <= (v.minStockAlert || prod.minStockAlert || 10);
+
+                                        return (
+                                          <div
+                                            key={v.id || vIdx}
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 bg-stone-50 hover:bg-amber-50/40 rounded-xl border border-stone-200 text-xs transition-colors"
+                                          >
+                                            {/* Variation Info & SKU */}
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-bold text-stone-900">{v.name}</span>
+                                                <span className="font-mono text-[10px] bg-stone-900 text-white px-1.5 py-0.2 rounded">
+                                                  SKU: {v.sku}
+                                                </span>
+                                                <span className="font-mono text-[10px] text-stone-600 bg-stone-200/70 px-1.5 py-0.2 rounded">
+                                                  EAN: {v.barcode || '-'}
+                                                </span>
+                                              </div>
+                                              <div className="text-[10px] text-stone-500 flex items-center gap-3 mt-1">
+                                                <span>Netto: <b>{v.weightGram}g</b></span>
+                                                <span>•</span>
+                                                <span>Kemasan: <b>{v.packagingType || 'Pouch'}</b></span>
+                                                <span>•</span>
+                                                <span>Rak: <b>{v.warehouseRack || prod.warehouseRack || prod.warehouseLocation}</b></span>
+                                              </div>
+                                            </div>
+
+                                            {/* Financials */}
+                                            <div className="text-right sm:text-left min-w-[150px]">
+                                              <div className="font-mono font-bold text-stone-900">
+                                                Rp {vPrice.toLocaleString('id-ID')}
+                                                {v.discountPrice && (
+                                                  <span className="text-[10px] text-stone-400 line-through ml-1 font-normal">
+                                                    Rp {v.regularPrice.toLocaleString('id-ID')}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="text-[10px] text-emerald-700 font-mono">
+                                                HPP: Rp {vCost.toLocaleString('id-ID')} (Laba {vMarginPct}%)
+                                              </div>
+                                            </div>
+
+                                            {/* Stock */}
+                                            <div className="flex items-center justify-between sm:justify-start gap-3 min-w-[130px]">
+                                              <div>
+                                                <span className={`font-mono font-black text-sm ${isVLow ? 'text-amber-700' : 'text-stone-900'}`}>
+                                                  {v.stock} unit
+                                                </span>
+                                                <span className="text-[9px] text-stone-400 block font-mono">
+                                                  Min: {v.minStockAlert || 10}
+                                                </span>
+                                              </div>
+                                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                                v.stock === 0 ? 'bg-rose-100 text-rose-900' : isVLow ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'
+                                              }`}>
+                                                {v.stock === 0 ? 'HABIS' : isVLow ? 'KRITIS' : 'AMAN'}
+                                              </span>
+                                            </div>
+
+                                            {/* Actions for Sub-SKU */}
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <button
+                                                type="button"
+                                                onClick={() => setSelectedProductForStockAdjust(prod)}
+                                                className="px-2.5 py-1 text-[11px] font-bold bg-white hover:bg-stone-800 hover:text-white text-stone-700 rounded-lg border border-stone-300 transition-colors flex items-center gap-1 cursor-pointer"
+                                                title="Opname Stok Varian Ini"
+                                              >
+                                                <RefreshCw className="w-3 h-3" />
+                                                <span>Opname</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => setSelectedProductForBarcode(prod)}
+                                                className="px-2.5 py-1 text-[11px] font-bold bg-white hover:bg-stone-800 hover:text-white text-stone-700 rounded-lg border border-stone-300 transition-colors flex items-center gap-1 cursor-pointer"
+                                                title="Cetak Label Barcode Varian Ini"
+                                              >
+                                                <Barcode className="w-3 h-3" />
+                                                <span>Barcode</span>
+                                              </button>
+                                            </div>
+
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+
+                          </React.Fragment>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
+
           </div>
         )}
 
@@ -2011,20 +2700,63 @@ export const SellerDashboardScreen: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: TAMBAH PRODUK BARU */}
+      {/* MODAL: TAMBAH / EDIT PRODUK & SKU LENGKAP */}
       {isAddProductOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-stone-200 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4">
-              <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-amber-600" />
-                Tambah Produk Kurma Baru
-              </h3>
-              <button onClick={() => setIsAddProductOpen(false)} className="text-stone-400 hover:text-stone-600">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl border border-stone-200 my-8 max-h-[90vh] flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-amber-100 text-amber-900 rounded-xl">
+                  <Box className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-stone-900">
+                    {editingProduct ? 'Edit Spesifikasi Produk & SKU' : 'Tambah Produk & Master SKU Baru'}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Konfigurasi katalog, harga modal HPP, lokasi gudang, dan varian kemasan
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsAddProductOpen(false);
+                  setEditingProduct(null);
+                }} 
+                className="text-stone-400 hover:text-stone-600 p-1 cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* Navigation Tabs inside Modal */}
+            <div className="flex items-center gap-1.5 border-b border-stone-200 pb-2 mb-4 overflow-x-auto shrink-0 text-xs">
+              {[
+                { id: 'general', label: '1. Info & Panen' },
+                { id: 'pricing', label: '2. Finansial & HPP' },
+                { id: 'inventory', label: '3. SKU & Gudang' },
+                { id: 'variations', label: `4. Varian SKU (${newProd.variations?.length || 0})` },
+                { id: 'wholesale', label: '5. Grosir B2B' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setProductFormTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
+                    productFormTab === tab.id
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Modal Body / Tab Content */}
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -2032,152 +2764,602 @@ export const SellerDashboardScreen: React.FC = () => {
                   showToast('Mohon lengkapi nama dan harga produk!', 'error');
                   return;
                 }
-                addProduct({
+
+                const payloadData: Partial<Product> = {
                   name: newProd.name,
-                  sku: newProd.sku || `AK-${Date.now().toString().slice(-4)}`,
+                  sku: newProd.sku || `AK-${Date.now().toString(36).toUpperCase().slice(-5)}`,
+                  barcode: newProd.barcode || `899723456${Math.floor(1000 + Math.random() * 9000)}`,
                   category: newProd.category as any,
+                  costPrice: Number(newProd.costPrice) || Math.round(Number(newProd.regularPrice) * 0.6),
                   regularPrice: Number(newProd.regularPrice),
                   discountPrice: newProd.discountPrice ? Number(newProd.discountPrice) : undefined,
-                  stock: Number(newProd.stock) || 50,
-                  minStockAlert: 10,
+                  stock: newProd.variations && newProd.variations.length > 0 
+                    ? newProd.variations.reduce((sum, v) => sum + v.stock, 0) 
+                    : (Number(newProd.stock) || 50),
+                  minStockAlert: Number(newProd.minStockAlert) || 10,
                   origin: newProd.origin || 'Madinah, Saudi Arabia',
+                  harvestYear: newProd.harvestYear || 'Panen 2025/2026',
+                  shelfLife: newProd.shelfLife || '18 Bulan',
+                  expiryDate: newProd.expiryDate || '2027-12-31',
+                  storageCondition: newProd.storageCondition || 'Suhu Sejuk (Simpan Kulkas)',
+                  packagingType: newProd.packagingType || 'Pouch Kedap Udara Food-Grade',
+                  certification: newProd.certification || 'Halal MUI & Kementan RI',
                   description: newProd.description || 'Kurma pilihan kualitas ekspor kemasan higienis.',
-                  warehouseLocation: sellerStore.city,
+                  warehouseRack: newProd.warehouseRack || 'Rak A1-01',
+                  warehouseLocation: newProd.warehouseLocation || sellerStore.city,
                   weightGram: Number(newProd.weightGram) || 500,
                   images: newProd.images || ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
-                  wholesalePrices: [
-                    { minQty: 1, maxQty: 10, pricePerUnit: Number(newProd.regularPrice) },
+                  freeShippingExtra: true,
+                  cashbackExtra: true,
+                  variations: newProd.variations || [],
+                  wholesalePrices: newProd.wholesalePrices || [
                     { minQty: 11, maxQty: 50, pricePerUnit: Math.round(Number(newProd.regularPrice) * 0.9) },
                     { minQty: 51, maxQty: undefined, pricePerUnit: Math.round(Number(newProd.regularPrice) * 0.8) }
-                  ],
-                  rating: 5.0,
-                  reviewCount: 0,
-                  soldCount: 0,
-                  freeShippingExtra: true,
-                  cashbackExtra: true
-                });
+                  ]
+                };
+
+                if (editingProduct) {
+                  updateProduct(editingProduct.id, payloadData);
+                  showToast(`Produk & SKU ${newProd.name} berhasil diperbarui!`, 'success');
+                } else {
+                  addProduct({
+                    ...payloadData,
+                    rating: 5.0,
+                    reviewCount: 0,
+                    soldCount: 0
+                  } as Product);
+                  showToast(`Produk & SKU baru ${newProd.name} berhasil diterbitkan!`, 'success');
+                }
+
                 setIsAddProductOpen(false);
+                setEditingProduct(null);
               }}
-              className="space-y-4 text-xs"
+              className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs"
             >
-              <div>
-                <label className="block font-bold text-stone-700 mb-1">Nama Produk Kurma</label>
-                <input
-                  type="text"
-                  value={newProd.name}
-                  onChange={e => setNewProd({ ...newProd, name: e.target.value })}
-                  placeholder="Contoh: Kurma Ajwa Madinah Grade VIP 500g"
-                  className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  required
-                />
-              </div>
+              {/* TAB 1: INFO & PANEN */}
+              {productFormTab === 'general' && (
+                <div className="space-y-3.5 animate-in fade-in-50">
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Nama Lengkap Produk Kurma *</label>
+                    <input
+                      type="text"
+                      value={newProd.name}
+                      onChange={e => setNewProd({ ...newProd, name: e.target.value })}
+                      placeholder="Contoh: Kurma Ajwa Al-Madinah Grade VIP Premium"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-semibold text-stone-900"
+                      required
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Kategori</label>
-                  <select
-                    value={newProd.category}
-                    onChange={e => setNewProd({ ...newProd, category: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option value="Ajwa">Ajwa</option>
-                    <option value="Sukari">Sukari</option>
-                    <option value="Medjool">Medjool</option>
-                    <option value="Tunisia">Tunisia</option>
-                    <option value="Khalas">Khalas</option>
-                    <option value="Grosir">Grosir</option>
-                    <option value="Hampers">Hampers</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Kategori Kurma</label>
+                      <select
+                        value={newProd.category}
+                        onChange={e => setNewProd({ ...newProd, category: e.target.value as any })}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-medium"
+                      >
+                        <option value="Ajwa">Kurma Ajwa (Nabi)</option>
+                        <option value="Sukari">Kurma Sukari (Raja)</option>
+                        <option value="Medjool">Kurma Medjool</option>
+                        <option value="Tunisia">Kurma Tunisia Tangkai</option>
+                        <option value="Khalas">Kurma Khalas</option>
+                        <option value="Grosir">Paket Grosir Kartonan</option>
+                        <option value="Hampers">Hampers & Souvenir</option>
+                        <option value="Madu">Madu & Herbal</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Negara Asal / Asal Kebun</label>
+                      <input
+                        type="text"
+                        value={newProd.origin}
+                        onChange={e => setNewProd({ ...newProd, origin: e.target.value })}
+                        placeholder="Madinah, Saudi Arabia"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Musim / Tahun Panen</label>
+                      <input
+                        type="text"
+                        value={newProd.harvestYear}
+                        onChange={e => setNewProd({ ...newProd, harvestYear: e.target.value })}
+                        placeholder="Panen Baru 2025/2026"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Sertifikasi & Kualitas</label>
+                      <input
+                        type="text"
+                        value={newProd.certification}
+                        onChange={e => setNewProd({ ...newProd, certification: e.target.value })}
+                        placeholder="Halal MUI & Kementan RI"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">URL Foto Produk Utama</label>
+                    <input
+                      type="text"
+                      value={newProd.images?.[0] || ''}
+                      onChange={e => setNewProd({ ...newProd, images: [e.target.value] })}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Deskripsi & Catatan Mutu</label>
+                    <textarea
+                      rows={3}
+                      value={newProd.description}
+                      onChange={e => setNewProd({ ...newProd, description: e.target.value })}
+                      placeholder="Jelaskan karakteristik tekstur daging buah, kadar manis, serta jaminan higienis..."
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">SKU Produk</label>
-                  <input
-                    type="text"
-                    value={newProd.sku}
-                    onChange={e => setNewProd({ ...newProd, sku: e.target.value })}
-                    placeholder="AK-AJW-500"
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+              {/* TAB 2: FINANSIAL & HPP */}
+              {productFormTab === 'pricing' && (
+                <div className="space-y-4 animate-in fade-in-50">
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-stone-800">
+                    <h4 className="font-bold text-xs text-amber-950 mb-1">Kalkulator Margin & Profitabilitas</h4>
+                    <p className="text-[11px] text-amber-900">
+                      Sistem menghitung estimasi keuntungan bersih secara otomatis berdasarkan harga modal dan harga jual.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Harga Modal Satuan (HPP) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-stone-400">Rp</span>
+                        <input
+                          type="number"
+                          value={newProd.costPrice}
+                          onChange={e => setNewProd({ ...newProd, costPrice: Number(e.target.value) })}
+                          placeholder="90000"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono font-bold text-stone-900"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Harga Jual Normal (Eceran) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-stone-400">Rp</span>
+                        <input
+                          type="number"
+                          value={newProd.regularPrice}
+                          onChange={e => setNewProd({ ...newProd, regularPrice: Number(e.target.value) })}
+                          placeholder="150000"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono font-bold text-stone-900"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Harga Diskon Promo (Opsional)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-stone-400">Rp</span>
+                        <input
+                          type="number"
+                          value={newProd.discountPrice || ''}
+                          onChange={e => setNewProd({ ...newProd, discountPrice: e.target.value ? Number(e.target.value) : undefined })}
+                          placeholder="135000"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono text-emerald-700 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Margin Calculation Card */}
+                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 flex flex-col justify-center">
+                      {(() => {
+                        const cost = Number(newProd.costPrice) || 0;
+                        const sell = Number(newProd.discountPrice || newProd.regularPrice) || 0;
+                        const marginRp = sell - cost;
+                        const marginPct = sell > 0 ? Math.round((marginRp / sell) * 100) : 0;
+                        return (
+                          <div>
+                            <span className="text-[10px] text-stone-500 font-bold uppercase block">Estimasi Keuntungan Satuan</span>
+                            <div className="text-sm font-black text-emerald-700 font-mono">
+                              Rp {marginRp.toLocaleString('id-ID')} ({marginPct}%)
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Harga Normal (Rp)</label>
-                  <input
-                    type="number"
-                    value={newProd.regularPrice}
-                    onChange={e => setNewProd({ ...newProd, regularPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
+              {/* TAB 3: SKU & GUDANG */}
+              {productFormTab === 'inventory' && (
+                <div className="space-y-3.5 animate-in fade-in-50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Master SKU Code *</label>
+                      <input
+                        type="text"
+                        value={newProd.sku}
+                        onChange={e => setNewProd({ ...newProd, sku: e.target.value.toUpperCase() })}
+                        placeholder="AK-AJW-VIP"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold text-stone-900"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Barcode EAN-13 (Thermal Tag)</label>
+                      <input
+                        type="text"
+                        value={newProd.barcode || ''}
+                        onChange={e => setNewProd({ ...newProd, barcode: e.target.value })}
+                        placeholder="8997234560014"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono text-stone-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Lokasi Rak Gudang Fisik</label>
+                      <input
+                        type="text"
+                        value={newProd.warehouseRack}
+                        onChange={e => setNewProd({ ...newProd, warehouseRack: e.target.value })}
+                        placeholder="Rak A1-01 (Lantai 1)"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-semibold text-stone-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Kondisi Suhu Penyimpanan</label>
+                      <input
+                        type="text"
+                        value={newProd.storageCondition}
+                        onChange={e => setNewProd({ ...newProd, storageCondition: e.target.value })}
+                        placeholder="Suhu Sejuk (Simpan Kulkas 4-8°C)"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Stok Fisik Awal</label>
+                      <input
+                        type="number"
+                        value={newProd.stock}
+                        onChange={e => setNewProd({ ...newProd, stock: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold text-stone-900"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Batas Alert Kritis</label>
+                      <input
+                        type="number"
+                        value={newProd.minStockAlert}
+                        onChange={e => setNewProd({ ...newProd, minStockAlert: Number(e.target.value) })}
+                        placeholder="10"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Berat Netto (Gram)</label>
+                      <input
+                        type="number"
+                        value={newProd.weightGram}
+                        onChange={e => setNewProd({ ...newProd, weightGram: Number(e.target.value) })}
+                        placeholder="500"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Jenis Kemasan</label>
+                      <input
+                        type="text"
+                        value={newProd.packagingType}
+                        onChange={e => setNewProd({ ...newProd, packagingType: e.target.value })}
+                        placeholder="Pouch Kedap Udara Food-Grade"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-stone-700 mb-1">Umur Simpan (Shelf Life)</label>
+                      <input
+                        type="text"
+                        value={newProd.shelfLife}
+                        onChange={e => setNewProd({ ...newProd, shelfLife: e.target.value })}
+                        placeholder="18 Bulan"
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300"
+                      />
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Harga Diskon Promo (Rp)</label>
-                  <input
-                    type="number"
-                    value={newProd.discountPrice || ''}
-                    onChange={e => setNewProd({ ...newProd, discountPrice: Number(e.target.value) })}
-                    placeholder="Opsional"
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+              {/* TAB 4: VARIAN SKU MULTI-KEMASAN */}
+              {productFormTab === 'variations' && (
+                <div className="space-y-3.5 animate-in fade-in-50">
+                  <div className="flex items-center justify-between p-3 bg-amber-50 rounded-2xl border border-amber-200">
+                    <div>
+                      <h4 className="font-bold text-xs text-amber-950">Multi-SKU Varian Kemasan</h4>
+                      <p className="text-[11px] text-amber-800">
+                        Atur harga, HPP, barcode, dan stok untuk masing-masing ukuran kemasan (250g, 500g, 1kg, 5kg).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentVars = newProd.variations || [];
+                        const nextIndex = currentVars.length + 1;
+                        const newVarItem: ProductVariation = {
+                          id: `var-${Date.now()}`,
+                          name: `Kemasan Varian ${nextIndex}`,
+                          sku: `${newProd.sku || 'AK'}-V${nextIndex}`,
+                          barcode: `899723456${Math.floor(1000 + Math.random() * 9000)}`,
+                          costPrice: Math.round(Number(newProd.costPrice || 90000) * (nextIndex === 1 ? 0.5 : nextIndex === 2 ? 1 : 2)),
+                          regularPrice: Math.round(Number(newProd.regularPrice || 150000) * (nextIndex === 1 ? 0.55 : nextIndex === 2 ? 1 : 1.9)),
+                          discountPrice: undefined,
+                          stock: 25,
+                          minStockAlert: 5,
+                          weightGram: nextIndex === 1 ? 250 : nextIndex === 2 ? 500 : 1000,
+                          packagingType: 'Pouch Ziplock Premium',
+                          warehouseRack: newProd.warehouseRack || 'Rak A1-01'
+                        };
+                        setNewProd({
+                          ...newProd,
+                          variations: [...currentVars, newVarItem]
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Tambah Varian</span>
+                    </button>
+                  </div>
+
+                  {(!newProd.variations || newProd.variations.length === 0) ? (
+                    <div className="p-6 text-center bg-stone-50 rounded-2xl border border-dashed border-stone-300 text-stone-500">
+                      <p className="font-semibold text-xs">Belum ada sub-varian SKU kemasan.</p>
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        Produk ini menggunakan stok master tunggal. Klik tombol di atas untuk menambah varian berat/kemasan.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {newProd.variations.map((v, vIdx) => (
+                        <div key={v.id || vIdx} className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-stone-900 text-xs">Varian #{vIdx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const filtered = newProd.variations!.filter((_, i) => i !== vIdx);
+                                setNewProd({ ...newProd, variations: filtered });
+                              }}
+                              className="text-rose-600 hover:text-rose-800 text-[11px] font-bold"
+                            >
+                              Hapus Varian
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">Nama Varian Kemasan</label>
+                              <input
+                                type="text"
+                                value={v.name}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].name = e.target.value;
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                placeholder="Kemasan 500g Exclusive"
+                                className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-stone-300 font-semibold text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">SKU Varian</label>
+                              <input
+                                type="text"
+                                value={v.sku}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].sku = e.target.value.toUpperCase();
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                placeholder="AK-AJW-500G"
+                                className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-stone-300 font-mono font-bold text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">HPP Modal (Rp)</label>
+                              <input
+                                type="number"
+                                value={v.costPrice || ''}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].costPrice = Number(e.target.value);
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                className="w-full px-2 py-1.5 bg-white rounded-lg border border-stone-300 font-mono text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">Harga Jual (Rp)</label>
+                              <input
+                                type="number"
+                                value={v.regularPrice}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].regularPrice = Number(e.target.value);
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                className="w-full px-2 py-1.5 bg-white rounded-lg border border-stone-300 font-mono font-bold text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">Stok Fisik</label>
+                              <input
+                                type="number"
+                                value={v.stock}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].stock = Number(e.target.value);
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                className="w-full px-2 py-1.5 bg-white rounded-lg border border-stone-300 font-mono font-bold text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-stone-600 block mb-0.5">Netto (Gram)</label>
+                              <input
+                                type="number"
+                                value={v.weightGram}
+                                onChange={e => {
+                                  const updated = [...newProd.variations!];
+                                  updated[vIdx].weightGram = Number(e.target.value);
+                                  setNewProd({ ...newProd, variations: updated });
+                                }}
+                                className="w-full px-2 py-1.5 bg-white rounded-lg border border-stone-300 font-mono text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Stok Awal</label>
-                  <input
-                    type="number"
-                    value={newProd.stock}
-                    onChange={e => setNewProd({ ...newProd, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
+              {/* TAB 5: GROSIR B2B */}
+              {productFormTab === 'wholesale' && (
+                <div className="space-y-3.5 animate-in fade-in-50">
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-stone-800">
+                    <h4 className="font-bold text-xs text-amber-950 mb-0.5">Harga Grosir Bertingkat (Volume Tier)</h4>
+                    <p className="text-[11px] text-amber-900">
+                      Diskon otomatis diterapkan ketika pembeli memasukkan kuantiti pesanan dalam jumlah besar (reseller & kartonan).
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2 p-3 bg-stone-50 rounded-xl border border-stone-200">
+                      <div>
+                        <span className="text-[10px] text-stone-500 font-bold block">Tier 1 (Eceran Standar)</span>
+                        <span className="font-bold text-stone-800 text-xs">1 s/d 10 unit</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-stone-500 font-bold block">Harga per Unit</span>
+                        <span className="font-bold text-stone-900 text-xs font-mono">
+                          Rp {(newProd.discountPrice || newProd.regularPrice || 0).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 p-3 bg-stone-50 rounded-xl border border-stone-200">
+                      <div>
+                        <span className="text-[10px] text-stone-500 font-bold block">Tier 2 (Grosir Menengah)</span>
+                        <span className="font-bold text-stone-800 text-xs">11 s/d 50 unit</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-stone-500 font-bold block">Harga per Unit</span>
+                        <span className="font-bold text-emerald-700 text-xs font-mono">
+                          Rp {Math.round((newProd.discountPrice || newProd.regularPrice || 0) * 0.9).toLocaleString('id-ID')} (-10%)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 p-3 bg-stone-50 rounded-xl border border-stone-200">
+                      <div>
+                        <span className="text-[10px] text-stone-500 font-bold block">Tier 3 (Distributor / Dus)</span>
+                        <span className="font-bold text-stone-800 text-xs">&gt; 50 unit</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-stone-500 font-bold block">Harga per Unit</span>
+                        <span className="font-bold text-emerald-700 text-xs font-mono">
+                          Rp {Math.round((newProd.discountPrice || newProd.regularPrice || 0) * 0.8).toLocaleString('id-ID')} (-20%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block font-bold text-stone-700 mb-1">Berat Kemasan (Gram)</label>
-                  <input
-                    type="number"
-                    value={newProd.weightGram}
-                    onChange={e => setNewProd({ ...newProd, weightGram: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-stone-700 mb-1">Deskripsi Produk</label>
-                <textarea
-                  rows={3}
-                  value={newProd.description}
-                  onChange={e => setNewProd({ ...newProd, description: e.target.value })}
-                  placeholder="Jelaskan grade buah, tekstur, rasa, dan sertifikat higienis..."
-                  className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+              {/* Form Footer Action */}
+              <div className="flex items-center justify-between pt-4 border-t border-stone-200 mt-4 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setIsAddProductOpen(false)}
-                  className="px-4 py-2 font-bold text-stone-600 hover:bg-stone-100 rounded-xl"
+                  onClick={() => {
+                    setIsAddProductOpen(false);
+                    setEditingProduct(null);
+                  }}
+                  className="px-4 py-2 font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs"
+                  className="px-6 py-2.5 font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  Publikasikan Produk
+                  <Box className="w-4 h-4" />
+                  <span>{editingProduct ? 'Simpan Perubahan SKU' : 'Terbitkan Master SKU'}</span>
                 </button>
               </div>
             </form>
+
           </div>
         </div>
+      )}
+
+      {/* MODAL: CETAK BARCODE & THERMAL TAG */}
+      {selectedProductForBarcode && (
+        <SkuBarcodePrintModal
+          product={selectedProductForBarcode}
+          storeName={sellerStore.storeName}
+          onClose={() => setSelectedProductForBarcode(null)}
+        />
+      )}
+
+      {/* MODAL: PENYESUAIAN STOK / STOCK OPNAME */}
+      {selectedProductForStockAdjust && (
+        <SkuStockAdjustmentModal
+          product={selectedProductForStockAdjust}
+          onClose={() => setSelectedProductForStockAdjust(null)}
+          onConfirm={(productId, variationId, newStock, logDetails) => {
+            handleConfirmSkuStockAdjustment(productId, variationId, newStock, logDetails);
+          }}
+        />
       )}
 
       {/* MODAL: TAMBAH VOUCHER BARU */}

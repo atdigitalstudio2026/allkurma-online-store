@@ -39,9 +39,14 @@ export interface ProductVariation {
   weightGram: number;
   regularPrice: number;
   discountPrice?: number;
+  costPrice?: number; // HPP Modal
   stock: number;
+  minStockAlert?: number;
   sku: string;
+  barcode?: string;
   image?: string;
+  packagingType?: string;
+  warehouseRack?: string;
 }
 
 export interface CustomerReview {
@@ -149,17 +154,26 @@ export interface Product {
   id: string;
   name: string;
   sku: string;
+  barcode?: string;
   category: 'Ajwa' | 'Sukari' | 'Medjool' | 'Tunisia' | 'Khalas' | 'Madu' | 'Grosir' | 'Hampers' | 'Bundling';
   description: string;
   images: string[];
   regularPrice: number;
   discountPrice?: number;
+  costPrice?: number; // HPP (Harga Pokok Penjualan)
   wholesalePrices: TierPriceRule[];
   stock: number;
   minStockAlert: number;
   warehouseLocation: string;
+  warehouseRack?: string; // e.g. "Rak A-02 / Cold Storage #1"
   weightGram: number;
   dimensionsCm?: string;
+  harvestYear?: string; // e.g. "Musim 2025/2026 - Fresh Import"
+  shelfLife?: string; // e.g. "18 - 24 Bulan"
+  expiryDate?: string; // e.g. "2027-08-30"
+  storageCondition?: string; // e.g. "Chiller 0°C - 5°C" | "Suhu Ruang Sejuk (< 22°C)"
+  packagingType?: string; // e.g. "Sealed Vacuum Foil Box" | "Food Grade Jar"
+  certification?: string; // e.g. "Halal MUI & Karantina Kementan RI"
   isFlashSale?: boolean;
   flashSaleDiscountPercent?: number;
   rating: number;
