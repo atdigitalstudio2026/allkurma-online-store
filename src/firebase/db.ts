@@ -182,3 +182,28 @@ export const saveUserCartToFirestore = async (userId: string, items: any[]): Pro
     console.warn('Firestore saveUserCart fallback:', error);
   }
 };
+
+// Store Settings & Authorized Seller Staff Sync
+export const getStoreSettingsFromFirestore = async (): Promise<any | null> => {
+  try {
+    const storeDoc = await getDoc(doc(db, 'store_settings', 'allkurma'));
+    if (storeDoc.exists()) {
+      return storeDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.warn('Firestore getStoreSettings fallback:', error);
+    return null;
+  }
+};
+
+export const saveStoreSettingsToFirestore = async (storeData: any): Promise<void> => {
+  try {
+    await setDoc(doc(db, 'store_settings', 'allkurma'), {
+      ...storeData,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    console.warn('Firestore saveStoreSettings fallback:', error);
+  }
+};

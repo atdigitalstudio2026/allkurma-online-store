@@ -45,7 +45,7 @@ import {
   INITIAL_SELLER_STORE
 } from '../data/mockData';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
-import { getUserProfile } from '../firebase/db';
+import { getUserProfile, getStoreSettingsFromFirestore, saveStoreSettingsToFirestore } from '../firebase/db';
 
 export type AppView =
   | 'home'
@@ -515,6 +515,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('allkurma_seller_store', JSON.stringify(sellerStore));
   }, [sellerStore]);
+
+  // Sync Store Settings & Staff Whitelist from Firestore on Startup
+  useEffect(() => {
+    const fetchCloudStoreSettings = async () => {
+      try {
+        const cloudSettings = await getStoreSettingsFromFirestore();
+        if (cloudSettings) {
+          setSellerStore(prev => {
+            // Merge authorized staff ensuring no duplicates
+            const currentStaff = prev.authorizedStaff || [];
+            const cloudStaff = cloudSettings.authorizedStaff || [];
+            const mergedMap = new Map();
+            [...currentStaff, ...cloudStaff].forEach(s => {
+              if (s?.email) mergedMap.set(s.email.toLowerCase().trim(), s);
+            });
+
+            return {
+              ...prev,
+              ...cloudSettings,
+              authorizedStaff: Array.from(mergedMap.values())
+            };
+          });
+        }
+      } catch (err) {
+        console.warn('Could not sync store settings from Firestore:', err);
+      }
+    };
+
+    fetchCloudStoreSettings();
+  }, []);
 
   // Listen to Firebase Auth State changes for secure session persistence
   useEffect(() => {
@@ -1265,7 +1295,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Seller Store Actions
   const updateSellerStore = (updates: Partial<SellerStoreProfile>) => {
-    setSellerStore(prev => ({ ...prev, ...updates }));
+    setSellerStore(prev => {
+      const updated = { ...prev, ...updates };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast('Pengaturan Toko berhasil diperbarui!', 'success');
   };
 
@@ -1274,16 +1308,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Nominal penarikan tidak valid atau melebihi saldo!', 'error');
       return false;
     }
-    setSellerStore(prev => ({ ...prev, payoutBalance: prev.payoutBalance - amount }));
+    setSellerStore(prev => {
+      const updated = { ...prev, payoutBalance: prev.payoutBalance - amount };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast(`Penarikan dana Rp ${amount.toLocaleString('id-ID')} ke rekening ${sellerStore.bankAccount.bankName} berhasil diajukan!`, 'success');
     return true;
   };
 
   const toggleSellerCourier = (courierId: string) => {
-    setSellerStore(prev => ({
-      ...prev,
-      couriers: prev.couriers.map(c => c.id === courierId ? { ...c, active: !c.active } : c)
-    }));
+    setSellerStore(prev => {
+      const updated = {
+        ...prev,
+        couriers: prev.couriers.map(c => c.id === courierId ? { ...c, active: !c.active } : c)
+      };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast('Pengaturan ekspedisi toko berhasil diperbarui', 'info');
   };
 
@@ -1314,28 +1356,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'active'
     };
 
-    setSellerStore(prev => ({
-      ...prev,
-      authorizedStaff: [...(prev.authorizedStaff || []), newStaff]
-    }));
+    setSellerStore(prev => {
+      const updated = {
+        ...prev,
+        authorizedStaff: [...(prev.authorizedStaff || []), newStaff]
+      };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast(`Staf "${staffData.name}" (${cleanEmail}) berhasil ditambahkan ke daftar akses seller!`, 'success');
   };
 
   const removeSellerStaff = (id: string) => {
-    setSellerStore(prev => ({
-      ...prev,
-      authorizedStaff: (prev.authorizedStaff || []).filter(s => s.id !== id)
-    }));
+    setSellerStore(prev => {
+      const updated = {
+        ...prev,
+        authorizedStaff: (prev.authorizedStaff || []).filter(s => s.id !== id)
+      };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast('Akses staf berhasil dicabut dari sistem.', 'info');
   };
 
   const toggleSellerStaffStatus = (id: string) => {
-    setSellerStore(prev => ({
-      ...prev,
-      authorizedStaff: (prev.authorizedStaff || []).map(s => 
-        s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s
-      )
-    }));
+    setSellerStore(prev => {
+      const updated = {
+        ...prev,
+        authorizedStaff: (prev.authorizedStaff || []).map(s => 
+          s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s
+        )
+      };
+      saveStoreSettingsToFirestore(updated);
+      return updated;
+    });
     showToast('Status izin akses staf berhasil diperbarui.', 'info');
   };
 
@@ -1345,13 +1399,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // 1. Primary Owner Account
     if (clean === 'atdigitalstudio2026@gmail.com') return true;
+
+    // 2. Verified Active Staff List (Direct Whitelist)
+    if (clean === 'havidh.saputra@gmail.com') return true;
     
-    // 2. Default AllKurma internal domain accounts
+    // 3. Default AllKurma internal domain accounts
     if (clean === 'admin@allkurma.id' || clean === 'seller@allkurma.id' || clean === 'operasional@allkurma.id' || clean === 'management@allkurma.id') return true;
     
-    // 3. Registered staff whitelist inside sellerStore
+    // 4. Registered staff whitelist inside sellerStore
     const staff = sellerStore?.authorizedStaff || [];
-    return staff.some(s => s.email.trim().toLowerCase() === clean && s.status === 'active');
+    if (staff.some(s => s.email.trim().toLowerCase() === clean && s.status === 'active')) return true;
+
+    // 5. Initial store fallback
+    const initStaff = INITIAL_SELLER_STORE.authorizedStaff || [];
+    return initStaff.some(s => s.email.trim().toLowerCase() === clean && s.status === 'active');
   };
 
   // Wishlist

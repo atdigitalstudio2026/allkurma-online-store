@@ -1079,6 +1079,15 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
       addedAt: '2026-02-01',
       status: 'active',
       phone: '+62 813-4455-6677'
+    },
+    {
+      id: 'staff-004',
+      name: 'Havidh',
+      email: 'havidh.saputra@gmail.com',
+      role: 'Manajer Operasional',
+      addedAt: '2026-08-31',
+      status: 'active',
+      phone: '+62 812-3456-7890'
     }
   ],
   couriers: [
