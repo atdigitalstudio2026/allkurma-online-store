@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { CustomerReview, Product } from '../../types';
+import { WriteReviewModal } from './WriteReviewModal';
 
 interface ShopeeReviewsSectionProps {
   product: Product;
@@ -20,7 +21,6 @@ interface ShopeeReviewsSectionProps {
 export const ShopeeReviewsSection: React.FC<ShopeeReviewsSectionProps> = ({ product }) => {
   const { 
     reviews, 
-    addReview, 
     markReviewHelpful, 
     user,
     showToast 
@@ -29,14 +29,6 @@ export const ShopeeReviewsSection: React.FC<ShopeeReviewsSectionProps> = ({ prod
   const [activeFilter, setActiveFilter] = useState<'all' | 'with_photos' | '5' | '4' | '3'>('all');
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [selectedPhotoZoom, setSelectedPhotoZoom] = useState<string | null>(null);
-
-  // New review form states
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
-  const [selectedVarName, setSelectedVarName] = useState(product.variations?.[0]?.name || 'Kemasan 1kg');
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([
-    'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=500&auto=format&fit=crop&q=80'
-  ]);
 
   const productReviews = reviews.filter(r => r.productId === product.id || r.productId === 'prod-01');
 
@@ -48,28 +40,6 @@ export const ShopeeReviewsSection: React.FC<ShopeeReviewsSectionProps> = ({ prod
     if (activeFilter === '3') return r.rating <= 3;
     return true;
   });
-
-  const handleSubmitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comment.trim()) {
-      showToast('Harap tuliskan ulasan Anda', 'error');
-      return;
-    }
-
-    addReview({
-      productId: product.id,
-      userName: user.name,
-      userAvatar: user.avatar,
-      rating,
-      comment: comment.trim(),
-      photos: uploadedPhotos,
-      variationPurchased: selectedVarName,
-      isVerifiedPurchase: true
-    });
-
-    setIsWriteModalOpen(false);
-    setComment('');
-  };
 
   return (
     <div className="bg-white p-4 border-y border-stone-200 space-y-4">
@@ -229,108 +199,19 @@ export const ShopeeReviewsSection: React.FC<ShopeeReviewsSectionProps> = ({ prod
 
       {/* 4. Write Review Modal */}
       {isWriteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="font-bold text-stone-900 text-sm">Nilai Produk Ini</h3>
-                <p className="text-[11px] text-amber-800 font-semibold">Dapatkan +25 Poin Reward Kurma!</p>
-              </div>
-              <button 
-                onClick={() => setIsWriteModalOpen(false)}
-                className="text-stone-400 hover:text-stone-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitReview} className="space-y-3 text-xs">
-              
-              {/* Star rating selector */}
-              <div>
-                <label className="font-semibold text-stone-700 block mb-1">Kualitas Produk:</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setRating(s)}
-                      className="p-1 text-amber-500 hover:scale-110 transition-transform"
-                    >
-                      <Star className={`w-7 h-7 ${s <= rating ? 'fill-amber-400 text-amber-400' : 'text-stone-300'}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Variation purchased */}
-              {product.variations && (
-                <div>
-                  <label className="font-semibold text-stone-700 block mb-1">Pilih Variasi yang Dibeli:</label>
-                  <select
-                    value={selectedVarName}
-                    onChange={(e) => setSelectedVarName(e.target.value)}
-                    className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-xs"
-                  >
-                    {product.variations.map((v) => (
-                      <option key={v.id} value={v.name}>{v.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Review Text */}
-              <div>
-                <label className="font-semibold text-stone-700 block mb-1">Ulasan & Testimoni:</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Ceritakan kepuasan Anda mengenai rasa, tekstur, kemasan, dan kecepatan pengiriman kurma..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs leading-relaxed"
-                />
-              </div>
-
-              {/* Photo preview upload simulator */}
-              <div>
-                <label className="font-semibold text-stone-700 block mb-1">Foto Ulasan:</label>
-                <div className="flex items-center gap-2">
-                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-stone-300 flex flex-col items-center justify-center text-stone-400 cursor-pointer hover:border-amber-500 hover:text-amber-700">
-                    <ImageIcon className="w-4 h-4" />
-                    <span className="text-[9px] mt-0.5">+ Foto</span>
-                  </div>
-                  {uploadedPhotos.map((p, idx) => (
-                    <img 
-                      key={idx} 
-                      src={p} 
-                      alt="Uploaded" 
-                      className="w-14 h-14 rounded-xl object-cover border border-amber-300 shadow-xs" 
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsWriteModalOpen(false)}
-                  className="flex-1 py-2.5 border border-stone-200 rounded-xl text-stone-600 font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Kirim Ulasan</span>
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
+        <WriteReviewModal
+          isOpen={isWriteModalOpen}
+          onClose={() => setIsWriteModalOpen(false)}
+          product={{
+            id: product.id,
+            name: product.name,
+            image: product.images?.[0],
+            variation: product.variations?.[0]?.name
+          }}
+          onReviewSubmitted={() => {
+            setIsWriteModalOpen(false);
+          }}
+        />
       )}
 
       {/* Photo Zoom Lightbox Modal */}

@@ -42,7 +42,8 @@ import {
   UserPlus,
   Mail,
   KeyRound,
-  UserCheck
+  UserCheck,
+  Tag
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher } from '../../types';
@@ -74,11 +75,18 @@ export const SellerDashboardScreen: React.FC = () => {
     showToast,
     loginSeller,
     setIsAuthModalOpen,
-    setAuthModalMode
+    setAuthModalMode,
+    broadcastToFollowers
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'vouchers' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'vouchers' | 'reviews' | 'followers'>('overview');
+
+  // Broadcast to Followers Form State
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastPromoCode, setBroadcastPromoCode] = useState('');
+  const [broadcastType, setBroadcastType] = useState<'promo' | 'new_product' | 'flash_sale'>('promo');
 
   // General Settings State
   const [storeForm, setStoreForm] = useState({
@@ -425,7 +433,19 @@ export const SellerDashboardScreen: React.FC = () => {
               }`}
             >
               <Star className="w-4 h-4 text-amber-400" />
-              Ulasan Pelanggan ({reviews.length})
+              Ulasan ({reviews.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('followers')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
+                activeTab === 'followers'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>Pengikut & Broadcast ({(sellerStore.followerCount || 24850).toLocaleString('id-ID')})</span>
             </button>
           </div>
         </div>
@@ -1585,6 +1605,265 @@ export const SellerDashboardScreen: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 7. TAB: PENGIKUT & BROADCAST PROMO (FOLLOWERS) */}
+        {activeTab === 'followers' && (
+          <div className="space-y-6">
+            
+            {/* Top Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
+                <div className="flex items-center justify-between text-stone-500 text-xs font-semibold">
+                  <span>Total Pengikut Toko</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-stone-900 mt-2">
+                  {(sellerStore.followerCount || 24850).toLocaleString('id-ID')}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 mt-1">
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  +340 pengikut baru minggu ini
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
+                <div className="flex items-center justify-between text-stone-500 text-xs font-semibold">
+                  <span>Voucher Follower Diklaim</span>
+                  <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                    <Percent className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-stone-900 mt-2">
+                  1.420 <span className="text-xs font-normal text-stone-500">voucher</span>
+                </div>
+                <div className="text-[11px] font-medium text-stone-500 mt-1">
+                  Kode Aktif: <b className="text-red-700 font-mono">FOLLOWER15</b>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
+                <div className="flex items-center justify-between text-stone-500 text-xs font-semibold">
+                  <span>Open Rate Notifikasi</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-stone-900 mt-2">
+                  78.2%
+                </div>
+                <div className="text-[11px] font-medium text-emerald-600 mt-1">
+                  Sangat Tinggi (Audience Loyal)
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
+                <div className="flex items-center justify-between text-stone-500 text-xs font-semibold">
+                  <span>Konversi Penjualan Follower</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-stone-900 mt-2">
+                  34.6%
+                </div>
+                <div className="text-[11px] font-medium text-stone-500 mt-1">
+                  Rata-rata 2.4x repeat order
+                </div>
+              </div>
+            </div>
+
+            {/* Broadcast Creation Cockpit */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-xl bg-amber-100 text-amber-900">
+                      <Send className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-base font-bold text-stone-900 font-['Playfair_Display',serif]">
+                      Siaran Notifikasi Promo ke Pengikut (Broadcast Feed)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Kirim pemberitahuan push langsung ke seluruh <b>{(sellerStore.followerCount || 24850).toLocaleString('id-ID')} pengikut setia</b> toko AllKurma saat ada promo, flash sale, atau kedatangan kurma panen baru.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBroadcastTitle('🔥 Flash Sale Panen Raya Ajwa VIP');
+                      setBroadcastMessage('Stok terbatas Kurma Ajwa Jumbo Al-Aliya baru mendarat di gudang Jakarta! Nikmati diskon kilat 20% hari ini saja.');
+                      setBroadcastPromoCode('AJWAPREMIUM20');
+                    }}
+                    className="text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200 transition-colors"
+                  >
+                    Template Flash Sale
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBroadcastTitle('🌾 Produk Baru Tiba: Sukari Al-Qassim Fresh Chilled');
+                      setBroadcastMessage('Kurma Sukari basah kemasan chilled box 1kg sudah ready kirim dengan box styrofoam & ice pack!');
+                      setBroadcastPromoCode('FRESHSUKARI');
+                    }}
+                    className="text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
+                  >
+                    Template Produk Baru
+                  </button>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+                    showToast('Harap isi judul dan pesan broadcast!', 'error');
+                    return;
+                  }
+                  broadcastToFollowers(broadcastTitle, broadcastMessage, broadcastPromoCode);
+                  setBroadcastTitle('');
+                  setBroadcastMessage('');
+                  setBroadcastPromoCode('');
+                }}
+                className="space-y-4 pt-4 text-xs"
+              >
+                <div>
+                  <label className="block font-bold text-stone-800 mb-1">
+                    Judul Notifikasi Siaran
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="Contoh: 🔥 Diskon Akhir Pekan 25% Semua Kurma Madinah!"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-stone-800 mb-1">
+                    Isi Pesan Notifikasi (Maks. 250 karakter)
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    maxLength={250}
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    placeholder="Tuliskan pesan menarik yang akan muncul di bilah notifikasi pengguna..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed"
+                  />
+                  <div className="text-[10px] text-stone-400 text-right mt-0.5">
+                    {broadcastMessage.length}/250 karakter
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-stone-800 mb-1">
+                      Sertakan Kode Voucher Promo (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={broadcastPromoCode}
+                      onChange={(e) => setBroadcastPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Contoh: PANENRAYA20"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold"
+                    />
+                    <span className="text-[10px] text-stone-400 mt-0.5 block">
+                      Voucher ini akan otomatis masuk ke dompet voucher pengikut saat notifikasi diklik.
+                    </span>
+                  </div>
+
+                  {/* Notification Live Card Preview */}
+                  <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">
+                      Preview Tampilan Notifikasi Pengikut:
+                    </span>
+                    <div className="p-3 bg-white rounded-xl border border-amber-200 shadow-2xs flex items-start gap-2.5">
+                      <div className="p-2 bg-amber-100 rounded-lg text-amber-900 shrink-0">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-stone-900 text-xs truncate">
+                          {broadcastTitle || 'Judul Notifikasi Broadcast'}
+                        </div>
+                        <p className="text-[11px] text-stone-600 mt-0.5 line-clamp-2 leading-relaxed">
+                          {broadcastMessage || 'Pesan siaran promosi dan update panen kurma akan muncul di sini...'}
+                        </p>
+                        {broadcastPromoCode && (
+                          <div className="mt-1 text-[10px] font-bold text-amber-800 font-mono">
+                            Kupon: {broadcastPromoCode}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-extrabold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Siarkan Notifikasi ke {(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Riwayat Broadcast Terkirim */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-2xs">
+              <h4 className="text-sm font-bold text-stone-900 mb-3">
+                Riwayat Siaran Notifikasi Sebelumnya
+              </h4>
+              <div className="divide-y divide-stone-100 text-xs">
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-stone-900">🎉 Selamat! Voucher Diskon 15% Spesial Follower</span>
+                      <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                        Auto-Welcome
+                      </span>
+                    </div>
+                    <p className="text-stone-500 text-[11px] mt-0.5">
+                      Voucher otomatis untuk setiap pengguna baru yang mengklik tombol Follow Toko.
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-bold text-stone-800">100% Terkirim</span>
+                    <span className="text-[10px] text-stone-400 block">Selalu Aktif</span>
+                  </div>
+                </div>
+
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-stone-900">✨ Kedatangan Kontainer Baru: Kurma Ajwa Al-Madinah VIP</span>
+                      <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                        Panen Baru
+                      </span>
+                    </div>
+                    <p className="text-stone-500 text-[11px] mt-0.5">
+                      Disiarkan ke 24.850 followers • 19.420 dibaca • 6.210 klik produk
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-bold text-emerald-600">78.1% Buka</span>
+                    <span className="text-[10px] text-stone-400 block">2 Hari Lalu</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 

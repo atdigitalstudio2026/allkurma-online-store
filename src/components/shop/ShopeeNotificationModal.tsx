@@ -7,7 +7,11 @@ import {
   Coins, 
   Sparkles, 
   CheckCheck, 
-  ChevronRight 
+  ChevronRight,
+  UserPlus,
+  UserCheck,
+  Store,
+  ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -18,7 +22,10 @@ export const ShopeeNotificationModal: React.FC = () => {
     notifications, 
     markNotifAsRead, 
     markAllNotifsRead,
-    setCurrentView 
+    setCurrentView,
+    isFollowingStore,
+    toggleFollowStore,
+    sellerStore
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'order' | 'promo' | 'finance'>('all');
@@ -96,6 +103,52 @@ export const ShopeeNotificationModal: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        {/* Store Follow & Push Status Quick Bar */}
+        <div className="p-3 bg-linear-to-r from-amber-900 to-stone-900 text-white flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+              <Store className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-[11px] truncate">
+                  {sellerStore.storeName || 'AllKurma Official'}
+                </span>
+                <span className="text-[8px] bg-red-600 px-1 py-0.2 rounded-xs font-black">
+                  MALL
+                </span>
+              </div>
+              <p className="text-[10px] text-stone-300 truncate">
+                {isFollowingStore 
+                  ? '🔔 Notifikasi Promo Toko: AKTIF' 
+                  : 'Ikuti toko untuk notifikasi promo & diskon 15%'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleFollowStore}
+            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 ${
+              isFollowingStore
+                ? 'bg-emerald-600 text-white'
+                : 'bg-amber-500 hover:bg-amber-400 text-stone-950 font-black'
+            }`}
+          >
+            {isFollowingStore ? (
+              <>
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Mengikuti</span>
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Ikuti</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Tab Filters */}

@@ -9,10 +9,13 @@ import {
   Receipt, 
   RotateCcw, 
   ShoppingBag,
-  CreditCard
+  CreditCard,
+  Star,
+  MessageSquarePlus
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Order } from '../types';
+import { WriteReviewModal } from '../components/shop/WriteReviewModal';
 
 interface CustomerOrdersSectionProps {
   initialStatusFilter?: string;
@@ -21,9 +24,20 @@ interface CustomerOrdersSectionProps {
 export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({ 
   initialStatusFilter = 'Semua' 
 }) => {
-  const { orders, setCurrentView, addToCart, showToast, products } = useApp();
+  const { orders, setCurrentView, addToCart, showToast, products, updateOrderStatus, reviews } = useApp();
   const [activeFilter, setActiveFilter] = useState<string>(initialStatusFilter);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  
+  // Review Modal State
+  const [reviewingTarget, setReviewingTarget] = useState<{
+    product: {
+      id: string;
+      name: string;
+      image?: string;
+      variation?: string;
+    };
+    orderId?: string;
+  } | null>(null);
 
   const filterTabs = [
     { label: 'Semua', count: orders.length },
@@ -156,25 +170,56 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                     const itemImg = item.image || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=200&auto=format&fit=crop&q=80';
                     const itemName = item.productName || item.product?.name || 'Kurma Premium';
                     const itemPrice = item.unitPrice || item.product?.discountPrice || item.product?.regularPrice || 0;
+                    const isItemReviewed = reviews.some(r => r.productId === (item.productId || item.product?.id) && (r.orderId === order.invoiceCode || r.orderId === order.orderNumber || r.orderId === order.id));
 
                     return (
-                      <div key={idx} className="flex items-center gap-3.5">
-                        <img 
-                          src={itemImg} 
-                          alt={itemName} 
-                          className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0" 
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-xs text-stone-900 truncate">
-                            {itemName}
-                          </h4>
-                          <p className="text-[11px] text-stone-500 mt-0.5">
-                            {item.selectedVariation?.name || 'Kemasan Standar'} • {item.quantity} pcs
-                          </p>
-                          <p className="text-xs font-bold text-amber-900 mt-1">
-                            Rp {(itemPrice * item.quantity).toLocaleString('id-ID')}
-                          </p>
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-stone-50/70 border border-stone-100">
+                        <div className="flex items-center gap-3.5">
+                          <img 
+                            src={itemImg} 
+                            alt={itemName} 
+                            className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0 bg-white" 
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-xs text-stone-900 truncate">
+                              {itemName}
+                            </h4>
+                            <p className="text-[11px] text-stone-500 mt-0.5">
+                              {item.selectedVariation?.name || 'Kemasan Standar'} • {item.quantity} pcs
+                            </p>
+                            <p className="text-xs font-bold text-amber-900 mt-1">
+                              Rp {(itemPrice * item.quantity).toLocaleString('id-ID')}
+                            </p>
+                          </div>
                         </div>
+
+                        {/* Item Review Action if Order is Completed */}
+                        {order.status === 'Selesai' && (
+                          <div className="flex items-center justify-end pt-1 sm:pt-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReviewingTarget({
+                                  product: {
+                                    id: item.productId || item.product?.id || 'prod-01',
+                                    name: itemName,
+                                    image: itemImg,
+                                    variation: item.selectedVariation?.name || 'Kemasan Standar'
+                                  },
+                                  orderId: order.invoiceCode || order.orderNumber || order.id
+                                });
+                              }}
+                              className={`py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                isItemReviewed
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
+                              }`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${isItemReviewed ? 'fill-emerald-600 text-emerald-600' : 'fill-amber-500 text-amber-500'}`} />
+                              <span>{isItemReviewed ? 'Lihat / Edit Ulasan' : 'Beri Nilai & Foto (+50 Poin)'}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -195,7 +240,7 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {(order.status === 'Belum Bayar' || (order.status as string) === 'Belum Dibayar') && (
                       <button
                         onClick={() => showToast('Membuka instruksi pembayaran...', 'info')}
@@ -203,6 +248,52 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                       >
                         <CreditCard className="w-3.5 h-3.5" />
                         <span>Bayar Sekarang</span>
+                      </button>
+                    )}
+
+                    {order.status === 'Dikirim' && (
+                      <button
+                        onClick={() => {
+                          updateOrderStatus(order.id, 'Selesai');
+                          showToast('Terima kasih! Pesanan Anda telah ditandai Selesai.', 'success');
+                          if (order.items && order.items.length > 0) {
+                            const first = order.items[0];
+                            setReviewingTarget({
+                              product: {
+                                id: first.productId || first.product?.id || 'prod-01',
+                                name: first.productName || first.product?.name || 'Kurma Premium',
+                                image: first.image || first.product?.images?.[0],
+                                variation: first.selectedVariation?.name
+                              },
+                              orderId: order.invoiceCode || order.orderNumber || order.id
+                            });
+                          }
+                        }}
+                        className="py-2 px-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Konfirmasi Terima Paket</span>
+                      </button>
+                    )}
+
+                    {order.status === 'Selesai' && order.items && order.items.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const first = order.items[0];
+                          setReviewingTarget({
+                            product: {
+                              id: first.productId || first.product?.id || 'prod-01',
+                              name: first.productName || first.product?.name || 'Kurma Premium',
+                              image: first.image || first.product?.images?.[0],
+                              variation: first.selectedVariation?.name
+                            },
+                            orderId: order.invoiceCode || order.orderNumber || order.id
+                          });
+                        }}
+                        className="py-2 px-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-white text-white" />
+                        <span>Tulis Ulasan & Foto</span>
                       </button>
                     )}
 
@@ -249,6 +340,19 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
             );
           })}
         </div>
+      )}
+
+      {/* WRITE REVIEW MODAL */}
+      {reviewingTarget && (
+        <WriteReviewModal
+          isOpen={!!reviewingTarget}
+          onClose={() => setReviewingTarget(null)}
+          product={reviewingTarget.product}
+          orderId={reviewingTarget.orderId}
+          onReviewSubmitted={() => {
+            showToast('Ulasan dan foto produk Anda berhasil dipublikasikan!', 'success');
+          }}
+        />
       )}
 
     </div>

@@ -35,6 +35,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { PromoBundlingModal, BUNDLE_DEALS, BundleDeal } from './PromoBundlingModal';
+import { StoreFollowHeader } from './StoreFollowHeader';
 
 interface StoryItem {
   id: string;
@@ -746,6 +747,11 @@ export const HomeScreen: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Official Store Card with Follow Button & Followers Perk */}
+      <div className="px-4 pb-2">
+        <StoreFollowHeader variant="card" />
       </div>
 
       {/* 4. 8 Quick Action Icons Grid (DIPERBARUI: Promo Bundling & New Product) */}

@@ -47,6 +47,7 @@ export interface ProductVariation {
 export interface CustomerReview {
   id: string;
   productId: string;
+  orderId?: string;
   userName: string;
   userAvatar?: string;
   avatar?: string;
@@ -54,10 +55,14 @@ export interface CustomerReview {
   date?: string;
   createdAt?: string;
   variationName?: string;
+  variationPurchased?: string;
   comment: string;
   photos?: string[];
   isVerifiedBuyer?: boolean;
+  isVerifiedPurchase?: boolean;
   helpfulCount: number;
+  sellerResponse?: string;
+  tags?: string[];
 }
 
 export interface ChatMessage {
@@ -134,6 +139,10 @@ export interface SellerStoreProfile {
   payoutBalance: number;
   taxNumber: string;
   minFreeShippingOrder: number;
+  followerCount?: number;
+  rating?: number;
+  responseRate?: number;
+  joinedDate?: string;
 }
 
 export interface Product {

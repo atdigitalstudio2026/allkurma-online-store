@@ -222,6 +222,12 @@ interface AppContextType {
   markNotifAsRead: (id: string) => void;
   markAllNotifsRead: () => void;
   unreadNotifCount: number;
+  addNotification: (notif: Omit<AppNotification, 'id'>) => void;
+  
+  // Follow Store Feature
+  isFollowingStore: boolean;
+  toggleFollowStore: () => void;
+  broadcastToFollowers: (title: string, message: string, promoCode?: string) => void;
   
   // Seller Center Management
   sellerStore: SellerStoreProfile;
@@ -375,6 +381,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : ['promo-01'];
   });
 
+  // Follow Store State
+  const [isFollowingStore, setIsFollowingStore] = useState<boolean>(() => {
+    const saved = localStorage.getItem('allkurma_is_following_store');
+    return saved ? JSON.parse(saved) : false;
+  });
+
   const [addresses, setAddresses] = useState<Address[]>(() => {
     const saved = localStorage.getItem('allkurma_addresses');
     return saved ? JSON.parse(saved) : INITIAL_ADDRESSES;
@@ -467,6 +479,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('allkurma_claimed_vouchers', JSON.stringify(claimedVoucherIds));
   }, [claimedVoucherIds]);
+
+  useEffect(() => {
+    localStorage.setItem('allkurma_is_following_store', JSON.stringify(isFollowingStore));
+  }, [isFollowingStore]);
 
   useEffect(() => {
     localStorage.setItem('allkurma_orders', JSON.stringify(orders));
@@ -683,7 +699,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = `prod-${Date.now().toString(36)}`;
     const productWithId: Product = { ...newProd, id };
     setProducts(prev => [productWithId, ...prev]);
-    showToast(`Produk "${productWithId.name}" berhasil ditambahkan!`);
+    
+    // Notify followers of new product arrival!
+    addNotification({
+      title: `✨ Produk Baru: ${productWithId.name}`,
+      message: `Toko Official AllKurma baru saja merilis produk kurma segar pilihan: ${productWithId.name}. Cek stoknya sekarang!`,
+      type: 'promo',
+      time: 'Baru saja',
+      isRead: false
+    });
+
+    showToast(`Produk "${productWithId.name}" berhasil ditambahkan & disiarkan ke pengikut!`, 'success');
   };
 
   const updateProduct = (id: string, updated: Partial<Product>) => {
@@ -1037,7 +1063,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       usedCount: 0
     };
     setPromotions(prev => [newPromo, ...prev]);
-    showToast(`Promo voucher ${newPromo.code} berhasil diterbitkan!`);
+
+    // Broadcast to followers
+    addNotification({
+      title: `🔥 Promo Baru: ${newPromo.name}`,
+      message: `Gunakan kode [${newPromo.code}] untuk mendapatkan diskon ${newPromo.discountValue}${newPromo.discountType === 'percentage' ? '%' : ' Rupiah'}. Berlaku s/d ${newPromo.endDate}.`,
+      type: 'promo',
+      time: 'Baru saja',
+      isRead: false
+    });
+
+    showToast(`Promo voucher ${newPromo.code} berhasil diterbitkan & disiarkan ke pengikut!`, 'success');
   };
 
   const togglePromotionStatus = (id: string) => {
@@ -1390,6 +1426,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Notifications
+  const addNotification = (notifData: Omit<AppNotification, 'id'>) => {
+    const newNotif: AppNotification = {
+      ...notifData,
+      id: `notif-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
+      time: notifData.time || 'Baru saja',
+      isRead: notifData.isRead ?? false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
   const markNotifAsRead = (id: string) => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, isRead: true } : n)
@@ -1399,6 +1445,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const markAllNotifsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     showToast('Semua notifikasi ditandai sudah dibaca', 'info');
+  };
+
+  // Follow Store Actions
+  const toggleFollowStore = () => {
+    const nextState = !isFollowingStore;
+    setIsFollowingStore(nextState);
+
+    // Update store follower count
+    setSellerStore(prev => ({
+      ...prev,
+      followerCount: Math.max(0, (prev.followerCount || 24850) + (nextState ? 1 : -1))
+    }));
+
+    if (nextState) {
+      // Confetti & reward voucher
+      try {
+        confetti({ particleCount: 70, spread: 65, origin: { y: 0.6 } });
+      } catch {}
+
+      // Auto claim follower voucher
+      if (!claimedVoucherIds.includes('FOLLOWER15')) {
+        setClaimedVoucherIds(prev => [...prev, 'FOLLOWER15']);
+      }
+
+      // Add push notification for follower
+      addNotification({
+        title: '🎉 Selamat! Voucher Diskon 15% Spesial Follower',
+        message: 'Terima kasih telah mengikuti AllKurma Official Store! Anda berhak mendapatkan Diskon 15% (Kode: FOLLOWER15) & prioritas info flash sale panen kurma baru.',
+        type: 'promo',
+        time: 'Baru saja',
+        isRead: false
+      });
+
+      showToast('🎉 Berhasil mengikuti AllKurma Official Store! Voucher diskon 15% & notifikasi promo aktif.', 'success');
+    } else {
+      showToast('Anda telah berhenti mengikuti toko ini.', 'info');
+    }
+  };
+
+  // Broadcast to followers (from Seller or Admin)
+  const broadcastToFollowers = (title: string, message: string, promoCode?: string) => {
+    addNotification({
+      title: `📢 ${title}`,
+      message: message + (promoCode ? ` Gunakan kode voucher: ${promoCode}` : ''),
+      type: 'promo',
+      time: 'Baru saja',
+      isRead: false
+    });
+    if (promoCode && !claimedVoucherIds.includes(promoCode)) {
+      setClaimedVoucherIds(prev => [...prev, promoCode]);
+    }
+    showToast(`📢 Notifikasi promo berhasil disiarkan ke ${((sellerStore.followerCount || 24850)).toLocaleString('id-ID')} pengikut toko!`, 'success');
   };
 
   // Claim Vouchers
@@ -1535,6 +1633,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsNotifOpen,
         markNotifAsRead,
         markAllNotifsRead,
+        unreadNotifCount: notifications.filter(n => !n.isRead).length,
+        addNotification,
+        // Follow Store
+        isFollowingStore,
+        toggleFollowStore,
+        broadcastToFollowers,
         // Seller Store Management
         sellerStore,
         updateSellerStore,

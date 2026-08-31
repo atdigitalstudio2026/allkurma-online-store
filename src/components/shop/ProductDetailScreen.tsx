@@ -24,6 +24,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { ProductVariation } from '../../types';
 import { ShopeeReviewsSection } from './ShopeeReviewsSection';
+import { StoreFollowHeader } from './StoreFollowHeader';
 
 export const ProductDetailScreen: React.FC = () => {
   const { 
@@ -332,35 +333,8 @@ export const ProductDetailScreen: React.FC = () => {
 
       </div>
 
-      {/* 4. Shopee Seller Profile Card */}
-      <div className="mt-3 p-4 bg-white border-y border-stone-200 flex items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 rounded-full bg-linear-to-tr from-amber-700 to-amber-900 p-0.5 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <Store className="w-6 h-6 text-amber-200" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-bold text-stone-900 text-sm truncate font-['Playfair_Display',serif]">
-                AllKurma Official Store
-              </h3>
-              <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded-xs font-black">
-                MALL
-              </span>
-            </div>
-            <p className="text-[11px] text-stone-500 mt-0.5">
-              ⭐ 4.9 (24.8RB Pengikut) • 100% Balas Cepat
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setIsChatOpen(true)}
-          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-xs"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>Chat Toko</span>
-        </button>
-      </div>
+      {/* 4. Shopee/Tokopedia/TikTok Store Profile Card with Follow button */}
+      <StoreFollowHeader variant="card" className="mt-3" />
 
       {/* 5. Product Description & Specifications */}
       <div className="mt-3 p-4 bg-white border-y border-stone-200 space-y-4 text-xs">

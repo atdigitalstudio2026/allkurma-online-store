@@ -12,14 +12,17 @@ import {
   MapPin,
   AlertTriangle,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Star,
+  MessageSquarePlus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
 import { shippingService } from '../../services/shippingService';
+import { WriteReviewModal } from '../shop/WriteReviewModal';
 
 export const MyOrdersScreen: React.FC = () => {
-  const { orders, updateOrderStatus, products, setCurrentView, addToCart, showToast } = useApp();
+  const { orders, updateOrderStatus, products, setCurrentView, addToCart, showToast, reviews } = useApp();
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>('all');
   
   // Tracking Modal State
@@ -31,6 +34,17 @@ export const MyOrdersScreen: React.FC = () => {
 
   // Pay Now Modal State
   const [payNowOrder, setPayNowOrder] = useState<Order | null>(null);
+
+  // Review Modal State
+  const [reviewingTarget, setReviewingTarget] = useState<{
+    product: {
+      id: string;
+      name: string;
+      image?: string;
+      variation?: string;
+    };
+    orderId?: string;
+  } | null>(null);
 
   const tabs = [
     { id: 'all', label: 'Semua' },
@@ -99,9 +113,23 @@ export const MyOrdersScreen: React.FC = () => {
     setCurrentView('cart');
   };
 
-  const handleConfirmReceived = (orderId: string) => {
-    updateOrderStatus(orderId, 'Selesai');
+  const handleConfirmReceived = (order: Order) => {
+    updateOrderStatus(order.id, 'Selesai');
     showToast('Terima kasih! Pesanan telah selesai dan koin loyalitas telah dikreditkan.', 'success');
+    
+    // Automatically prompt customer to write a review with star rating & photos
+    if (order.items && order.items.length > 0) {
+      const firstItem = order.items[0];
+      setReviewingTarget({
+        product: {
+          id: firstItem.productId,
+          name: firstItem.productName,
+          image: firstItem.image,
+          variation: firstItem.selectedVariation?.name
+        },
+        orderId: order.orderNumber || order.id
+      });
+    }
   };
 
   const handleCancelOrderSubmit = (e: React.FormEvent) => {
@@ -194,27 +222,65 @@ export const MyOrdersScreen: React.FC = () => {
                 </div>
 
                 {/* Items in order */}
-                <div className="space-y-2">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.productName}
-                        className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0 bg-stone-50"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-stone-900 truncate">
-                          {item.productName}
-                        </h4>
-                        <p className="text-[11px] text-stone-500">
-                          {item.quantity}x • Rp {item.unitPrice.toLocaleString('id-ID')}
-                        </p>
+                <div className="space-y-2.5">
+                  {order.items.map((item, idx) => {
+                    const isItemReviewed = reviews.some(r => r.productId === item.productId && (r.orderId === order.orderNumber || r.orderId === order.id));
+
+                    return (
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-stone-50/60 border border-stone-100">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.image}
+                            alt={item.productName}
+                            className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0 bg-white"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs font-bold text-stone-900 truncate">
+                              {item.productName}
+                            </h4>
+                            <p className="text-[11px] text-stone-500">
+                              {item.selectedVariation?.name || 'Varian Reguler'} • {item.quantity}x
+                            </p>
+                            <span className="text-xs font-black text-amber-950 font-mono sm:hidden">
+                              Rp {item.lineTotal.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-2 pt-1 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                          <span className="text-xs font-black text-amber-950 font-mono hidden sm:inline">
+                            Rp {item.lineTotal.toLocaleString('id-ID')}
+                          </span>
+
+                          {/* Write Review Button per Item for Completed Orders */}
+                          {isCompleted && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReviewingTarget({
+                                  product: {
+                                    id: item.productId,
+                                    name: item.productName,
+                                    image: item.image,
+                                    variation: item.selectedVariation?.name
+                                  },
+                                  orderId: order.orderNumber || order.id
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                                isItemReviewed
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
+                              }`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${isItemReviewed ? 'fill-emerald-600 text-emerald-600' : 'fill-amber-500 text-amber-500'}`} />
+                              <span>{isItemReviewed ? 'Lihat/Edit Ulasan' : 'Nilai Produk (+50 Poin)'}</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-xs font-black text-amber-950 font-mono">
-                        Rp {item.lineTotal.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Total & Logistics */}
@@ -240,7 +306,7 @@ export const MyOrdersScreen: React.FC = () => {
                   {(isShipped || isProcessing || isCompleted) && (
                     <button
                       onClick={() => setTrackingOrder(order)}
-                      className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Truck className="w-3.5 h-3.5 text-amber-800" />
                       <span>Lacak Pengiriman</span>
@@ -251,7 +317,7 @@ export const MyOrdersScreen: React.FC = () => {
                   {isUnpaid && (
                     <button
                       onClick={() => setPayNowOrder(order)}
-                      className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors"
+                      className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <CreditCard className="w-3.5 h-3.5" />
                       <span>Bayar Sekarang</span>
@@ -262,7 +328,7 @@ export const MyOrdersScreen: React.FC = () => {
                   {(isUnpaid || isProcessing) && (
                     <button
                       onClick={() => setCancelModalOrder(order)}
-                      className="px-2.5 py-1.5 border border-stone-200 hover:bg-red-50 hover:text-red-700 text-stone-600 rounded-xl text-xs font-semibold transition-colors"
+                      className="px-2.5 py-1.5 border border-stone-200 hover:bg-red-50 hover:text-red-700 text-stone-600 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
                     >
                       Batalkan
                     </button>
@@ -271,11 +337,33 @@ export const MyOrdersScreen: React.FC = () => {
                   {/* Confirm Received */}
                   {isShipped && (
                     <button
-                      onClick={() => handleConfirmReceived(order.id)}
-                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-colors"
+                      onClick={() => handleConfirmReceived(order)}
+                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Pesanan Diterima</span>
+                      <span>Pesanan Diterima & Nilai</span>
+                    </button>
+                  )}
+
+                  {/* Write Review Button on Card Bar */}
+                  {isCompleted && order.items && order.items.length > 0 && (
+                    <button
+                      onClick={() => {
+                        const itemToReview = order.items[0];
+                        setReviewingTarget({
+                          product: {
+                            id: itemToReview.productId,
+                            name: itemToReview.productName,
+                            image: itemToReview.image,
+                            variation: itemToReview.selectedVariation?.name
+                          },
+                          orderId: order.orderNumber || order.id
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-white text-white" />
+                      <span>Beri Nilai & Ulasan Foto</span>
                     </button>
                   )}
 
@@ -283,7 +371,7 @@ export const MyOrdersScreen: React.FC = () => {
                   {isCompleted && (
                     <button
                       onClick={() => handleReorder(order)}
-                      className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Repeat className="w-3.5 h-3.5 text-amber-800" />
                       <span>Beli Lagi</span>
@@ -474,6 +562,19 @@ export const MyOrdersScreen: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* WRITE REVIEW MODAL */}
+      {reviewingTarget && (
+        <WriteReviewModal
+          isOpen={!!reviewingTarget}
+          onClose={() => setReviewingTarget(null)}
+          product={reviewingTarget.product}
+          orderId={reviewingTarget.orderId}
+          onReviewSubmitted={() => {
+            showToast('Ulasan dan foto produk Anda berhasil dipublikasikan!', 'success');
+          }}
+        />
       )}
 
     </div>
