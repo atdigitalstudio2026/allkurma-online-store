@@ -829,7 +829,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Beli Sekarang',
     targetCategory: 'Ajwa',
     bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
-    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-emerald-100 border-white/30',
     active: true
   },
@@ -841,7 +841,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Lihat Promo Bundling',
     isBundlingTrigger: true,
     bgGradient: 'from-orange-600 via-amber-600 to-red-600',
-    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/25 text-white border-white/40',
     active: true
   },
@@ -853,7 +853,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Cek Produk Baru',
     targetCategory: 'Semua',
     bgGradient: 'from-[#009A44] via-emerald-600 to-teal-700',
-    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-white border-white/30',
     active: true
   },
@@ -865,7 +865,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Buka Portal Grosir',
     targetView: 'b2b-portal',
     bgGradient: 'from-blue-700 via-[#1E3A8A] to-indigo-800',
-    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-white border-white/30',
     active: true
   },
@@ -877,7 +877,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Lihat Koleksi Hampers',
     targetCategory: 'Hampers',
     bgGradient: 'from-purple-700 via-indigo-600 to-[#1E3A8A]',
-    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-white border-white/30',
     active: true
   }

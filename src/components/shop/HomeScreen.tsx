@@ -600,7 +600,7 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Dynamic 5-Slide Banner Carousel */}
+      {/* 3. Dynamic 5-Slide Banner Carousel (Landscape 1:2 / 2:1 Aspect Ratio) */}
       <div 
         className="p-4"
         onMouseEnter={() => setIsPaused(true)}
@@ -620,7 +620,7 @@ export const HomeScreen: React.FC = () => {
                 setCurrentView('catalog');
               }
             }}
-            className="relative rounded-2xl overflow-hidden bg-stone-950 text-white shadow-lg border border-stone-200/80 transition-all duration-500 min-h-[180px] sm:min-h-[220px] flex flex-col justify-between cursor-pointer group"
+            className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-stone-950 text-white shadow-lg border border-stone-200/80 transition-all duration-500 flex flex-col justify-between cursor-pointer group"
           >
             {/* 100% Full Image without gradient color tint or wash */}
             <img 
@@ -637,31 +637,31 @@ export const HomeScreen: React.FC = () => {
                   setCurrentView('seller-dashboard');
                 }}
                 title="Kelola Banner dari Dashboard Seller"
-                className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/60 hover:bg-black/85 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
+                className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 flex items-center gap-1 text-[9px] sm:text-[10px] bg-black/60 hover:bg-black/85 text-amber-300 font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
               >
                 <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>Kelola Banner Toko</span>
+                <span>Kelola Banner</span>
               </button>
             )}
 
             {/* Optional text overlay if enabled by seller */}
             {activeBanner.showTextOverlay ? (
-              <div className="relative z-10 mt-auto pt-10 pb-4 px-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+              <div className="relative z-10 mt-auto pt-8 sm:pt-10 pb-2.5 sm:pb-3 px-3 sm:px-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
                 {activeBanner.badge && (
-                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-1.5 backdrop-blur-xs ${activeBanner.tagColor || 'bg-white/20 text-white border-white/30'}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border mb-1 backdrop-blur-xs ${activeBanner.tagColor || 'bg-white/20 text-white border-white/30'}`}>
                     {activeBanner.badge}
                   </span>
                 )}
-                <h2 className="text-base sm:text-lg font-bold leading-tight text-white drop-shadow-sm">
+                <h2 className="text-sm sm:text-lg font-bold leading-tight text-white drop-shadow-sm line-clamp-1 sm:line-clamp-2">
                   {activeBanner.title}
                 </h2>
                 {activeBanner.subtitle && (
-                  <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed line-clamp-1">
+                  <p className="text-[10px] sm:text-[11px] text-white/90 mt-0.5 leading-tight sm:leading-relaxed line-clamp-1">
                     {activeBanner.subtitle}
                   </p>
                 )}
                 {activeBanner.cta && (
-                  <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-white hover:bg-slate-100 text-[#1E3A8A] text-xs font-bold rounded-lg shadow-sm transition-all">
+                  <span className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-white hover:bg-slate-100 text-[#1E3A8A] text-[10px] sm:text-xs font-bold rounded-lg shadow-sm transition-all">
                     <span>{activeBanner.cta}</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
@@ -679,9 +679,9 @@ export const HomeScreen: React.FC = () => {
                   handlePrevSlide();
                 }}
                 aria-label="Previous Slide"
-                className="w-7 h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
             <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20">
@@ -691,16 +691,16 @@ export const HomeScreen: React.FC = () => {
                   handleNextSlide();
                 }}
                 aria-label="Next Slide"
-                className="w-7 h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
 
             {/* 5-Slide Indicators Dots */}
             <div 
               onClick={(e) => e.stopPropagation()} 
-              className="relative z-10 flex items-center justify-center gap-1.5 pb-2.5 pt-1"
+              className="relative z-10 flex items-center justify-center gap-1.5 pb-2 pt-1"
             >
               {heroBanners.map((_, idx) => (
                 <button
@@ -711,34 +711,34 @@ export const HomeScreen: React.FC = () => {
                   }}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    currentSlide === idx ? 'w-6 bg-white shadow-xs' : 'w-2 bg-white/50 hover:bg-white/80'
+                    currentSlide === idx ? 'w-5 sm:w-6 bg-white shadow-xs' : 'w-1.5 sm:w-2 bg-white/50 hover:bg-white/80'
                   }`}
                 />
               ))}
             </div>
           </div>
         ) : (
-          <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-5 shadow-lg border border-white/20 transition-all duration-500 min-h-[180px] flex flex-col justify-between`}>
+          <div className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-3.5 sm:p-5 shadow-lg border border-white/20 transition-all duration-500 flex flex-col justify-between`}>
             {/* Seller Shortcut to Banner Management */}
             {user?.role === 'seller' && (
               <button
                 onClick={() => setCurrentView('seller-dashboard')}
                 title="Kelola Banner dari Dashboard Seller"
-                className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/40 hover:bg-black/65 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
+                className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 flex items-center gap-1 text-[9px] sm:text-[10px] bg-black/40 hover:bg-black/65 text-amber-300 font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
               >
                 <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>Kelola Banner Toko</span>
+                <span>Kelola Banner</span>
               </button>
             )}
 
-            <div className="relative z-10 max-w-[240px]">
-              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${activeBanner.tagColor}`}>
+            <div className="relative z-10 max-w-[65%] sm:max-w-[70%]">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border mb-1 sm:mb-1.5 ${activeBanner.tagColor}`}>
                 {activeBanner.badge}
               </span>
-              <h2 className="text-lg sm:text-xl font-bold leading-tight text-white drop-shadow-xs">
+              <h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight text-white drop-shadow-xs line-clamp-2">
                 {activeBanner.title}
               </h2>
-              <p className="text-[11px] text-white/90 mt-1.5 leading-relaxed line-clamp-2">
+              <p className="text-[10px] sm:text-xs text-white/90 mt-0.5 sm:mt-1 leading-tight sm:leading-relaxed line-clamp-1 sm:line-clamp-2">
                 {activeBanner.subtitle}
               </p>
               <button 
@@ -754,10 +754,10 @@ export const HomeScreen: React.FC = () => {
                     setCurrentView('catalog');
                   }
                 }}
-                className="mt-3 px-3.5 py-1.5 bg-white hover:bg-slate-100 active:scale-95 text-[#1E3A8A] text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                className="mt-1.5 sm:mt-2.5 px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-white hover:bg-slate-100 active:scale-95 text-[#1E3A8A] text-[10px] sm:text-xs font-bold rounded-lg sm:rounded-xl flex items-center gap-1 shadow-sm transition-all cursor-pointer"
               >
                 <span>{activeBanner.cta}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
 
@@ -776,30 +776,30 @@ export const HomeScreen: React.FC = () => {
               <button
                 onClick={handlePrevSlide}
                 aria-label="Previous Slide"
-                className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
             <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20">
               <button
                 onClick={handleNextSlide}
                 aria-label="Next Slide"
-                className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
 
             {/* 5-Slide Indicators Dots */}
-            <div className="relative z-10 flex items-center justify-center gap-1.5 mt-3 pt-2">
+            <div className="relative z-10 flex items-center justify-center gap-1.5 pb-1 sm:pb-2 pt-0.5">
               {heroBanners.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    currentSlide === idx ? 'w-6 bg-white shadow-xs' : 'w-2 bg-white/40 hover:bg-white/70'
+                    currentSlide === idx ? 'w-5 sm:w-6 bg-white shadow-xs' : 'w-1.5 sm:w-2 bg-white/40 hover:bg-white/70'
                   }`}
                 />
               ))}

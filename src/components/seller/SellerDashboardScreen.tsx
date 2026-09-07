@@ -77,11 +77,11 @@ const BANNER_GRADIENT_PRESETS = [
 ];
 
 const BANNER_IMAGE_PRESETS = [
-  { label: 'Poster Kurma Ajwa VIP', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Banner Penuh Widescreen', url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Paket Kombo Bundling', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Panen Perdana 2026', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&auto=format&fit=crop&q=80' },
-  { label: 'Gudang Grosir B2B', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&auto=format&fit=crop&q=80' }
+  { label: 'Poster Kurma Ajwa VIP (1200x600)', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&auto=format&fit=crop&q=80' },
+  { label: 'Banner Penuh Widescreen (1200x600)', url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&h=600&auto=format&fit=crop&q=80' },
+  { label: 'Paket Kombo Bundling (1200x600)', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&auto=format&fit=crop&q=80' },
+  { label: 'Panen Perdana 2026 (1200x600)', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80' },
+  { label: 'Gudang Grosir B2B (1200x600)', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&auto=format&fit=crop&q=80' }
 ];
 
 export const SellerDashboardScreen: React.FC = () => {
@@ -3632,11 +3632,11 @@ export const SellerDashboardScreen: React.FC = () => {
 
                 return (
                   <div className={`mx-auto transition-all ${previewDevice === 'mobile' ? 'max-w-md' : 'max-w-4xl'}`}>
-                    <div className={`relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ${
+                    <div className={`relative w-full aspect-[2/1] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ${
                       isFullImg
-                        ? 'bg-stone-950 border border-stone-700/80 min-h-[180px] sm:min-h-[230px]'
-                        : `bg-gradient-to-r ${currentSlide.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]'} border border-white/20 min-h-[170px] sm:min-h-[220px]`
-                    } p-5 sm:p-7 flex flex-col justify-between`}>
+                        ? 'bg-stone-950 border border-stone-700/80'
+                        : `bg-gradient-to-r ${currentSlide.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]'} border border-white/20`
+                    } p-3 sm:p-5 flex flex-col justify-between`}>
                       {isFullImg ? (
                         <>
                           {/* 100% Pure Full Image without gradient color overlay */}
@@ -3863,9 +3863,9 @@ export const SellerDashboardScreen: React.FC = () => {
                             #{index + 1}
                           </div>
 
-                          {/* Mini Visual Banner Preview */}
+                          {/* Mini Visual Banner Preview (Aspect 1:2 / 2:1 Landscape) */}
                           {banner.displayMode === 'full-image' ? (
-                            <div className="relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-stone-950 p-1 flex flex-col justify-between shrink-0 shadow-xs border border-stone-300">
+                            <div className="relative w-28 sm:w-36 aspect-[2/1] rounded-xl overflow-hidden bg-stone-950 p-1 flex flex-col justify-between shrink-0 shadow-xs border border-stone-300">
                               <img
                                 src={normalizeImageUrl(banner.image)}
                                 alt={banner.title}
@@ -3876,7 +3876,7 @@ export const SellerDashboardScreen: React.FC = () => {
                               </span>
                             </div>
                           ) : (
-                            <div className={`relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-gradient-to-r ${banner.bgGradient || 'from-[#1E3A8A] to-[#009A44]'} p-2 flex flex-col justify-between shrink-0 shadow-xs border border-stone-200`}>
+                            <div className={`relative w-28 sm:w-36 aspect-[2/1] rounded-xl overflow-hidden bg-gradient-to-r ${banner.bgGradient || 'from-[#1E3A8A] to-[#009A44]'} p-2 flex flex-col justify-between shrink-0 shadow-xs border border-stone-200`}>
                               <img
                                 src={normalizeImageUrl(banner.image)}
                                 alt={banner.title}
@@ -5559,13 +5559,18 @@ export const SellerDashboardScreen: React.FC = () => {
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span>Pratinjau Langsung Banner (Live Preview)</span>
                   </label>
-                  <span className="text-[10px] font-mono text-stone-400">
-                    {bannerForm.displayMode === 'full-image' ? 'Mode: Full Image (Bebas Gradien)' : 'Mode: Standar Gradien'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                      📐 Landscape 1:2 (2:1)
+                    </span>
+                    <span className="text-[10px] font-mono text-stone-500 hidden sm:inline">
+                      {bannerForm.displayMode === 'full-image' ? 'Mode: Full Image' : 'Mode: Standar Gradien'}
+                    </span>
+                  </div>
                 </div>
 
                 {bannerForm.displayMode === 'full-image' ? (
-                  <div className="relative rounded-2xl overflow-hidden shadow-lg bg-stone-950 min-h-[170px] flex flex-col justify-between border border-stone-700">
+                  <div className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden shadow-lg bg-stone-950 flex flex-col justify-between border border-stone-700">
                     {/* Full Image without gradient color tint */}
                     <img
                       src={normalizeImageUrl(bannerForm.image)}
@@ -5613,7 +5618,7 @@ export const SellerDashboardScreen: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className={`relative rounded-2xl overflow-hidden shadow-lg bg-gradient-to-r ${bannerForm.bgGradient} p-5 min-h-[160px] flex flex-col justify-between border border-white/20`}>
+                  <div className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-r ${bannerForm.bgGradient} p-4 sm:p-5 flex flex-col justify-between border border-white/20`}>
                     {/* Background Overlay Image */}
                     <div className="absolute right-0 top-0 bottom-0 w-5/12 overflow-hidden pointer-events-none opacity-40">
                       <img
@@ -5801,11 +5806,25 @@ export const SellerDashboardScreen: React.FC = () => {
                 )}
               </div>
 
-              {/* 1. URL Foto Gambar Banner */}
-              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
-                <label className="block text-xs font-bold text-stone-800">
-                  URL Foto Produk / Banner (Mendukung Tautan Dropbox Otomatis) <span className="text-red-500">*</span>
-                </label>
+              {/* 1. URL Foto Gambar Banner & Rekomendasi Rasio Landscape 1:2 */}
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-stone-800">
+                    URL Foto Produk / Banner (Mendukung Tautan Dropbox Otomatis) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                    Rasio 1:2 (2:1)
+                  </span>
+                </div>
+
+                {/* Banner Dimension Hint Card */}
+                <div className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200">
+                  <span className="text-base shrink-0">📐</span>
+                  <div className="leading-relaxed">
+                    <strong>Ukuran Banner Landscape 1:2:</strong> Resolusi ideal adalah <strong>1200 × 600 px</strong> (atau 1000 × 500 px, 800 × 400 px) dengan perbandingan lebar 2 banding tinggi 1. Gambar akan tampil proporsional sempurna dan tajam di seluruh perangkat.
+                  </div>
+                </div>
+
                 <div className="relative">
                   <input
                     type="text"
