@@ -56,6 +56,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation } from '../../types';
 import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../utils/exportReport';
+import { normalizeImageUrl, isDropboxUrl } from '../../utils/imageUrlHelper';
 import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
 import { SkuStockAdjustmentModal } from './SkuStockAdjustmentModal';
 
@@ -74,6 +75,7 @@ export const SellerDashboardScreen: React.FC = () => {
     addProduct,
     updateProduct,
     deleteProduct,
+    clearAllProducts,
     orders,
     updateOrderStatus,
     promotions,
@@ -141,10 +143,13 @@ export const SellerDashboardScreen: React.FC = () => {
   const [productCategoryFilter, setProductCategoryFilter] = useState('Semua');
   const [productStockFilter, setProductStockFilter] = useState<'all' | 'safe' | 'low' | 'empty'>('all');
   const [productSortBy, setProductSortBy] = useState<'default' | 'stock-desc' | 'stock-asc' | 'price-desc' | 'margin-desc'>('default');
-  const [expandedProductVariations, setExpandedProductVariations] = useState<Record<string, boolean>>({
-    'prod-01': true,
-    'prod-02': true
-  });
+  const [expandedProductVariations, setExpandedProductVariations] = useState<Record<string, boolean>>({});
+
+  // Product Deletion & Bulk Management States
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const [selectedProductIdsForBulk, setSelectedProductIdsForBulk] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   const [newProd, setNewProd] = useState<Partial<Product>>({
     name: '',
@@ -1583,7 +1588,29 @@ export const SellerDashboardScreen: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {products.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsClearAllModalOpen(true)}
+                    className="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white font-bold text-xs px-3.5 py-2.5 rounded-xl border border-rose-200 hover:border-transparent shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Kosongkan seluruh data produk dan SKU dari etalase"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Kosongkan Semua ({products.length})</span>
+                  </button>
+                )}
+                {selectedProductIdsForBulk.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(true)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    title="Hapus produk yang dicentang"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Hapus ({selectedProductIdsForBulk.length}) Produk Terpilih</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleExportInventoryExcel}
@@ -1795,73 +1822,166 @@ export const SellerDashboardScreen: React.FC = () => {
             </div>
 
             {/* Products & SKU Detailed Table */}
-            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-900 text-stone-200 font-bold border-b border-stone-800">
-                    <tr>
-                      <th className="p-3.5 w-10 text-center">#</th>
-                      <th className="p-3.5 min-w-[280px]">Produk, Master SKU & Barcode</th>
-                      <th className="p-3.5 min-w-[150px]">Lokasi Rak & Penyimpanan</th>
-                      <th className="p-3.5 min-w-[150px]">HPP & Harga Jual</th>
-                      <th className="p-3.5 min-w-[130px]">Status Stok Fisik</th>
-                      <th className="p-3.5 min-w-[90px]">Terjual</th>
-                      <th className="p-3.5 text-right min-w-[170px]">Aksi Manajemen</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-200">
-                    {filteredProductsForTable.length === 0 ? (
+            {products.length === 0 ? (
+              <div className="bg-white rounded-2xl border-2 border-dashed border-stone-200 p-12 text-center shadow-2xs">
+                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/60 text-amber-600">
+                  <Package className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-extrabold text-stone-900">Etalase Produk Masih Kosong</h3>
+                <p className="text-xs text-stone-500 max-w-md mx-auto mt-1.5 leading-relaxed">
+                  Semua produk simulasi dummy telah dikosongkan. Anda sekarang siap menginput produk baru asli lengkap dengan gambar, foto, SKU, stok gudang, dan harga jual.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setNewProd({
+                        name: '',
+                        sku: `AK-${Date.now().toString(36).toUpperCase().slice(-5)}`,
+                        barcode: `899723456${Math.floor(1000 + Math.random() * 9000)}`,
+                        category: 'Medjool',
+                        costPrice: 90000,
+                        regularPrice: 150000,
+                        discountPrice: 135000,
+                        stock: 50,
+                        minStockAlert: 10,
+                        origin: 'Madinah, Saudi Arabia',
+                        harvestYear: 'Panen 2025/2026',
+                        shelfLife: '18 Bulan',
+                        expiryDate: '2027-12-31',
+                        storageCondition: 'Suhu Sejuk (Simpan Kulkas)',
+                        packagingType: 'Pouch Kedap Udara Food-Grade',
+                        certification: 'Halal MUI & Kementan RI',
+                        description: '',
+                        warehouseRack: 'Rak A1-01',
+                        warehouseLocation: 'Gudang Utama - Jakarta Pusat',
+                        weightGram: 500,
+                        images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
+                        freeShippingExtra: true,
+                        cashbackExtra: true,
+                        variations: [],
+                        wholesalePrices: [
+                          { minQty: 11, maxQty: 50, pricePerUnit: 125000 },
+                          { minQty: 51, maxQty: undefined, pricePerUnit: 115000 }
+                        ]
+                      });
+                      setProductFormTab('general');
+                      setIsAddProductOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Input Produk Baru Sekarang</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-stone-900 text-stone-200 font-bold border-b border-stone-800">
                       <tr>
-                        <td colSpan={7} className="text-center py-12 text-stone-400">
-                          <Boxes className="w-10 h-10 mx-auto text-stone-300 mb-2" />
-                          <div className="font-bold text-sm text-stone-700">Tidak ada SKU yang cocok dengan filter</div>
-                          <p className="text-xs text-stone-400 mt-0.5">Coba ubah kata kunci pencarian atau reset filter.</p>
-                        </td>
+                        <th className="p-3.5 w-14 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={
+                                filteredProductsForTable.length > 0 &&
+                                filteredProductsForTable.every(p => selectedProductIdsForBulk.includes(p.id))
+                              }
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const allIds = Array.from(new Set([...selectedProductIdsForBulk, ...filteredProductsForTable.map(p => p.id)]));
+                                  setSelectedProductIdsForBulk(allIds);
+                                } else {
+                                  const remaining = selectedProductIdsForBulk.filter(
+                                    id => !filteredProductsForTable.some(p => p.id === id)
+                                  );
+                                  setSelectedProductIdsForBulk(remaining);
+                                }
+                              }}
+                              className="rounded border-stone-500 text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
+                              title="Pilih Semua Produk di Halaman Ini"
+                            />
+                          </div>
+                        </th>
+                        <th className="p-3.5 min-w-[280px]">Produk, Master SKU & Barcode</th>
+                        <th className="p-3.5 min-w-[150px]">Lokasi Rak & Penyimpanan</th>
+                        <th className="p-3.5 min-w-[150px]">HPP & Harga Jual</th>
+                        <th className="p-3.5 min-w-[130px]">Status Stok Fisik</th>
+                        <th className="p-3.5 min-w-[90px]">Terjual</th>
+                        <th className="p-3.5 text-right min-w-[170px]">Aksi Manajemen</th>
                       </tr>
-                    ) : (
-                      filteredProductsForTable.map((prod, idx) => {
-                        const hasVariations = prod.variations && prod.variations.length > 0;
-                        const isExpanded = expandedProductVariations[prod.id] ?? true;
-                        const hpp = prod.costPrice || Math.round((prod.discountPrice || prod.regularPrice) * 0.6);
-                        const sellPrice = prod.discountPrice || prod.regularPrice;
-                        const profitMargin = sellPrice - hpp;
-                        const marginPercent = sellPrice > 0 ? Math.round((profitMargin / sellPrice) * 100) : 0;
-                        const isStockLow = prod.stock <= (prod.minStockAlert || 10);
-                        const isOutOfStock = prod.stock === 0;
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {filteredProductsForTable.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-12 text-stone-400">
+                            <Boxes className="w-10 h-10 mx-auto text-stone-300 mb-2" />
+                            <div className="font-bold text-sm text-stone-700">Tidak ada SKU yang cocok dengan filter</div>
+                            <p className="text-xs text-stone-400 mt-0.5">Coba ubah kata kunci pencarian atau reset filter.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProductsForTable.map((prod, idx) => {
+                          const hasVariations = prod.variations && prod.variations.length > 0;
+                          const isExpanded = expandedProductVariations[prod.id] ?? true;
+                          const hpp = prod.costPrice || Math.round((prod.discountPrice || prod.regularPrice) * 0.6);
+                          const sellPrice = prod.discountPrice || prod.regularPrice;
+                          const profitMargin = sellPrice - hpp;
+                          const marginPercent = sellPrice > 0 ? Math.round((profitMargin / sellPrice) * 100) : 0;
+                          const isStockLow = prod.stock <= (prod.minStockAlert || 10);
+                          const isOutOfStock = prod.stock === 0;
+                          const isChecked = selectedProductIdsForBulk.includes(prod.id);
 
-                        return (
-                          <React.Fragment key={prod.id}>
-                            {/* Master Product Row */}
-                            <tr className={`hover:bg-amber-50/40 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'}`}>
-                              
-                              {/* Expand Variant Toggle */}
-                              <td className="p-3 text-center align-top">
-                                {hasVariations ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleExpandVariation(prod.id)}
-                                    className="p-1 rounded-md text-stone-500 hover:text-amber-800 hover:bg-amber-100 transition-colors"
-                                    title={isExpanded ? 'Sembunyikan Varian SKU' : 'Tampilkan Varian SKU'}
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronUp className="w-4 h-4" />
+                          return (
+                            <React.Fragment key={prod.id}>
+                              {/* Master Product Row */}
+                              <tr className={`hover:bg-amber-50/40 transition-colors ${isChecked ? 'bg-amber-50/60' : idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'}`}>
+                                
+                                {/* Checkbox & Expand Toggle */}
+                                <td className="p-3 text-center align-top">
+                                  <div className="flex items-center justify-center gap-1 pt-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedProductIdsForBulk(prev => [...prev, prod.id]);
+                                        } else {
+                                          setSelectedProductIdsForBulk(prev => prev.filter(id => id !== prod.id));
+                                        }
+                                      }}
+                                      className="rounded border-stone-300 text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
+                                    />
+                                    {hasVariations ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleExpandVariation(prod.id)}
+                                        className="p-1 rounded-md text-stone-500 hover:text-amber-800 hover:bg-amber-100 transition-colors"
+                                        title={isExpanded ? 'Sembunyikan Varian SKU' : 'Tampilkan Varian SKU'}
+                                      >
+                                        {isExpanded ? (
+                                          <ChevronUp className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <ChevronDown className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
                                     ) : (
-                                      <ChevronDown className="w-4 h-4" />
+                                      <span className="text-[10px] text-stone-400 font-mono w-4">{idx + 1}</span>
                                     )}
-                                  </button>
-                                ) : (
-                                  <span className="text-[10px] text-stone-400 font-mono">{idx + 1}</span>
-                                )}
-                              </td>
+                                  </div>
+                                </td>
 
-                              {/* Product Info, SKU & Barcode */}
-                              <td className="p-3 align-top">
-                                <div className="flex items-start gap-3">
-                                  <img
-                                    src={prod.images[0]}
-                                    alt={prod.name}
-                                    className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 mt-0.5 shadow-2xs"
-                                  />
+                                {/* Product Info, SKU & Barcode */}
+                                <td className="p-3 align-top">
+                                  <div className="flex items-start gap-3">
+                                    <img
+                                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                                      alt={prod.name}
+                                      className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 mt-0.5 shadow-2xs"
+                                    />
                                   <div className="min-w-0">
                                     <div className="font-extrabold text-stone-900 text-xs line-clamp-1">
                                       {prod.name}
@@ -2016,13 +2136,9 @@ export const SellerDashboardScreen: React.FC = () => {
                                   {/* Delete */}
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      if (confirm(`Hapus produk ${prod.name}? Data stok dan SKU terkait akan dihapus.`)) {
-                                        deleteProduct(prod.id);
-                                      }
-                                    }}
+                                    onClick={() => setProductToDelete(prod)}
                                     className="p-1.5 text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 rounded-lg transition-colors cursor-pointer"
-                                    title="Hapus Produk"
+                                    title="Hapus Produk dari Etalase"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -2149,7 +2265,7 @@ export const SellerDashboardScreen: React.FC = () => {
                 </table>
               </div>
             </div>
-
+            )}
           </div>
         )}
 
@@ -2887,14 +3003,56 @@ export const SellerDashboardScreen: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-stone-700 mb-1">URL Foto Produk Utama</label>
-                    <input
-                      type="text"
-                      value={newProd.images?.[0] || ''}
-                      onChange={e => setNewProd({ ...newProd, images: [e.target.value] })}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-mono text-[11px]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-bold text-stone-700">URL Foto Produk Utama</label>
+                      <span className="text-[10px] text-stone-400">Mendukung Unsplash, Dropbox, Google Drive, & Direct Link</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newProd.images?.[0] || ''}
+                        onChange={e => {
+                          const inputVal = e.target.value;
+                          const normalized = normalizeImageUrl(inputVal);
+                          setNewProd({ ...newProd, images: [normalized] });
+                        }}
+                        placeholder="https://images.unsplash.com/... atau https://www.dropbox.com/scl/fi/..."
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    {/* Dropbox / Cloud Link Notification */}
+                    {newProd.images?.[0] && isDropboxUrl(newProd.images[0]) && (
+                      <div className="mt-1.5 p-2 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start gap-1.5">
+                        <span className="font-bold text-blue-700">✓ Link Dropbox Aktif:</span>
+                        <span>
+                          Parameter telah otomatis disesuaikan ke format gambar langsung (<code className="bg-blue-100 px-1 py-0.5 rounded font-mono text-[10px]">raw=1</code>).
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Live Image Preview */}
+                    {newProd.images?.[0] && (
+                      <div className="mt-2 p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center gap-3">
+                        <img
+                          src={normalizeImageUrl(newProd.images[0])}
+                          alt="Preview Produk"
+                          className="w-14 h-14 rounded-lg object-cover border border-stone-300 shadow-2xs shrink-0 bg-white"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
+                          }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Live Preview Gambar</span>
+                          <p className="text-[11px] text-stone-700 font-medium truncate font-mono">
+                            {newProd.images[0]}
+                          </p>
+                          <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                            ✓ Gambar siap ditampilkan di etalase pembeli
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -3474,6 +3632,119 @@ export const SellerDashboardScreen: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 1. Modal Konfirmasi Hapus Single Produk */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-stone-900">
+              Hapus Produk Ini?
+            </h3>
+            <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+              Anda akan menghapus produk <span className="font-bold text-stone-900">"{productToDelete.name}"</span> (SKU: {productToDelete.sku}) dari etalase toko. Semua data stok varian dan barcode terkait akan dihapus.
+            </p>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteProduct(productToDelete.id);
+                  setSelectedProductIdsForBulk(prev => prev.filter(id => id !== productToDelete.id));
+                  setProductToDelete(null);
+                }}
+                className="px-4 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Ya, Hapus Produk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Modal Konfirmasi Kosongkan Semua Produk Dummy/Simulasi */}
+      {isClearAllModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-stone-900">
+              Kosongkan Semua Produk ({products.length})?
+            </h3>
+            <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+              Tindakan ini akan menghapus seluruh data produk dari etalase toko dan penyimpanan lokal browser. Etalase akan menjadi kosong bersih sehingga Anda dapat menginput produk baru Anda sendiri.
+            </p>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsClearAllModalOpen(false)}
+                className="px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearAllProducts();
+                  setSelectedProductIdsForBulk([]);
+                  setIsClearAllModalOpen(false);
+                }}
+                className="px-4 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Ya, Kosongkan Semua
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Modal Konfirmasi Hapus Massal Produk Terpilih */}
+      {isBulkDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-stone-900">
+              Hapus {selectedProductIdsForBulk.length} Produk Terpilih?
+            </h3>
+            <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+              Semua {selectedProductIdsForBulk.length} produk yang Anda centang akan dihapus dari etalase toko. Data stok gudang dan SKU terkait akan dibersihkan.
+            </p>
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsBulkDeleteModalOpen(false)}
+                className="px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  selectedProductIdsForBulk.forEach(id => {
+                    deleteProduct(id);
+                  });
+                  setSelectedProductIdsForBulk([]);
+                  setIsBulkDeleteModalOpen(false);
+                }}
+                className="px-4 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Ya, Hapus Terpilih
+              </button>
+            </div>
           </div>
         </div>
       )}

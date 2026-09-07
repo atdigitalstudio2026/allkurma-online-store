@@ -1138,7 +1138,7 @@ export const HomeScreen: React.FC = () => {
                   <button
                     onClick={() => {
                       const matched = products.find(p => p.category === prod.category) || products[0];
-                      addToCart(matched, 1);
+                      if (matched) addToCart(matched, 1);
                     }}
                     className="w-full py-1.5 bg-emerald-50 hover:bg-[#009A44] text-[#009A44] hover:text-white border border-emerald-200 hover:border-transparent active:scale-95 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
                   >
@@ -1238,7 +1238,7 @@ export const HomeScreen: React.FC = () => {
               <button
                 onClick={() => {
                   const targetProd = products.find(p => p.id === activeQuiz.productId) || products[0];
-                  addToCart(targetProd, 1);
+                  if (targetProd) addToCart(targetProd, 1);
                 }}
                 className="flex-1 py-2 bg-[#009A44] hover:bg-[#047857] active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
               >

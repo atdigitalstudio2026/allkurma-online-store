@@ -55,7 +55,24 @@ export const ProductDetailScreen: React.FC = () => {
   const [quotationCompany, setQuotationCompany] = useState('');
   const [quotationQty, setQuotationQty] = useState(50);
 
-  if (!product) return null;
+  if (!product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-stone-400">
+          <Box className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-bold text-stone-800">Produk Tidak Ditemukan</h2>
+        <p className="text-xs text-stone-500 mt-1">Produk telah dihapus atau belum tersedia di etalase toko.</p>
+        <button
+          onClick={() => setCurrentView('home')}
+          className="mt-5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Kembali ke Beranda</span>
+        </button>
+      </div>
+    );
+  }
 
   const isFavorite = wishlistProductIds.includes(product.id);
 

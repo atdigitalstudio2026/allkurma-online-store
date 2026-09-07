@@ -249,7 +249,7 @@ export const ProductCatalogScreen: React.FC = () => {
                 >
                   <div className="relative aspect-square bg-stone-100 overflow-hidden">
                     <img
-                      src={prod.images[0]}
+                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                       alt={prod.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

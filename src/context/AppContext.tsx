@@ -44,6 +44,7 @@ import {
   INITIAL_CHAT_MESSAGES,
   INITIAL_SELLER_STORE
 } from '../data/mockData';
+import { normalizeImageUrl } from '../utils/imageUrlHelper';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
 import { getUserProfile, getStoreSettingsFromFirestore, saveStoreSettingsToFirestore } from '../firebase/db';
 
@@ -127,6 +128,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  clearAllProducts: () => void;
   
   // Cart & Variations
   cart: CartItem[];
@@ -282,7 +284,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation
   const [currentView, setCurrentView] = useState<AppView>('home');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>('prod-01');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -297,16 +299,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('allkurma_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Purge any old dummy simulation products ('prod-01' to 'prod-09')
+          const realUserProducts = parsed.filter((p: Product) => p?.id && !/^prod-0[1-9]$/.test(p.id));
+          if (realUserProducts.length !== parsed.length) {
+            localStorage.setItem('allkurma_products', JSON.stringify(realUserProducts));
+          }
+          return realUserProducts;
+        }
+      } catch (e) {
+        console.error('Failed to parse allkurma_products:', e);
+      }
+    }
+    return INITIAL_PRODUCTS;
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('allkurma_cart');
-    if (saved) return JSON.parse(saved);
-    return [
-      { product: INITIAL_PRODUCTS[0], quantity: 2, selectedVariation: INITIAL_PRODUCTS[0].variations?.[1] },
-      { product: INITIAL_PRODUCTS[1], quantity: 1, selectedVariation: INITIAL_PRODUCTS[1].variations?.[1] }
-    ];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item: CartItem) => item?.product && !/^prod-0[1-9]$/.test(item.product.id));
+        }
+      } catch (e) {
+        console.error('Failed to parse allkurma_cart:', e);
+      }
+    }
+    return [];
   });
 
   const [appliedVoucher, setAppliedVoucher] = useState<PromotionVoucher | null>(null);
@@ -346,7 +369,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Wishlist / Favorit
   const [wishlistProductIds, setWishlistProductIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('allkurma_wishlist');
-    return saved ? JSON.parse(saved) : ['prod-01', 'prod-02'];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((id: string) => !/^prod-0[1-9]$/.test(id));
+        }
+      } catch {}
+    }
+    return [];
   });
 
   // Reviews
@@ -727,8 +758,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Products CRUD
   const addProduct = (newProd: Omit<Product, 'id'>) => {
     const id = `prod-${Date.now().toString(36)}`;
-    const productWithId: Product = { ...newProd, id };
-    setProducts(prev => [productWithId, ...prev]);
+    const normalizedImages = newProd.images?.map(img => normalizeImageUrl(img)).filter(Boolean) || [];
+    const defaultFallbackImg = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
+    const finalImages = normalizedImages.length > 0 ? normalizedImages : [defaultFallbackImg];
+    const productWithId: Product = {
+      ...newProd,
+      images: finalImages,
+      id
+    };
+    setProducts(prev => {
+      const updated = [productWithId, ...prev];
+      localStorage.setItem('allkurma_products', JSON.stringify(updated));
+      return updated;
+    });
     
     // Notify followers of new product arrival!
     addNotification({
@@ -743,13 +785,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProduct = (id: string, updated: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
+    const sanitizedUpdated = { ...updated };
+    if (updated.images) {
+      sanitizedUpdated.images = updated.images.map(img => normalizeImageUrl(img));
+    }
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...sanitizedUpdated } : p));
     showToast('Data produk berhasil diperbarui');
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    showToast('Produk telah dihapus dari inventaris', 'info');
+    setProducts(prev => {
+      const filtered = prev.filter(p => p.id !== id);
+      localStorage.setItem('allkurma_products', JSON.stringify(filtered));
+      return filtered;
+    });
+    setCart(prev => prev.filter(item => item.product?.id !== id));
+    setWishlistProductIds(prev => prev.filter(pId => pId !== id));
+    setSelectedProductId(prev => (prev === id ? null : prev));
+    showToast('Produk berhasil dihapus dari etalase toko', 'success');
+  };
+
+  const clearAllProducts = () => {
+    setProducts([]);
+    setCart([]);
+    setWishlistProductIds([]);
+    setSelectedProductId(null);
+    localStorage.removeItem('allkurma_products');
+    localStorage.removeItem('allkurma_cart');
+    showToast('Semua produk katalog telah berhasil dikosongkan', 'success');
   };
 
   // Cart Management with Variations & Dynamic Wholesale Pricing
@@ -1607,6 +1670,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         updateProduct,
         deleteProduct,
+        clearAllProducts,
         cart,
         addToCart,
         addToCartWithVariation,
