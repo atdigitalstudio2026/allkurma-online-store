@@ -23,7 +23,8 @@ import {
   SellerStoreProfile,
   SellerStaffMember,
   ShopeeChatMessage,
-  ShopeeNotification
+  ShopeeNotification,
+  AppHeroBanner
 } from '../types';
 import {
   INITIAL_USER,
@@ -42,7 +43,8 @@ import {
   INITIAL_REVIEWS,
   INITIAL_NOTIFICATIONS,
   INITIAL_CHAT_MESSAGES,
-  INITIAL_SELLER_STORE
+  INITIAL_SELLER_STORE,
+  INITIAL_HERO_BANNERS
 } from '../data/mockData';
 import { normalizeImageUrl } from '../utils/imageUrlHelper';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
@@ -241,6 +243,13 @@ interface AppContextType {
   removeSellerStaff: (id: string) => void;
   toggleSellerStaffStatus: (id: string) => void;
   isEmailAuthorizedSeller: (email: string) => boolean;
+
+  // Banner Management (Hero Carousels & Promos)
+  heroBanners: AppHeroBanner[];
+  addHeroBanner: (banner: Omit<AppHeroBanner, 'id'>) => void;
+  updateHeroBanner: (id: string | number, updates: Partial<AppHeroBanner>) => void;
+  deleteHeroBanner: (id: string | number) => void;
+  resetHeroBanners: () => void;
   
   // Wholesale Invoices
   invoices: WholesaleInvoice[];
@@ -464,6 +473,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
   });
 
+  // Hero Promo Banners (Carousel Beranda & Promosi Toko)
+  const [heroBanners, setHeroBanners] = useState<AppHeroBanner[]>(() => {
+    const saved = localStorage.getItem('allkurma_hero_banners_v1');
+    return saved ? JSON.parse(saved) : INITIAL_HERO_BANNERS;
+  });
+
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Sync to local storage
@@ -546,6 +561,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('allkurma_seller_store', JSON.stringify(sellerStore));
   }, [sellerStore]);
+
+  useEffect(() => {
+    localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(heroBanners));
+  }, [heroBanners]);
 
   // Sync Store Settings & Staff Whitelist from Firestore on Startup
   useEffect(() => {
@@ -1479,6 +1498,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return initStaff.some(s => s.email.trim().toLowerCase() === clean && s.status === 'active');
   };
 
+  // Hero Banner Management Methods
+  const addHeroBanner = (bannerData: Omit<AppHeroBanner, 'id'>) => {
+    const newBanner: AppHeroBanner = {
+      ...bannerData,
+      id: `banner-${Date.now()}`,
+      active: bannerData.active !== undefined ? bannerData.active : true
+    };
+    setHeroBanners(prev => [newBanner, ...prev]);
+    showToast('Banner promosi baru berhasil ditambahkan!', 'success');
+  };
+
+  const updateHeroBanner = (id: string | number, updates: Partial<AppHeroBanner>) => {
+    setHeroBanners(prev =>
+      prev.map(b => (String(b.id) === String(id) ? { ...b, ...updates } : b))
+    );
+    showToast('Banner promosi berhasil diperbarui!', 'success');
+  };
+
+  const deleteHeroBanner = (id: string | number) => {
+    setHeroBanners(prev => prev.filter(b => String(b.id) !== String(id)));
+    showToast('Banner promosi berhasil dihapus.', 'info');
+  };
+
+  const resetHeroBanners = () => {
+    setHeroBanners(INITIAL_HERO_BANNERS);
+    showToast('Banner promosi dikembalikan ke template awal.', 'info');
+  };
+
   // Wishlist
   const toggleWishlist = (productId: string) => {
     setWishlistProductIds(prev => {
@@ -1775,6 +1822,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeSellerStaff,
         toggleSellerStaffStatus,
         isEmailAuthorizedSeller,
+        // Banner Management
+        heroBanners,
+        addHeroBanner,
+        updateHeroBanner,
+        deleteHeroBanner,
+        resetHeroBanners,
         claimedVoucherIds,
         claimVoucher,
         claimAllVouchers

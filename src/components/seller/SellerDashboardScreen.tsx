@@ -24,16 +24,20 @@ import {
   Printer,
   Eye,
   Percent,
+  Image as ImageIcon,
   Send,
   Sparkles,
   ToggleLeft,
   ToggleRight,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   ChevronUp,
   Layers,
   ArrowDownLeft,
+  ArrowRight,
+  RotateCcw,
   X,
   FileText,
   Lock,
@@ -57,11 +61,28 @@ import {
   Timer
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Product, Order, PromotionVoucher, ProductVariation } from '../../types';
+import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner } from '../../types';
 import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../utils/exportReport';
 import { normalizeImageUrl, isDropboxUrl } from '../../utils/imageUrlHelper';
 import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
 import { SkuStockAdjustmentModal } from './SkuStockAdjustmentModal';
+
+const BANNER_GRADIENT_PRESETS = [
+  { name: 'Royal Blue & Emerald (Resmi)', value: 'from-[#1E3A8A] via-blue-700 to-[#009A44]', tag: 'bg-white/20 text-emerald-100 border-white/30' },
+  { name: 'Sunset Amber & Red (Flash Sale)', value: 'from-orange-600 via-amber-600 to-red-600', tag: 'bg-white/25 text-white border-white/40' },
+  { name: 'Fresh Emerald & Teal (Panen 2026)', value: 'from-[#009A44] via-emerald-600 to-teal-700', tag: 'bg-white/20 text-white border-white/30' },
+  { name: 'Navy & B2B Indigo (Grosir Pabrik)', value: 'from-blue-700 via-[#1E3A8A] to-indigo-800', tag: 'bg-white/20 text-white border-white/30' },
+  { name: 'Luxury Purple & Violet (Hampers)', value: 'from-purple-700 via-indigo-600 to-[#1E3A8A]', tag: 'bg-white/20 text-white border-white/30' },
+  { name: 'Desert Gold & Stone (Klasik)', value: 'from-amber-700 via-amber-800 to-stone-900', tag: 'bg-white/20 text-amber-100 border-amber-200/30' }
+];
+
+const BANNER_IMAGE_PRESETS = [
+  { label: 'Kurma Ajwa Madinah', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Paket Kombo Bundling', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Panen Perdana 2026', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Gudang Grosir B2B', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80' },
+  { label: 'Hampers Mewah Eid', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80' }
+];
 
 export const SellerDashboardScreen: React.FC = () => {
   const {
@@ -91,11 +112,35 @@ export const SellerDashboardScreen: React.FC = () => {
     loginSeller,
     setIsAuthModalOpen,
     setAuthModalMode,
-    broadcastToFollowers
+    broadcastToFollowers,
+    heroBanners,
+    addHeroBanner,
+    updateHeroBanner,
+    deleteHeroBanner,
+    resetHeroBanners
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'flashsale' | 'vouchers' | 'reviews' | 'followers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'flashsale' | 'vouchers' | 'reviews' | 'followers' | 'banners'>('overview');
+
+  // Hero Banner Management State
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<AppHeroBanner | null>(null);
+  const [bannerPreviewIndex, setBannerPreviewIndex] = useState(0);
+  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
+  const [bannerForm, setBannerForm] = useState({
+    badge: 'Panen Raya 2026',
+    title: 'Kurma Ajwa Madinah Grade VIP',
+    subtitle: 'Dipetik langsung dari perkebunan pilihan Madinah. 100% Alami & Berkhasiat.',
+    cta: 'Beli Sekarang',
+    targetCategory: 'Semua',
+    targetView: '',
+    isBundlingTrigger: false,
+    bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/20 text-emerald-100 border-white/30',
+    active: true
+  });
 
   // Flash Sale Management State
   const [isFlashSaleModalOpen, setIsFlashSaleModalOpen] = useState(false);
@@ -254,6 +299,101 @@ export const SellerDashboardScreen: React.FC = () => {
   const handleSaveStoreSettings = (e: React.FormEvent) => {
     e.preventDefault();
     updateSellerStore(storeForm);
+  };
+
+  // Banner Handlers
+  const handleOpenAddBanner = () => {
+    setEditingBanner(null);
+    setBannerForm({
+      badge: 'Promo Spesial',
+      title: 'Kurma Premium Segar Pilihan',
+      subtitle: 'Dipetik langsung dari perkebunan pilihan dengan jaminan kualitas terbaik.',
+      cta: 'Beli Sekarang',
+      targetCategory: 'Semua',
+      targetView: '',
+      isBundlingTrigger: false,
+      bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
+      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
+      tagColor: 'bg-white/20 text-emerald-100 border-white/30',
+      active: true
+    });
+    setIsBannerModalOpen(true);
+  };
+
+  const handleOpenEditBanner = (banner: AppHeroBanner) => {
+    setEditingBanner(banner);
+    setBannerForm({
+      badge: banner.badge || '',
+      title: banner.title || '',
+      subtitle: banner.subtitle || '',
+      cta: banner.cta || 'Beli Sekarang',
+      targetCategory: banner.targetCategory || 'Semua',
+      targetView: banner.targetView || '',
+      isBundlingTrigger: !!banner.isBundlingTrigger,
+      bgGradient: banner.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
+      image: banner.image || '',
+      tagColor: banner.tagColor || 'bg-white/20 text-emerald-100 border-white/30',
+      active: banner.active !== false
+    });
+    setIsBannerModalOpen(true);
+  };
+
+  const handleSaveBanner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerForm.title.trim() || !bannerForm.image.trim()) {
+      showToast('Judul banner dan URL gambar wajib diisi!', 'error');
+      return;
+    }
+
+    const normalizedImg = normalizeImageUrl(bannerForm.image);
+
+    if (editingBanner) {
+      updateHeroBanner(editingBanner.id, {
+        badge: bannerForm.badge,
+        title: bannerForm.title,
+        subtitle: bannerForm.subtitle,
+        cta: bannerForm.cta,
+        targetCategory: bannerForm.targetCategory,
+        targetView: bannerForm.targetView,
+        isBundlingTrigger: bannerForm.isBundlingTrigger,
+        bgGradient: bannerForm.bgGradient,
+        image: normalizedImg,
+        tagColor: bannerForm.tagColor,
+        active: bannerForm.active
+      });
+      showToast(`Banner "${bannerForm.title}" berhasil diperbarui!`, 'success');
+    } else {
+      addHeroBanner({
+        badge: bannerForm.badge,
+        title: bannerForm.title,
+        subtitle: bannerForm.subtitle,
+        cta: bannerForm.cta,
+        targetCategory: bannerForm.targetCategory,
+        targetView: bannerForm.targetView,
+        isBundlingTrigger: bannerForm.isBundlingTrigger,
+        bgGradient: bannerForm.bgGradient,
+        image: normalizedImg,
+        tagColor: bannerForm.tagColor,
+        active: bannerForm.active
+      });
+      showToast(`Banner baru "${bannerForm.title}" berhasil ditambahkan!`, 'success');
+    }
+    setIsBannerModalOpen(false);
+  };
+
+  const handleToggleBannerActive = (banner: AppHeroBanner) => {
+    const nextState = banner.active === false ? true : false;
+    updateHeroBanner(banner.id, { active: nextState });
+    showToast(`Banner "${banner.title}" kini ${nextState ? 'Aktif (Tampil)' : 'Dinonaktifkan'}`, 'info');
+  };
+
+  const handleDeleteBannerConfirm = (banner: AppHeroBanner) => {
+    if (heroBanners.length <= 1) {
+      showToast('Minimal harus ada 1 banner di sistem!', 'warning');
+      return;
+    }
+    deleteHeroBanner(banner.id);
+    showToast(`Banner "${banner.title}" berhasil dihapus`, 'success');
   };
 
   // Handle Withdrawal submit
@@ -658,6 +798,21 @@ export const SellerDashboardScreen: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('banners')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'banners'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <ImageIcon className="w-4 h-4 text-amber-400" />
+              <span>Kelola Banner Beranda ({heroBanners.length})</span>
+              <span className="bg-amber-400 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                SLIDER
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('orders')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
                 activeTab === 'orders'
@@ -851,6 +1006,13 @@ export const SellerDashboardScreen: React.FC = () => {
                     Proses Pesanan Masuk
                   </button>
                   <button
+                    onClick={() => setActiveTab('banners')}
+                    className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Kelola Banner Promosi
+                  </button>
+                  <button
                     onClick={() => setActiveTab('settings')}
                     className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-stone-700 transition-colors"
                   >
@@ -998,6 +1160,171 @@ export const SellerDashboardScreen: React.FC = () => {
                 >
                   Simpan Semua Perubahan
                 </button>
+              </div>
+
+              {/* Promo Banner Fast Link */}
+              <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-blue-500/10 to-emerald-500/15 border border-amber-300/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center shrink-0 shadow-xs">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-stone-900">
+                      Kelola Banner Slider & Promosi Beranda Aplikasi
+                    </h4>
+                    <p className="text-[11px] text-stone-600">
+                      Ubah slide promo carousel yang dilihat pembeli di beranda: foto produk, diskon panen, kombo bundling, dan event Ramadan.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('banners')}
+                  className="shrink-0 flex items-center gap-1.5 text-xs font-bold bg-[#1E3A8A] hover:bg-[#172554] text-white px-3.5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Buka Kelola Banner Beranda ({heroBanners.length})</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Visual Identitas Toko: Banner Header & Logo Profil */}
+              <div className="mb-6 p-4.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-stone-900 flex items-center gap-2">
+                      <Store className="w-4 h-4 text-amber-600" />
+                      Visual Header & Foto Profil Toko Seller
+                    </h4>
+                    <p className="text-[11px] text-stone-500">
+                      Tampilan banner sampul dan foto profil toko resmi yang dilihat pembeli.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                    Live Preview Toko
+                  </span>
+                </div>
+
+                {/* Live Store Header Preview */}
+                <div className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-sm bg-stone-900 h-36 sm:h-44">
+                  <img
+                    src={normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80'}
+                    alt="Banner Sampul Toko"
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  
+                  {/* Store Profile Floating Badge inside Header */}
+                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white shrink-0">
+                        <img
+                          src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&auto=format&fit=crop&q=80'}
+                          alt={storeForm.storeName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-extrabold text-sm sm:text-base drop-shadow-xs">
+                            {storeForm.storeName || 'Nama Toko AllKurma'}
+                          </h4>
+                          {sellerStore.isOfficialStore && (
+                            <span className="bg-red-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase">
+                              Official Store
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-200 line-clamp-1">
+                          {storeForm.tagline || 'Pusat Kurma & Herbal Premium Terpercaya'}
+                        </p>
+                        <p className="text-[10px] text-stone-300 mt-0.5">
+                          📍 {storeForm.city} • ⭐ {sellerStore.rating} ({(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Inputs for Banner Header and Logo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      URL Banner Sampul Toko (Header Banner)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={storeForm.banner}
+                        onChange={e => setStoreForm({ ...storeForm, banner: e.target.value })}
+                        placeholder="https://... atau link foto Dropbox"
+                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-16"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-mono">
+                        Rasio 3:1
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      <span className="text-[10px] text-stone-400">Pilihan Cepat Banner:</span>
+                      <button
+                        type="button"
+                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80' })}
+                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                      >
+                        Kurma Madinah
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&auto=format&fit=crop&q=80' })}
+                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                      >
+                        Panen Sukari
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&auto=format&fit=crop&q=80' })}
+                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                      >
+                        Gudang Grosir
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      URL Foto Profil / Logo Toko (Avatar)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={storeForm.logo}
+                        onChange={e => setStoreForm({ ...storeForm, logo: e.target.value })}
+                        placeholder="https://... atau link foto Dropbox"
+                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-16"
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-mono">
+                        Rasio 1:1
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      <span className="text-[10px] text-stone-400">Pilihan Cepat Logo:</span>
+                      <button
+                        type="button"
+                        onClick={() => setStoreForm({ ...storeForm, logo: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&auto=format&fit=crop&q=80' })}
+                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                      >
+                        Kurma Emas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStoreForm({ ...storeForm, logo: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=300&auto=format&fit=crop&q=80' })}
+                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                      >
+                        Logo Sunnah
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -3152,6 +3479,411 @@ export const SellerDashboardScreen: React.FC = () => {
           </div>
         )}
 
+        {/* 9. TAB: KELOLA BANNER PROMOSI BERANDA (CAROUSEL) */}
+        {activeTab === 'banners' && (
+          <div className="space-y-6">
+            {/* Header & Quick Action Buttons */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-stone-950 flex items-center justify-center shrink-0 shadow-sm">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-black text-stone-900">
+                        Manajemen Banner Promosi Beranda (Carousel)
+                      </h3>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                        Sinkronisasi Beranda Realtime
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-1 max-w-2xl">
+                      Kelola banner slider utama di beranda aplikasi. Ganti foto produk, sesuaikan teks diskon, ubah target klik (kategori, bundling promo, grosir B2B), dan aktifkan/nonaktifkan banner kapan saja.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Apakah Anda yakin ingin mereset banner kembali ke 5 template resmi awal?')) {
+                        resetHeroBanners();
+                        showToast('Banner berhasil direset ke template resmi!', 'success');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2.5 rounded-xl border border-stone-300 transition-colors cursor-pointer"
+                    title="Kembalikan semua slide ke default pabrik"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Reset Template</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('home')}
+                    className="flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-50 px-3.5 py-2.5 rounded-xl border border-stone-300 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4 text-blue-600" />
+                    <span>Lihat di Beranda</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenAddBanner}
+                    className="flex items-center gap-2 text-xs font-black bg-amber-500 hover:bg-amber-400 text-stone-950 px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Banner Baru</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Metrics Summary Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-stone-100">
+                <div className="bg-stone-50 rounded-xl p-3 border border-stone-200">
+                  <div className="text-[11px] font-semibold text-stone-500">Total Banner Terdaftar</div>
+                  <div className="text-xl font-black text-stone-900 mt-0.5">{heroBanners.length} Slide</div>
+                </div>
+                <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
+                  <div className="text-[11px] font-semibold text-emerald-700">Aktif Tampil di Slider</div>
+                  <div className="text-xl font-black text-emerald-900 mt-0.5">
+                    {heroBanners.filter(b => b.active !== false).length} Slide
+                  </div>
+                </div>
+                <div className="bg-stone-50 rounded-xl p-3 border border-stone-200">
+                  <div className="text-[11px] font-semibold text-stone-500">Draf / Nonaktif</div>
+                  <div className="text-xl font-black text-stone-600 mt-0.5">
+                    {heroBanners.filter(b => b.active === false).length} Slide
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                  <div className="text-[11px] font-semibold text-blue-700">Kecepatan Rotasi</div>
+                  <div className="text-xl font-black text-blue-900 mt-0.5">4.5 Detik</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Interactive Simulator Section */}
+            <div className="bg-stone-900 text-white rounded-2xl p-6 shadow-md border border-stone-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div>
+                  <h4 className="text-sm font-black text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    Simulator Tampilan Slider Beranda
+                  </h4>
+                  <p className="text-xs text-stone-400">
+                    Pratinjau langsung bagaimana pembeli melihat banner promosi di perangkat mereka.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto bg-stone-800 p-1 rounded-xl border border-stone-700">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('mobile')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      previewDevice === 'mobile' ? 'bg-amber-500 text-stone-950 shadow-xs' : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    📱 Mode Mobile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('desktop')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      previewDevice === 'desktop' ? 'bg-amber-500 text-stone-950 shadow-xs' : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    💻 Layar Lebar
+                  </button>
+                </div>
+              </div>
+
+              {/* Slider Box Frame */}
+              {(() => {
+                const activeList = heroBanners.length > 0 ? heroBanners : [];
+                const safeIndex = Math.min(bannerPreviewIndex, Math.max(0, activeList.length - 1));
+                const currentSlide = activeList[safeIndex];
+
+                if (!currentSlide) {
+                  return (
+                    <div className="py-12 text-center text-stone-400">
+                      Belum ada banner yang terdaftar. Klik "Tambah Banner Baru" untuk mulai.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className={`mx-auto transition-all ${previewDevice === 'mobile' ? 'max-w-md' : 'max-w-4xl'}`}>
+                    <div className={`relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-r ${currentSlide.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]'} p-5 sm:p-7 min-h-[170px] sm:min-h-[220px] flex flex-col justify-between border border-white/20`}>
+                      {/* Background Overlay Image */}
+                      <div className="absolute right-0 top-0 bottom-0 w-1/2 sm:w-5/12 overflow-hidden pointer-events-none opacity-35 sm:opacity-50">
+                        <img
+                          src={normalizeImageUrl(currentSlide.image)}
+                          alt={currentSlide.title}
+                          className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-stone-900/60 via-transparent to-transparent" />
+                      </div>
+
+                      {/* Top Badges & Status in Simulator */}
+                      <div className="relative z-10 flex items-center justify-between gap-2">
+                        <span className={`inline-block text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs border ${currentSlide.tagColor || 'bg-white/20 text-emerald-100 border-white/30'}`}>
+                          {currentSlide.badge || 'PROMO'}
+                        </span>
+
+                        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-bold border border-white/10">
+                          <span className={`w-2 h-2 rounded-full ${currentSlide.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
+                          <span>{currentSlide.active !== false ? 'Aktif' : 'Draf Nonaktif'}</span>
+                        </div>
+                      </div>
+
+                      {/* Main Copy */}
+                      <div className="relative z-10 max-w-[70%] sm:max-w-[65%] my-2">
+                        <h4 className="text-base sm:text-2xl font-black text-white leading-tight drop-shadow-xs">
+                          {currentSlide.title}
+                        </h4>
+                        <p className="text-[11px] sm:text-xs text-stone-100/90 line-clamp-2 mt-1 drop-shadow-xs">
+                          {currentSlide.subtitle}
+                        </p>
+                      </div>
+
+                      {/* CTA button & Navigation Dots */}
+                      <div className="relative z-10 flex items-center justify-between pt-2">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black bg-amber-400 text-stone-950 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-md">
+                          <span>{currentSlide.cta || 'Beli Sekarang'}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </span>
+
+                        {/* Slider Controls */}
+                        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-xs px-2 py-1 rounded-xl border border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setBannerPreviewIndex((prev) => (prev > 0 ? prev - 1 : activeList.length - 1))}
+                            className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                            title="Slide Sebelumnya"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+
+                          <span className="text-[10px] font-mono text-stone-300 px-1">
+                            {safeIndex + 1}/{activeList.length}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => setBannerPreviewIndex((prev) => (prev < activeList.length - 1 ? prev + 1 : 0))}
+                            className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                            title="Slide Berikutnya"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Slide Info Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 mt-3 px-1 text-xs text-stone-400">
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-400 font-bold">Aksi Tombol:</span>
+                        {currentSlide.isBundlingTrigger ? (
+                          <span className="bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded border border-purple-700 text-[11px]">
+                            🛍️ Membuka Modal Promo Bundling
+                          </span>
+                        ) : currentSlide.targetView === 'b2b-portal' ? (
+                          <span className="bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded border border-blue-700 text-[11px]">
+                            🌐 Membuka Portal Grosir B2B
+                          </span>
+                        ) : currentSlide.targetCategory ? (
+                          <span className="bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700 text-[11px]">
+                            🏷️ Filter Kategori: {currentSlide.targetCategory}
+                          </span>
+                        ) : (
+                          <span className="bg-stone-800 text-stone-300 px-2 py-0.5 rounded border border-stone-700 text-[11px]">
+                            📦 Menampilkan Semua Katalog
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditBanner(currentSlide)}
+                          className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer"
+                        >
+                          ✏️ Edit Slide Ini
+                        </button>
+                        <span>•</span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBannerActive(currentSlide)}
+                          className="text-stone-300 hover:text-white font-bold hover:underline cursor-pointer"
+                        >
+                          {currentSlide.active !== false ? 'Sembunyikan' : 'Aktifkan'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* List of All Registered Banners */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs">
+              <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-5">
+                <div>
+                  <h4 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-amber-600" />
+                    Daftar Urutan Slide Banner ({heroBanners.length})
+                  </h4>
+                  <p className="text-xs text-stone-500">
+                    Klik tombol "Ubah Banner" untuk mengganti gambar foto, teks promo, warna latar, atau target kategori.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddBanner}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Slide</span>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {heroBanners.map((banner, index) => {
+                  const isActive = banner.active !== false;
+                  return (
+                    <div
+                      key={banner.id}
+                      className={`p-4 rounded-2xl border transition-all ${
+                        isActive
+                          ? 'bg-stone-50/70 border-stone-200 hover:border-amber-400'
+                          : 'bg-stone-100/80 border-stone-300/80 opacity-75'
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        {/* Slide Rank Badge & Thumbnail */}
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                          <div className="w-8 h-8 rounded-xl bg-stone-200 text-stone-700 font-mono font-black text-xs flex items-center justify-center shrink-0">
+                            #{index + 1}
+                          </div>
+
+                          {/* Mini Visual Banner Preview */}
+                          <div className={`relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-gradient-to-r ${banner.bgGradient || 'from-[#1E3A8A] to-[#009A44]'} p-2 flex flex-col justify-between shrink-0 shadow-xs border border-stone-200`}>
+                            <img
+                              src={normalizeImageUrl(banner.image)}
+                              alt={banner.title}
+                              className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
+                            />
+                            <span className="relative z-10 text-[8px] font-black uppercase text-white bg-black/30 px-1 py-0.2 rounded self-start truncate max-w-full">
+                              {banner.badge || 'PROMO'}
+                            </span>
+                            <span className="relative z-10 text-[9px] font-bold text-white line-clamp-1">
+                              {banner.title}
+                            </span>
+                          </div>
+
+                          {/* Details */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h5 className="font-extrabold text-sm text-stone-900 truncate">
+                                {banner.title}
+                              </h5>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isActive
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : 'bg-stone-200 text-stone-600 border border-stone-300'
+                                }`}
+                              >
+                                {isActive ? '● Aktif' : '○ Nonaktif'}
+                              </span>
+                              {banner.badge && (
+                                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  🏷️ {banner.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">
+                              {banner.subtitle}
+                            </p>
+
+                            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-stone-600 flex-wrap">
+                              <span className="flex items-center gap-1 font-semibold text-stone-800">
+                                <span className="text-stone-400">Tombol:</span> {banner.cta || 'Beli Sekarang'}
+                              </span>
+                              <span>•</span>
+                              <span>
+                                <span className="text-stone-400">Tujuan:</span>{' '}
+                                {banner.isBundlingTrigger
+                                  ? '🛍️ Modal Promo Bundling'
+                                  : banner.targetView === 'b2b-portal'
+                                  ? '🌐 Portal B2B'
+                                  : banner.targetCategory
+                                  ? `🏷️ Kategori: ${banner.targetCategory}`
+                                  : '📦 Semua Katalog'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                          {/* Toggle Active Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBannerActive(banner)}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer ${
+                              isActive
+                                ? 'bg-stone-200 hover:bg-stone-300 text-stone-700'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            }`}
+                            title={isActive ? 'Sembunyikan dari slider' : 'Tampilkan di slider'}
+                          >
+                            {isActive ? (
+                              <>
+                                <ToggleRight className="w-4 h-4 text-emerald-600" />
+                                <span>Matikan</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft className="w-4 h-4" />
+                                <span>Aktifkan</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditBanner(banner)}
+                            className="flex items-center gap-1.5 text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                            <span>Ubah Banner</span>
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBannerConfirm(banner)}
+                            className="flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            title="Hapus banner"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* MODAL: TARIK DANA PENJUAL (WITHDRAWAL) */}
@@ -4670,6 +5402,391 @@ export const SellerDashboardScreen: React.FC = () => {
                 <span>Simpan &amp; Tayangkan di Flash Sale</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: TAMBAH / UBAH BANNER PROMOSI BERANDA */}
+      {isBannerModalOpen && (
+        <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-stone-200 overflow-hidden my-6">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-stone-900">
+                    {editingBanner ? 'Ubah Banner Promosi Beranda' : 'Tambah Banner Promosi Baru'}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Atur teks, foto, tombol aksi, dan tema visual warna banner.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBannerModalOpen(false)}
+                className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 rounded-full transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveBanner} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Dynamic Live Banner Preview Card */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Pratinjau Langsung Banner (Live Preview)</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-stone-400">
+                    Rasio Responsif Carousel
+                  </span>
+                </div>
+
+                <div className={`relative rounded-2xl overflow-hidden shadow-lg bg-gradient-to-r ${bannerForm.bgGradient} p-5 min-h-[160px] flex flex-col justify-between border border-white/20`}>
+                  {/* Background Overlay Image */}
+                  <div className="absolute right-0 top-0 bottom-0 w-5/12 overflow-hidden pointer-events-none opacity-40">
+                    <img
+                      src={normalizeImageUrl(bannerForm.image)}
+                      alt="Pratinjau Banner"
+                      className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-stone-900/50 via-transparent to-transparent" />
+                  </div>
+
+                  {/* Top Badge */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs border ${bannerForm.tagColor}`}>
+                      {bannerForm.badge || 'PROMO'}
+                    </span>
+                    <span className="text-[9px] font-bold text-white/80 bg-black/30 px-2 py-0.5 rounded-full">
+                      {bannerForm.active ? '● Aktif Tampil' : '○ Draf Nonaktif'}
+                    </span>
+                  </div>
+
+                  {/* Copy */}
+                  <div className="relative z-10 max-w-[70%] my-2">
+                    <h4 className="text-base font-black text-white leading-tight drop-shadow-xs">
+                      {bannerForm.title || 'Judul Banner Promosi'}
+                    </h4>
+                    <p className="text-[11px] text-stone-100/90 line-clamp-2 mt-0.5">
+                      {bannerForm.subtitle || 'Tuliskan deskripsi ringkas penawaran promosi atau keunggulan kurma di sini.'}
+                    </p>
+                  </div>
+
+                  {/* CTA button */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-black bg-amber-400 text-stone-950 px-3 py-1 rounded-xl shadow-xs">
+                      <span>{bannerForm.cta || 'Beli Sekarang'}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </span>
+
+                    <span className="text-[10px] text-white/80 font-medium">
+                      {bannerForm.isBundlingTrigger
+                        ? '🛍️ Buka Modal Bundling'
+                        : bannerForm.targetView === 'b2b-portal'
+                        ? '🌐 Buka Portal B2B'
+                        : bannerForm.targetCategory
+                        ? `🏷️ Kategori: ${bannerForm.targetCategory}`
+                        : '📦 Semua Katalog'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 1. URL Foto Gambar Banner */}
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
+                <label className="block text-xs font-bold text-stone-800">
+                  URL Foto Produk / Banner (Mendukung Tautan Dropbox Otomatis) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={bannerForm.image}
+                    onChange={(e) => setBannerForm({ ...bannerForm, image: e.target.value })}
+                    placeholder="https://images.unsplash.com/... atau tautan foto Dropbox"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-mono"
+                  />
+                  {isDropboxUrl(bannerForm.image) && (
+                    <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      Dropbox Terdeteksi
+                    </span>
+                  )}
+                </div>
+
+                {/* Preset Image Options */}
+                <div className="pt-1">
+                  <span className="text-[10px] font-bold text-stone-500 block mb-1">
+                    Gunakan Foto Rekomendasi Cepat:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BANNER_IMAGE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setBannerForm({ ...bannerForm, image: preset.url })}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg border font-semibold transition-all cursor-pointer ${
+                          bannerForm.image === preset.url
+                            ? 'bg-amber-500 text-stone-950 border-amber-600 font-bold'
+                            : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Badge & Tombol CTA */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 mb-1">
+                    Label Tag / Badge Promo (Atas)
+                  </label>
+                  <input
+                    type="text"
+                    value={bannerForm.badge}
+                    onChange={(e) => setBannerForm({ ...bannerForm, badge: e.target.value })}
+                    placeholder="Contoh: Panen Raya 2026, Diskon 50%, Promo Bundling"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-semibold"
+                  />
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {['Panen Raya 2026', 'Promo Bundling', 'Flash Sale', 'Grosir Kontainer', 'Spesial Ramadhan'].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setBannerForm({ ...bannerForm, badge: tag })}
+                        className="text-[10px] bg-stone-100 hover:bg-amber-100 text-stone-600 px-1.5 py-0.5 rounded cursor-pointer"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 mb-1">
+                    Teks Tombol Aksi (CTA)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bannerForm.cta}
+                    onChange={(e) => setBannerForm({ ...bannerForm, cta: e.target.value })}
+                    placeholder="Contoh: Beli Sekarang, Cek Promo, Buka Grosir"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-semibold"
+                  />
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {['Beli Sekarang', 'Cek Promo Hemat', 'Pesan Grosir', 'Lihat Koleksi'].map((ctaText) => (
+                      <button
+                        key={ctaText}
+                        type="button"
+                        onClick={() => setBannerForm({ ...bannerForm, cta: ctaText })}
+                        className="text-[10px] bg-stone-100 hover:bg-amber-100 text-stone-600 px-1.5 py-0.5 rounded cursor-pointer"
+                      >
+                        {ctaText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Judul & Subjudul */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 mb-1">
+                    Judul Utama Banner <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bannerForm.title}
+                    onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                    placeholder="Contoh: Kurma Ajwa Madinah Grade VIP Al-Madinah"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 mb-1">
+                    Subjudul / Keterangan Penawaran
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={bannerForm.subtitle}
+                    onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
+                    placeholder="Contoh: Dipetik langsung dari perkebunan pilihan Madinah. 100% Alami & Berkhasiat."
+                    className="w-full px-3.5 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Target Aksi Saat Banner Diklik */}
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3">
+                <label className="block text-xs font-bold text-stone-800">
+                  Tujuan / Aksi Saat Banner Diklik Pembeli:
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label className={`p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    !bannerForm.isBundlingTrigger && bannerForm.targetView !== 'b2b-portal'
+                      ? 'bg-amber-50 border-amber-500 text-stone-900 shadow-2xs'
+                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        type="radio"
+                        name="bannerTargetType"
+                        checked={!bannerForm.isBundlingTrigger && bannerForm.targetView !== 'b2b-portal'}
+                        onChange={() => setBannerForm({ ...bannerForm, isBundlingTrigger: false, targetView: '' })}
+                        className="accent-amber-600"
+                      />
+                      <span className="text-xs font-bold">Kategori Produk</span>
+                    </div>
+                    <span className="text-[10px] text-stone-500">Filter katalog ke kategori tertentu</span>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    bannerForm.isBundlingTrigger
+                      ? 'bg-purple-50 border-purple-500 text-stone-900 shadow-2xs'
+                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        type="radio"
+                        name="bannerTargetType"
+                        checked={bannerForm.isBundlingTrigger}
+                        onChange={() => setBannerForm({ ...bannerForm, isBundlingTrigger: true, targetView: '', targetCategory: '' })}
+                        className="accent-purple-600"
+                      />
+                      <span className="text-xs font-bold">Modal Bundling</span>
+                    </div>
+                    <span className="text-[10px] text-stone-500">Buka popup paket kombo hemat</span>
+                  </label>
+
+                  <label className={`p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition-all ${
+                    bannerForm.targetView === 'b2b-portal'
+                      ? 'bg-blue-50 border-blue-500 text-stone-900 shadow-2xs'
+                      : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        type="radio"
+                        name="bannerTargetType"
+                        checked={bannerForm.targetView === 'b2b-portal'}
+                        onChange={() => setBannerForm({ ...bannerForm, isBundlingTrigger: false, targetView: 'b2b-portal', targetCategory: '' })}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-xs font-bold">Portal B2B Grosir</span>
+                    </div>
+                    <span className="text-[10px] text-stone-500">Buka halaman pengadaan kontainer</span>
+                  </label>
+                </div>
+
+                {!bannerForm.isBundlingTrigger && bannerForm.targetView !== 'b2b-portal' && (
+                  <div className="pt-2">
+                    <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                      Pilih Kategori Produk yang Ditampilkan:
+                    </label>
+                    <select
+                      value={bannerForm.targetCategory}
+                      onChange={(e) => setBannerForm({ ...bannerForm, targetCategory: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                    >
+                      <option value="Semua">Semua Kategori (Katalog Lengkap)</option>
+                      <option value="Ajwa">Kurma Ajwa</option>
+                      <option value="Sukari">Kurma Sukari</option>
+                      <option value="Medjool">Kurma Medjool</option>
+                      <option value="Tunisia">Kurma Tunisia</option>
+                      <option value="Khalas">Kurma Khalas</option>
+                      <option value="Ruthob">Kurma Ruthob (Segar/Basah)</option>
+                      <option value="Hampers">Hampers & Parcel Mewah</option>
+                      <option value="Olahan">Produk Olahan & Sari Kurma</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Tema Warna Gradien Background */}
+              <div>
+                <label className="block text-xs font-bold text-stone-800 mb-2">
+                  Pilih Tema Warna Latar Belakang (Gradien):
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {BANNER_GRADIENT_PRESETS.map((grad) => (
+                    <button
+                      key={grad.name}
+                      type="button"
+                      onClick={() => setBannerForm({ ...bannerForm, bgGradient: grad.value, tagColor: grad.tag })}
+                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                        bannerForm.bgGradient === grad.value
+                          ? 'border-amber-500 ring-2 ring-amber-400/40 bg-stone-50'
+                          : 'border-stone-200 hover:border-stone-400 bg-white'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${grad.value} shrink-0 shadow-xs border border-white/40`} />
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-stone-900 truncate">
+                          {grad.name}
+                        </div>
+                        <div className="text-[9px] text-stone-400 truncate">
+                          {bannerForm.bgGradient === grad.value ? '✓ Terpilih' : 'Klik pilih'}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. Status Banner */}
+              <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-stone-900">
+                    Status Tayang di Beranda
+                  </div>
+                  <div className="text-[11px] text-stone-500">
+                    Jika dimatikan, banner akan disimpan sebagai draf dan tidak berputar di slider pembeli.
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bannerForm.active}
+                    onChange={(e) => setBannerForm({ ...bannerForm, active: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+
+              {/* Footer Submit Buttons */}
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsBannerModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl font-bold text-xs text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl font-black text-xs bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{editingBanner ? 'Simpan Perubahan Banner' : 'Terbitkan Banner Baru'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -448,3 +448,18 @@ export interface SystemSettings {
   autoApproveWholesale: boolean;
   twoFactorAuthRequired: boolean;
 }
+
+export interface AppHeroBanner {
+  id: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  targetCategory?: string;
+  targetView?: string;
+  isBundlingTrigger?: boolean;
+  bgGradient?: string;
+  image: string;
+  tagColor?: string;
+  active?: boolean;
+}

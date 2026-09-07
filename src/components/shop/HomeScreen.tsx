@@ -67,8 +67,17 @@ export const HomeScreen: React.FC = () => {
     claimDailyCoin,
     lastCheckInDate,
     showToast,
-    user
+    user,
+    heroBanners: appHeroBanners
   } = useApp();
+
+  // Active Hero Banners from Store / App Context
+  const heroBanners = useMemo(() => {
+    const list = appHeroBanners?.filter(b => b.active !== false) || [];
+    return list.length > 0 ? list : (appHeroBanners || []);
+  }, [appHeroBanners]);
+
+  const bannerCount = heroBanners.length || 1;
 
   // 5-Slide Banner Carousel State
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -77,80 +86,21 @@ export const HomeScreen: React.FC = () => {
   // Promo Bundling Modal State
   const [isBundlingModalOpen, setIsBundlingModalOpen] = useState(false);
 
-  // Hero Banners
-  const heroBanners = [
-    {
-      id: 1,
-      badge: 'Panen Raya 2026',
-      title: 'Kurma Ajwa Madinah Grade VIP',
-      subtitle: 'Dipetik langsung dari perkebunan pilihan Madinah. 100% Alami & Berkhasiat.',
-      cta: 'Beli Sekarang',
-      targetCategory: 'Ajwa',
-      bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-      tagColor: 'bg-white/20 text-emerald-100 border-white/30'
-    },
-    {
-      id: 2,
-      badge: 'Promo Bundling Hemat',
-      title: 'Paket Kombo Sehat Sunnah',
-      subtitle: 'Kurma Ajwa + Madu Murni Yaman + Air Zamzam asli hemat hingga Rp 86.000.',
-      cta: 'Lihat Promo Bundling',
-      isBundlingTrigger: true,
-      bgGradient: 'from-orange-600 via-amber-600 to-red-600',
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
-      tagColor: 'bg-white/25 text-white border-white/40'
-    },
-    {
-      id: 3,
-      badge: 'New Arrivals 2026',
-      title: 'Koleksi Panen Perdana 2026',
-      subtitle: 'Stok segar baru tiba: Kurma Sukari Platinum Chilled & Cokelat Kurma Almond.',
-      cta: 'Cek Produk Baru',
-      targetCategory: 'Semua',
-      bgGradient: 'from-[#009A44] via-emerald-600 to-teal-700',
-      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
-      tagColor: 'bg-white/20 text-white border-white/30'
-    },
-    {
-      id: 4,
-      badge: 'B2B & Grosir Pabrik',
-      title: 'Paket Grosir Kartonan Pabrik',
-      subtitle: 'Harga distributor termurah untuk agen, reseller & masjid se-Indonesia.',
-      cta: 'Buka Portal Grosir',
-      targetView: 'b2b-portal',
-      bgGradient: 'from-blue-700 via-[#1E3A8A] to-indigo-800',
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80',
-      tagColor: 'bg-white/20 text-white border-white/30'
-    },
-    {
-      id: 5,
-      badge: 'Edisi Spesial Hampers',
-      title: 'Hampers Premium & Madu Murni',
-      subtitle: 'Kemasan gift box eksklusif dengan kartu ucapan kustom untuk keluarga & kolega.',
-      cta: 'Lihat Koleksi Hampers',
-      targetCategory: 'Hampers',
-      bgGradient: 'from-purple-700 via-indigo-600 to-[#1E3A8A]',
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
-      tagColor: 'bg-white/20 text-white border-white/30'
-    }
-  ];
-
   // Auto slide effect
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || bannerCount <= 1) return;
     const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % heroBanners.length);
+      setCurrentSlide(prev => (prev + 1) % bannerCount);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isPaused, heroBanners.length]);
+  }, [isPaused, bannerCount]);
 
   const handleNextSlide = () => {
-    setCurrentSlide(prev => (prev + 1) % heroBanners.length);
+    setCurrentSlide(prev => (prev + 1) % bannerCount);
   };
 
   const handlePrevSlide = () => {
-    setCurrentSlide(prev => (prev - 1 + heroBanners.length) % heroBanners.length);
+    setCurrentSlide(prev => (prev - 1 + bannerCount) % bannerCount);
   };
 
   // Flash sale countdown timer state (hours:mins:secs)
@@ -506,7 +456,18 @@ export const HomeScreen: React.FC = () => {
     showToast(`Paket "${bundle.name}" berhasil ditambahkan ke keranjang! Hemat Rp ${bundle.savings.toLocaleString('id-ID')}`, 'success');
   };
 
-  const activeBanner = heroBanners[currentSlide];
+  const activeBanner = (heroBanners && heroBanners.length > 0)
+    ? heroBanners[currentSlide % heroBanners.length] || heroBanners[0]
+    : {
+        id: 'default',
+        badge: 'AllKurma Official',
+        title: 'Kurma Premium Pilihan',
+        subtitle: 'Kurma segar pilihan langsung dari Madinah dan Timur Tengah.',
+        cta: 'Lihat Katalog',
+        bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
+        image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
+        tagColor: 'bg-white/20 text-emerald-100 border-white/30'
+      };
   const activeQuiz = quizRecommendations[selectedQuizTag];
 
   return (
@@ -645,6 +606,18 @@ export const HomeScreen: React.FC = () => {
         onMouseLeave={() => setIsPaused(false)}
       >
         <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-5 shadow-lg border border-white/20 transition-all duration-500 min-h-[180px] flex flex-col justify-between`}>
+          {/* Seller Shortcut to Banner Management */}
+          {user?.role === 'seller' && (
+            <button
+              onClick={() => setCurrentView('seller-dashboard')}
+              title="Kelola Banner dari Dashboard Seller"
+              className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/40 hover:bg-black/65 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Kelola Banner Toko</span>
+            </button>
+          )}
+
           <div className="relative z-10 max-w-[240px]">
             <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${activeBanner.tagColor}`}>
               {activeBanner.badge}

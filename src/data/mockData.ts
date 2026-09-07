@@ -15,7 +15,8 @@ import {
   CustomerReview,
   ChatMessage,
   AppNotification,
-  SellerStoreProfile
+  SellerStoreProfile,
+  AppHeroBanner
 } from '../types';
 
 export const INITIAL_USER: UserProfile = {
@@ -818,4 +819,67 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
   taxNumber: '09.876.543.2-012.000',
   minFreeShippingOrder: 150000
 };
+
+export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
+  {
+    id: 'banner-01',
+    badge: 'Panen Raya 2026',
+    title: 'Kurma Ajwa Madinah Grade VIP',
+    subtitle: 'Dipetik langsung dari perkebunan pilihan Madinah. 100% Alami & Berkhasiat.',
+    cta: 'Beli Sekarang',
+    targetCategory: 'Ajwa',
+    bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/20 text-emerald-100 border-white/30',
+    active: true
+  },
+  {
+    id: 'banner-02',
+    badge: 'Promo Bundling Hemat',
+    title: 'Paket Kombo Sehat Sunnah',
+    subtitle: 'Kurma Ajwa + Madu Murni Yaman + Air Zamzam asli hemat hingga Rp 86.000.',
+    cta: 'Lihat Promo Bundling',
+    isBundlingTrigger: true,
+    bgGradient: 'from-orange-600 via-amber-600 to-red-600',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/25 text-white border-white/40',
+    active: true
+  },
+  {
+    id: 'banner-03',
+    badge: 'New Arrivals 2026',
+    title: 'Koleksi Panen Perdana 2026',
+    subtitle: 'Stok segar baru tiba: Kurma Sukari Platinum Chilled & Cokelat Kurma Almond.',
+    cta: 'Cek Produk Baru',
+    targetCategory: 'Semua',
+    bgGradient: 'from-[#009A44] via-emerald-600 to-teal-700',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/20 text-white border-white/30',
+    active: true
+  },
+  {
+    id: 'banner-04',
+    badge: 'B2B & Grosir Pabrik',
+    title: 'Paket Grosir Kartonan Pabrik',
+    subtitle: 'Harga distributor termurah untuk agen, reseller & masjid se-Indonesia.',
+    cta: 'Buka Portal Grosir',
+    targetView: 'b2b-portal',
+    bgGradient: 'from-blue-700 via-[#1E3A8A] to-indigo-800',
+    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/20 text-white border-white/30',
+    active: true
+  },
+  {
+    id: 'banner-05',
+    badge: 'Edisi Spesial Hampers',
+    title: 'Hampers Premium & Madu Murni',
+    subtitle: 'Kemasan gift box eksklusif dengan kartu ucapan kustom untuk keluarga & kolega.',
+    cta: 'Lihat Koleksi Hampers',
+    targetCategory: 'Hampers',
+    bgGradient: 'from-purple-700 via-indigo-600 to-[#1E3A8A]',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
+    tagColor: 'bg-white/20 text-white border-white/30',
+    active: true
+  }
+];
 
