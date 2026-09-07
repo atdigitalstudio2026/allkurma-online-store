@@ -176,6 +176,8 @@ export interface Product {
   certification?: string; // e.g. "Halal MUI & Karantina Kementan RI"
   isFlashSale?: boolean;
   flashSaleDiscountPercent?: number;
+  isNewArrival?: boolean;
+  createdAt?: string;
   rating: number;
   reviewCount: number;
   soldCount: number;

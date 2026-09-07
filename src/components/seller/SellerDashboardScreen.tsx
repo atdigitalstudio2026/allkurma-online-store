@@ -182,11 +182,12 @@ export const SellerDashboardScreen: React.FC = () => {
     warehouseRack: 'Rak A1-01',
     warehouseLocation: 'Gudang Utama - Jakarta Pusat',
     weightGram: 500,
-    images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
+    images: [],
     freeShippingExtra: true,
     cashbackExtra: true,
     isFlashSale: false,
     flashSaleDiscountPercent: 20,
+    isNewArrival: true,
     variations: []
   });
 
@@ -365,6 +366,8 @@ export const SellerDashboardScreen: React.FC = () => {
       cashbackExtra: prod.cashbackExtra,
       isFlashSale: prod.isFlashSale || false,
       flashSaleDiscountPercent: prod.flashSaleDiscountPercent || 20,
+      isNewArrival: prod.isNewArrival !== undefined ? prod.isNewArrival : true,
+      createdAt: prod.createdAt,
       variations: prod.variations ? JSON.parse(JSON.stringify(prod.variations)) : [],
       wholesalePrices: prod.wholesalePrices ? JSON.parse(JSON.stringify(prod.wholesalePrices)) : []
     });
@@ -1714,9 +1717,11 @@ export const SellerDashboardScreen: React.FC = () => {
                       warehouseRack: 'Rak A1-01',
                       warehouseLocation: 'Gudang Utama - Jakarta Pusat',
                       weightGram: 500,
-                      images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
+                      images: [],
                       freeShippingExtra: true,
                       cashbackExtra: true,
+                      isFlashSale: false,
+                      isNewArrival: true,
                       variations: [],
                       wholesalePrices: [
                         { minQty: 11, maxQty: 50, pricePerUnit: 125000 },
@@ -2046,11 +2051,21 @@ export const SellerDashboardScreen: React.FC = () => {
                                 {/* Product Info, SKU & Barcode */}
                                 <td className="p-3 align-top">
                                   <div className="flex items-start gap-3">
-                                    <img
-                                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
-                                      alt={prod.name}
-                                      className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 mt-0.5 shadow-2xs"
-                                    />
+                                    {prod.images?.[0] ? (
+                                      <img
+                                        src={prod.images[0]}
+                                        alt={prod.name}
+                                        className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 mt-0.5 shadow-2xs"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                          const fallback = (e.currentTarget.parentElement?.querySelector('.row-img-fallback') as HTMLElement);
+                                          if (fallback) fallback.style.display = 'flex';
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div className={`row-img-fallback w-12 h-12 rounded-xl border border-stone-200 shrink-0 mt-0.5 shadow-2xs bg-stone-100 flex flex-col items-center justify-center text-stone-400 ${prod.images?.[0] ? 'hidden' : 'flex'}`}>
+                                      <Package className="w-5 h-5 text-amber-800/60" />
+                                    </div>
                                   <div className="min-w-0">
                                     <div className="font-extrabold text-stone-900 text-xs line-clamp-1">
                                       {prod.name}
@@ -2063,10 +2078,16 @@ export const SellerDashboardScreen: React.FC = () => {
                                         EAN: {prod.barcode || '-'}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-stone-500">
+                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-stone-500 flex-wrap">
                                       <span>Origin: <b>{prod.origin}</b></span>
                                       <span>•</span>
                                       <span className="text-amber-700 font-semibold">{prod.harvestYear || 'Panen 2026'}</span>
+                                      {prod.isNewArrival && (
+                                        <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full text-[9px] flex items-center gap-0.5">
+                                          <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                                          New Product
+                                        </span>
+                                      )}
                                       {hasVariations && (
                                         <span className="bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded-full text-[9px]">
                                           {prod.variations!.length} Varian Kemasan
@@ -2202,6 +2223,29 @@ export const SellerDashboardScreen: React.FC = () => {
                                     title={prod.isFlashSale ? `Kelola Flash Sale (${prod.flashSaleDiscountPercent || 20}% OFF)` : 'Daftarkan Produk ke Flash Sale'}
                                   >
                                     <Flame className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Quick Toggle New Product */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const nextStatus = !prod.isNewArrival;
+                                      updateProduct(prod.id, { isNewArrival: nextStatus });
+                                      showToast(
+                                        nextStatus 
+                                          ? `Produk "${prod.name}" sekarang aktif sebagai New Product!`
+                                          : `Produk "${prod.name}" dinonaktifkan dari New Product.`,
+                                        'info'
+                                      );
+                                    }}
+                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                      prod.isNewArrival
+                                        ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-600 hover:text-white'
+                                        : 'text-stone-400 bg-stone-100 hover:text-emerald-700 hover:bg-emerald-50'
+                                    }`}
+                                    title={prod.isNewArrival ? 'Aktif sebagai New Product (Klik untuk nonaktifkan)' : 'Klik untuk jadikan New Product 2026'}
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5" />
                                   </button>
 
                                   {/* Edit Product */}
@@ -3342,7 +3386,9 @@ export const SellerDashboardScreen: React.FC = () => {
                   warehouseRack: newProd.warehouseRack || 'Rak A1-01',
                   warehouseLocation: newProd.warehouseLocation || sellerStore.city,
                   weightGram: Number(newProd.weightGram) || 500,
-                  images: newProd.images || ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
+                  images: (newProd.images && newProd.images.length > 0 && newProd.images[0]) ? newProd.images : [],
+                  isNewArrival: newProd.isNewArrival !== undefined ? !!newProd.isNewArrival : true,
+                  createdAt: newProd.createdAt || new Date().toISOString(),
                   freeShippingExtra: true,
                   cashbackExtra: true,
                   variations: newProd.variations || [],
@@ -3477,7 +3523,7 @@ export const SellerDashboardScreen: React.FC = () => {
                           alt="Preview Produk"
                           className="w-14 h-14 rounded-lg object-cover border border-stone-300 shadow-2xs shrink-0 bg-white"
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
                           }}
                         />
                         <div className="min-w-0 flex-1">
@@ -3486,7 +3532,7 @@ export const SellerDashboardScreen: React.FC = () => {
                             {newProd.images[0]}
                           </p>
                           <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
-                            ✓ Gambar siap ditampilkan di etalase pembeli
+                            ✓ Gambar aktif siap ditampilkan di etalase produk
                           </span>
                         </div>
                       </div>
@@ -3502,6 +3548,30 @@ export const SellerDashboardScreen: React.FC = () => {
                       placeholder="Jelaskan karakteristik tekstur daging buah, kadar manis, serta jaminan higienis..."
                       className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
                     />
+                  </div>
+
+                  {/* Toggle New Product 2026 / Panen Perdana */}
+                  <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-emerald-600" />
+                        <span className="font-bold text-xs text-emerald-950">
+                          Tandai sebagai New Product (Panen Perdana 2026)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 leading-tight">
+                        Produk ini akan otomatis terdeteksi dan diunggulkan di bagian &ldquo;New Product 2026 / Panen Perdana&rdquo; pada Beranda pembeli.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={newProd.isNewArrival !== undefined ? newProd.isNewArrival : true}
+                        onChange={(e) => setNewProd({ ...newProd, isNewArrival: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#009A44]"></div>
+                    </label>
                   </div>
                 </div>
               )}

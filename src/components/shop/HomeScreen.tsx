@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, 
   Flame, 
@@ -66,7 +66,8 @@ export const HomeScreen: React.FC = () => {
     setIsChatOpen,
     claimDailyCoin,
     lastCheckInDate,
-    showToast
+    showToast,
+    user
   } = useApp();
 
   // 5-Slide Banner Carousel State
@@ -243,57 +244,28 @@ export const HomeScreen: React.FC = () => {
 
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
 
-  // New Products / New Arrivals 2026 Data
-  const newProducts = [
-    {
-      id: 'new-01',
-      name: 'Kurma Ajwa Jumbo Al-Aliya Madinah (Panen 2026)',
-      category: 'Ajwa',
-      badge: 'NEW HARVEST 2026',
-      harvestDate: 'Januari 2026',
-      freshness: '100% Segar Baru',
-      price: 225000,
-      originalPrice: 260000,
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80',
-      desc: 'Ukuran butir lebih besar (jumbo), daging super tebal berserat lembut dan wangi khas kurma nabi.'
-    },
-    {
-      id: 'new-02',
-      name: 'Kurma Sukari Platinum Chilled Al-Qassim',
-      category: 'Sukari',
-      badge: 'FRESH CHILLED',
-      harvestDate: 'Februari 2026',
-      freshness: 'Cold Chain Terjaga',
-      price: 110000,
-      originalPrice: 135000,
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80',
-      desc: 'Grade tertinggi Sukari basah (rutob). Lumer di lidah seperti karamel mentega segar.'
-    },
-    {
-      id: 'new-03',
-      name: 'Cokelat Kurma Almond Lapis Emas Premium',
-      category: 'Hampers',
-      badge: 'EDISI EKSKLUSIF',
-      harvestDate: 'Rilis Baru 2026',
-      freshness: 'Dark Choc 70%',
-      price: 135000,
-      originalPrice: 165000,
-      image: 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600&auto=format&fit=crop&q=80',
-      desc: 'Kurma Ajwa pilihan diisi kacang almond panggang renyah, berbalut cokelat Belgia murni.'
-    },
-    {
-      id: 'new-04',
-      name: 'Kurma Medjool Natural Jumbo Export Grade A+',
-      category: 'Medjool',
-      badge: 'KING OF DATES',
-      harvestDate: 'Panen Baru',
-      freshness: 'Juicy & Moist',
-      price: 265000,
-      originalPrice: 310000,
-      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=600&auto=format&fit=crop&q=80',
-      desc: 'Daging buah tebal luar biasa, rasa manis karamel mewah dengan kemasan gift box eksklusif.'
+  // Automatically detect newly submitted products from the actual inventory
+  // Sorts by newest submitted or prioritizes products marked with isNewArrival === true
+  const newProducts = useMemo(() => {
+    // 1. Get all published non-draft products
+    const activeProducts = products.filter(p => !p.isDraft);
+    if (activeProducts.length === 0) return [];
+
+    // 2. Products explicitly marked as isNewArrival
+    const markedNew = activeProducts.filter(p => p.isNewArrival);
+    if (markedNew.length > 0) {
+      return markedNew.slice(0, 6);
     }
-  ];
+
+    // 3. Otherwise sort by newest created (or array insertion order)
+    const sorted = [...activeProducts].sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return 0; // preserve newest-first order from addProduct
+    });
+    return sorted.slice(0, 6);
+  }, [products]);
 
   // Kurma Recommendation Quiz / Finder State
   type QuizTag = 'bumil' | 'lumer' | 'renyah' | 'diet' | 'hampers';
@@ -1101,62 +1073,117 @@ export const HomeScreen: React.FC = () => {
           </div>
 
           {/* New Products Grid */}
-          <div className="grid grid-cols-2 gap-2.5">
-            {newProducts.map((prod) => (
-              <div 
-                key={prod.id}
-                className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-2xs flex flex-col justify-between hover:border-emerald-300 transition-all group"
-              >
-                <div>
-                  <div className="relative aspect-4/3 bg-stone-100 overflow-hidden">
-                    <img 
-                      src={prod.image} 
-                      alt={prod.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <span className="absolute top-1.5 left-1.5 bg-[#009A44] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm shadow-xs">
-                      {prod.badge}
-                    </span>
-                    <span className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-xs text-white text-[8px] font-semibold px-1.5 py-0.2 rounded-sm flex items-center gap-0.5">
-                      <Calendar className="w-2.5 h-2.5" />
-                      <span>{prod.harvestDate}</span>
-                    </span>
-                  </div>
+          {newProducts.length === 0 ? (
+            <div className="bg-emerald-50/40 rounded-xl p-5 text-center border border-dashed border-emerald-200">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 text-[#009A44] flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <h4 className="text-xs font-bold text-stone-800">Mendeteksi Produk Baru...</h4>
+              <p className="text-[11px] text-stone-500 mt-1 max-w-sm mx-auto">
+                Belum ada produk baru yang di-submit. Produk kurma yang baru ditambahkan dari Dashboard Toko Seller akan otomatis terdeteksi dan ditampilkan di sini.
+              </p>
+              {user.role === 'seller' ? (
+                <button
+                  onClick={() => setCurrentView('seller-dashboard')}
+                  className="mt-3 px-3.5 py-1.5 bg-[#009A44] hover:bg-[#047857] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Produk Baru di Seller Dashboard</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCurrentView('catalog')}
+                  className="mt-3 px-3.5 py-1.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <span>Eksplor Katalog Lengkap</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {newProducts.map((prod) => {
+                const hasImage = Boolean(prod.images && prod.images.length > 0 && prod.images[0]);
+                const displayPrice = prod.discountPrice || prod.regularPrice;
+                const hasDiscount = Boolean(prod.discountPrice && prod.discountPrice < prod.regularPrice);
+                const badgeText = prod.badge || (prod.harvestYear ? prod.harvestYear : 'NEW HARVEST 2026');
+                const harvestTag = prod.harvestYear || prod.origin || 'Panen Terbaru';
 
-                  <div className="p-2.5">
-                    <h5 className="font-bold text-stone-900 text-[11px] leading-tight line-clamp-2">
-                      {prod.name}
-                    </h5>
-                    <p className="text-[9px] text-stone-500 mt-1 line-clamp-2 leading-relaxed">
-                      {prod.desc}
-                    </p>
+                return (
+                  <div 
+                    key={prod.id}
+                    onClick={() => handleProductClick(prod.id)}
+                    className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-2xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-xs transition-all group cursor-pointer"
+                  >
+                    <div>
+                      <div className="relative aspect-4/3 bg-stone-100 overflow-hidden">
+                        {hasImage && (
+                          <img 
+                            src={prod.images[0]} 
+                            alt={prod.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                              const fallback = (e.currentTarget.parentElement?.querySelector('.img-fallback') as HTMLElement);
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                        )}
+                        <div className={`img-fallback w-full h-full flex flex-col items-center justify-center bg-stone-50 text-stone-400 ${hasImage ? 'hidden' : 'flex'}`}>
+                          <Package className="w-7 h-7 stroke-1 text-emerald-600/70" />
+                          <span className="text-[9px] font-bold text-stone-500 mt-1">{prod.category || 'Kurma Baru'}</span>
+                        </div>
+                        <span className="absolute top-1.5 left-1.5 bg-[#009A44] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm shadow-xs flex items-center gap-0.5">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>{badgeText}</span>
+                        </span>
+                        <span className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-xs text-white text-[8px] font-semibold px-1.5 py-0.2 rounded-sm flex items-center gap-0.5">
+                          <Calendar className="w-2.5 h-2.5" />
+                          <span>{harvestTag}</span>
+                        </span>
+                      </div>
 
-                    <div className="mt-2 flex items-baseline gap-1.5">
-                      <span className="text-xs font-extrabold text-[#1E3A8A]">
-                        Rp {prod.price.toLocaleString('id-ID')}
-                      </span>
-                      <span className="text-[9px] text-stone-400 line-through">
-                        Rp {prod.originalPrice.toLocaleString('id-ID')}
-                      </span>
+                      <div className="p-2.5">
+                        <div className="text-[9px] font-bold text-[#009A44] uppercase tracking-wider mb-0.5">
+                          {prod.category}
+                        </div>
+                        <h5 className="font-bold text-stone-900 text-[11px] leading-tight line-clamp-2 group-hover:text-[#009A44] transition-colors">
+                          {prod.name}
+                        </h5>
+                        <p className="text-[9px] text-stone-500 mt-1 line-clamp-2 leading-relaxed">
+                          {prod.description || 'Kurma pilihan mutu ekspor segar langsung dari kebun.'}
+                        </p>
+
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-xs font-extrabold text-[#1E3A8A]">
+                            Rp {displayPrice.toLocaleString('id-ID')}
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[9px] text-stone-400 line-through">
+                              Rp {prod.regularPrice.toLocaleString('id-ID')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 pt-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(prod, 1);
+                        }}
+                        className="w-full py-1.5 bg-emerald-50 hover:bg-[#009A44] text-[#009A44] hover:text-white border border-emerald-200 hover:border-transparent active:scale-95 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>+ Keranjang</span>
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="p-2.5 pt-0">
-                  <button
-                    onClick={() => {
-                      const matched = products.find(p => p.category === prod.category) || products[0];
-                      if (matched) addToCart(matched, 1);
-                    }}
-                    className="w-full py-1.5 bg-emerald-50 hover:bg-[#009A44] text-[#009A44] hover:text-white border border-emerald-200 hover:border-transparent active:scale-95 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>+ Keranjang</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

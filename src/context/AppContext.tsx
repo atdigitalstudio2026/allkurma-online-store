@@ -759,12 +759,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addProduct = (newProd: Omit<Product, 'id'>) => {
     const id = `prod-${Date.now().toString(36)}`;
     const normalizedImages = newProd.images?.map(img => normalizeImageUrl(img)).filter(Boolean) || [];
-    const defaultFallbackImg = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
-    const finalImages = normalizedImages.length > 0 ? normalizedImages : [defaultFallbackImg];
+    const finalImages = normalizedImages;
     const productWithId: Product = {
       ...newProd,
       images: finalImages,
-      id
+      id,
+      createdAt: newProd.createdAt || new Date().toISOString(),
+      isNewArrival: newProd.isNewArrival !== undefined ? newProd.isNewArrival : true
     };
     setProducts(prev => {
       const updated = [productWithId, ...prev];
