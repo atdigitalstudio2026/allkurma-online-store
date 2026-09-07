@@ -17,6 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { normalizeImageUrl } from '../../utils/imageUrlHelper';
 
 interface StoreFollowHeaderProps {
   variant?: 'full-banner' | 'card' | 'compact';
@@ -57,9 +58,17 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
       <div className={`flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-stone-200/90 shadow-2xs ${className}`}>
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-700 to-amber-900 p-0.5 flex items-center justify-center text-white shrink-0 shadow-xs">
-              <Store className="w-5 h-5 text-amber-200" />
-            </div>
+            {sellerStore.logo ? (
+              <img
+                src={normalizeImageUrl(sellerStore.logo)}
+                alt={sellerStore.storeName}
+                className="w-10 h-10 rounded-full object-cover border border-stone-200 shadow-xs bg-white shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-700 to-amber-900 p-0.5 flex items-center justify-center text-white shrink-0 shadow-xs">
+                <Store className="w-5 h-5 text-amber-200" />
+              </div>
+            )}
             <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title="Online" />
           </div>
           <div className="min-w-0">
@@ -121,8 +130,18 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
   return (
     <div className={`overflow-hidden rounded-2xl bg-white border border-stone-200 shadow-sm ${className}`}>
       
-      {/* Top Store Cover / Backdrop */}
-      <div className="relative bg-linear-to-r from-amber-950 via-stone-900 to-amber-900 text-white p-4 sm:p-5">
+      {/* Top Store Cover / Backdrop with dynamic sellerStore.banner */}
+      <div className="relative bg-stone-950 text-white p-4 sm:p-5 overflow-hidden">
+        {sellerStore.banner ? (
+          <img
+            src={normalizeImageUrl(sellerStore.banner)}
+            alt={sellerStore.storeName}
+            className="absolute inset-0 w-full h-full object-cover opacity-35"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-950 via-stone-900 to-amber-900 opacity-90" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 to-black/90" />
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
         
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -131,9 +150,9 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
           <div className="flex items-center gap-3.5">
             <div className="relative shrink-0">
               <img
-                src={sellerStore.logo || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80'}
+                src={normalizeImageUrl(sellerStore.logo) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80'}
                 alt={sellerStore.storeName}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-amber-400/80 shadow-md ring-4 ring-black/20"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-amber-400/80 shadow-md ring-4 ring-black/40 bg-white"
               />
               <div className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 p-1 rounded-full border border-white shadow-xs" title="Official Verified Store">
                 <ShieldCheck className="w-3.5 h-3.5" />

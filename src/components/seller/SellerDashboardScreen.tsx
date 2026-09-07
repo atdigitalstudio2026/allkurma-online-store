@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Store,
   TrendingUp,
@@ -16,6 +16,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  Upload,
   Search,
   Filter,
   CheckCircle2,
@@ -160,26 +161,99 @@ export const SellerDashboardScreen: React.FC = () => {
 
   // General Settings State
   const [storeForm, setStoreForm] = useState({
-    storeName: sellerStore.storeName,
-    storeHandle: sellerStore.storeHandle,
-    tagline: sellerStore.tagline,
-    description: sellerStore.description,
-    logo: sellerStore.logo,
-    banner: sellerStore.banner,
-    city: sellerStore.city,
-    fullAddress: sellerStore.fullAddress,
-    postalCode: sellerStore.postalCode,
-    phone: sellerStore.phone,
-    email: sellerStore.email,
-    operationalHours: sellerStore.operationalHours,
-    isVacationMode: sellerStore.isVacationMode,
-    isOfficialStore: sellerStore.isOfficialStore,
-    enableAutoReply: sellerStore.enableAutoReply,
-    autoReplyGreeting: sellerStore.autoReplyGreeting,
-    autoReplyOffHours: sellerStore.autoReplyOffHours,
-    taxNumber: sellerStore.taxNumber,
-    minFreeShippingOrder: sellerStore.minFreeShippingOrder
+    storeName: sellerStore.storeName || '',
+    storeHandle: sellerStore.storeHandle || '',
+    tagline: sellerStore.tagline || '',
+    description: sellerStore.description || '',
+    logo: sellerStore.logo || '',
+    banner: sellerStore.banner || '',
+    city: sellerStore.city || '',
+    fullAddress: sellerStore.fullAddress || '',
+    postalCode: sellerStore.postalCode || '',
+    phone: sellerStore.phone || '',
+    email: sellerStore.email || '',
+    operationalHours: sellerStore.operationalHours || '',
+    isVacationMode: !!sellerStore.isVacationMode,
+    isOfficialStore: !!sellerStore.isOfficialStore,
+    enableAutoReply: !!sellerStore.enableAutoReply,
+    autoReplyGreeting: sellerStore.autoReplyGreeting || '',
+    autoReplyOffHours: sellerStore.autoReplyOffHours || '',
+    taxNumber: sellerStore.taxNumber || '',
+    minFreeShippingOrder: sellerStore.minFreeShippingOrder || 0,
+    bankName: sellerStore.bankAccount?.bankName || 'BCA (Bank Central Asia)',
+    accountNumber: sellerStore.bankAccount?.accountNumber || '8830-1928-4410',
+    holderName: sellerStore.bankAccount?.holderName || 'PT EXINDOKARSA AGUNG'
   });
+
+  // Sync storeForm if sellerStore is updated (e.g. from cloud Firestore)
+  useEffect(() => {
+    setStoreForm({
+      storeName: sellerStore.storeName || '',
+      storeHandle: sellerStore.storeHandle || '',
+      tagline: sellerStore.tagline || '',
+      description: sellerStore.description || '',
+      logo: sellerStore.logo || '',
+      banner: sellerStore.banner || '',
+      city: sellerStore.city || '',
+      fullAddress: sellerStore.fullAddress || '',
+      postalCode: sellerStore.postalCode || '',
+      phone: sellerStore.phone || '',
+      email: sellerStore.email || '',
+      operationalHours: sellerStore.operationalHours || '',
+      isVacationMode: !!sellerStore.isVacationMode,
+      isOfficialStore: !!sellerStore.isOfficialStore,
+      enableAutoReply: !!sellerStore.enableAutoReply,
+      autoReplyGreeting: sellerStore.autoReplyGreeting || '',
+      autoReplyOffHours: sellerStore.autoReplyOffHours || '',
+      taxNumber: sellerStore.taxNumber || '',
+      minFreeShippingOrder: sellerStore.minFreeShippingOrder || 0,
+      bankName: sellerStore.bankAccount?.bankName || 'BCA (Bank Central Asia)',
+      accountNumber: sellerStore.bankAccount?.accountNumber || '8830-1928-4410',
+      holderName: sellerStore.bankAccount?.holderName || 'PT EXINDOKARSA AGUNG'
+    });
+  }, [sellerStore]);
+
+  // File upload refs for store branding
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Ukuran file foto sampul terlalu besar (maksimal 5MB)', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        if (base64) {
+          setStoreForm(prev => ({ ...prev, banner: base64 }));
+          showToast('Background banner berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan ke toko.', 'info');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        showToast('Ukuran file foto profil terlalu besar (maksimal 3MB)', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        if (base64) {
+          setStoreForm(prev => ({ ...prev, logo: base64 }));
+          showToast('Foto profil toko berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan ke toko.', 'info');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Payout / Withdrawal modal
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -301,7 +375,43 @@ export const SellerDashboardScreen: React.FC = () => {
   // Handle store profile update
   const handleSaveStoreSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSellerStore(storeForm);
+    if (!storeForm.storeName.trim()) {
+      showToast('Nama toko tidak boleh kosong!', 'error');
+      return;
+    }
+
+    const normalizedBanner = normalizeImageUrl(storeForm.banner.trim());
+    const normalizedLogo = normalizeImageUrl(storeForm.logo.trim());
+
+    updateSellerStore({
+      storeName: storeForm.storeName.trim(),
+      storeHandle: storeForm.storeHandle.trim(),
+      tagline: storeForm.tagline.trim(),
+      description: storeForm.description.trim(),
+      logo: normalizedLogo,
+      banner: normalizedBanner,
+      city: storeForm.city.trim(),
+      fullAddress: storeForm.fullAddress.trim(),
+      postalCode: storeForm.postalCode.trim(),
+      phone: storeForm.phone.trim(),
+      email: storeForm.email.trim(),
+      operationalHours: storeForm.operationalHours.trim(),
+      isVacationMode: storeForm.isVacationMode,
+      isOfficialStore: storeForm.isOfficialStore,
+      enableAutoReply: storeForm.enableAutoReply,
+      autoReplyGreeting: storeForm.autoReplyGreeting,
+      autoReplyOffHours: storeForm.autoReplyOffHours,
+      taxNumber: storeForm.taxNumber.trim(),
+      minFreeShippingOrder: Number(storeForm.minFreeShippingOrder) || 0,
+      bankAccount: {
+        bankName: storeForm.bankName.trim() || 'BCA (Bank Central Asia)',
+        accountNumber: storeForm.accountNumber.trim() || '8830-1928-4410',
+        holderName: storeForm.holderName.trim() || 'PT EXINDOKARSA AGUNG',
+        verified: true
+      }
+    });
+
+    showToast('Seluruh profil toko, foto profil, background banner & data lainnya berhasil diperbarui!', 'success');
   };
 
   // Banner Handlers
@@ -809,7 +919,7 @@ export const SellerDashboardScreen: React.FC = () => {
               }`}
             >
               <Settings className="w-4 h-4" />
-              Pengaturan Toko General
+              Profil & Tampilan Toko
             </button>
 
             <button
@@ -918,6 +1028,64 @@ export const SellerDashboardScreen: React.FC = () => {
         {/* 1. TAB: OVERVIEW & RINGKASAN */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Store Branding Quick Overview Bar */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-stone-200 shadow-xs bg-white shrink-0">
+                  <img
+                    src={normalizeImageUrl(sellerStore.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&auto=format&fit=crop&q=80'}
+                    alt={sellerStore.storeName}
+                    className="w-full h-full object-cover"
+                  />
+                  {sellerStore.isOfficialStore && (
+                    <div className="absolute -bottom-1 -right-1 bg-amber-500 text-stone-950 p-0.5 rounded-full border border-white">
+                      <ShieldCheck className="w-3 h-3" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-stone-900 truncate">
+                      {sellerStore.storeName}
+                    </h2>
+                    {sellerStore.isOfficialStore && (
+                      <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                        Official Store
+                      </span>
+                    )}
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Toko Aktif
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">
+                    {sellerStore.tagline || 'Pusat Kurma & Herbal Premium Terpercaya'} • {sellerStore.city}
+                  </p>
+                  <p className="text-[11px] text-stone-400 mt-0.5">
+                    Jam Buka: <span className="text-stone-600 font-medium">{sellerStore.operationalHours || '08:00 - 20:00 WIB'}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className="flex items-center gap-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-stone-950 px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Ubah Profil, Background & Info Toko</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('home')}
+                  className="flex items-center gap-1.5 text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-2.5 rounded-xl transition-all cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Preview Toko</span>
+                </button>
+              </div>
+            </div>
+
             {/* Quick Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
@@ -1204,141 +1372,332 @@ export const SellerDashboardScreen: React.FC = () => {
               </div>
 
               {/* Visual Identitas Toko: Banner Header & Logo Profil */}
-              <div className="mb-6 p-4.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="mb-6 p-5 bg-stone-50 rounded-2xl border border-stone-200 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h4 className="text-xs font-black text-stone-900 flex items-center gap-2">
+                    <h4 className="text-sm font-black text-stone-900 flex items-center gap-2">
                       <Store className="w-4 h-4 text-amber-600" />
-                      Visual Header & Foto Profil Toko Seller
+                      Visual Background Banner & Foto Profil Toko Seller
                     </h4>
-                    <p className="text-[11px] text-stone-500">
-                      Tampilan banner sampul dan foto profil toko resmi yang dilihat pembeli.
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Ubah foto background banner sampul toko dan foto profil/logo resmi yang ditampilkan ke seluruh pembeli.
                     </p>
                   </div>
-                  <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                    Live Preview Toko
+                  <span className="self-start sm:self-auto text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/70 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Live Preview Tampilan Toko</span>
                   </span>
                 </div>
 
-                {/* Live Store Header Preview */}
-                <div className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-sm bg-stone-900 h-36 sm:h-44">
+                {/* Live Store Header Preview (Landscape 1:2 Showcase) */}
+                <div className="relative rounded-2xl overflow-hidden border-2 border-stone-300 shadow-md bg-stone-950 aspect-[2/1] max-h-72 w-full group">
                   <img
-                    src={normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80'}
+                    src={normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80'}
                     alt="Banner Sampul Toko"
-                    className="w-full h-full object-cover opacity-80"
+                    className="w-full h-full object-cover opacity-75 group-hover:scale-102 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                   
+                  {/* Aspect Ratio Badge & Live Indicator */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                    <span className="bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono font-bold px-2 py-1 rounded-lg border border-white/20">
+                      Rasio Landscape 1:2 (1200×600)
+                    </span>
+                    <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      Aktif
+                    </span>
+                  </div>
+
                   {/* Store Profile Floating Badge inside Header */}
-                  <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3 text-white">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white shrink-0">
+                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-5 right-3 sm:right-5 flex items-end justify-between gap-3 text-white">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 sm:border-3 border-white shadow-xl bg-white shrink-0 ring-2 ring-black/40">
                         <img
-                          src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&auto=format&fit=crop&q=80'}
+                          src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80'}
                           alt={storeForm.storeName}
                           className="w-full h-full object-cover"
                         />
+                        <div className="absolute -bottom-1 -right-1 bg-amber-500 text-stone-950 p-1 rounded-full border border-white shadow-xs" title="Official Store">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-extrabold text-sm sm:text-base drop-shadow-xs">
-                            {storeForm.storeName || 'Nama Toko AllKurma'}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-black text-white text-sm sm:text-lg drop-shadow-md truncate">
+                            {storeForm.storeName || 'AllKurma Official Store'}
                           </h4>
-                          {sellerStore.isOfficialStore && (
-                            <span className="bg-red-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase">
-                              Official Store
+                          {storeForm.isOfficialStore && (
+                            <span className="bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded uppercase shadow-xs">
+                              MALL
                             </span>
                           )}
+                          <span className="bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Online
+                          </span>
                         </div>
-                        <p className="text-[11px] text-stone-200 line-clamp-1">
-                          {storeForm.tagline || 'Pusat Kurma & Herbal Premium Terpercaya'}
+                        <p className="text-[11px] sm:text-xs text-amber-200/90 font-medium line-clamp-1 mt-0.5 drop-shadow-xs">
+                          {storeForm.tagline || 'Pusat Kurma & Herbal Premium Terpercaya Se-Indonesia'}
                         </p>
-                        <p className="text-[10px] text-stone-300 mt-0.5">
-                          📍 {storeForm.city} • ⭐ {sellerStore.rating} ({(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut)
+                        <p className="text-[10px] sm:text-[11px] text-stone-300 mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="flex items-center text-amber-400 font-bold">
+                            <Star className="w-3 h-3 fill-amber-400 mr-0.5" /> 4.9
+                          </span>
+                          <span>•</span>
+                          <span>{(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut</span>
+                          <span>•</span>
+                          <span>📍 {storeForm.city || 'Jakarta Utara'}</span>
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Form Inputs for Banner Header and Logo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      URL Banner Sampul Toko (Header Banner)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={storeForm.banner}
-                        onChange={e => setStoreForm({ ...storeForm, banner: e.target.value })}
-                        placeholder="https://... atau link foto Dropbox"
-                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-16"
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-mono">
-                        Rasio 3:1
+                {/* Form Controls for Background Banner and Profile Photo */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                  
+                  {/* 1. KONTROL BACKGROUND BANNER (LANDSCAPE 1:2) */}
+                  <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-amber-100 text-amber-900 rounded-xl">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-900 block">
+                            Background Banner Sampul Toko
+                          </label>
+                          <span className="text-[10px] text-stone-500">
+                            Format Landscape 1:2 (1200 x 600 px)
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
+                        Maks 5MB
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                      <span className="text-[10px] text-stone-400">Pilihan Cepat Banner:</span>
-                      <button
-                        type="button"
-                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80' })}
-                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                      >
-                        Kurma Madinah
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&auto=format&fit=crop&q=80' })}
-                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                      >
-                        Panen Sukari
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStoreForm({ ...storeForm, banner: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&auto=format&fit=crop&q=80' })}
-                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                      >
-                        Gudang Grosir
-                      </button>
+
+                    {/* Hidden input file for banner */}
+                    <input
+                      type="file"
+                      ref={bannerFileInputRef}
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      onChange={handleBannerFileUpload}
+                      className="hidden"
+                    />
+
+                    {/* Drag and Drop / Click Upload Dropzone */}
+                    <div
+                      onClick={() => bannerFileInputRef.current?.click()}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            showToast('Ukuran file foto terlalu besar (maks 5MB)', 'error');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = ev => {
+                            const b64 = ev.target?.result as string;
+                            if (b64) {
+                              setStoreForm(prev => ({ ...prev, banner: b64 }));
+                              showToast('Banner berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan.', 'info');
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/40 hover:bg-amber-50/80 rounded-xl p-3 text-center cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-900">
+                        <Upload className="w-4 h-4 text-amber-700 group-hover:-translate-y-0.5 transition-transform" />
+                        <span>Unggah Foto Banner dari HP / Komputer</span>
+                      </div>
+                      <p className="text-[10px] text-stone-500 mt-1">
+                        Klik untuk memilih file atau seret file gambar ke area ini (JPG, PNG, WEBP)
+                      </p>
+                    </div>
+
+                    {/* Or URL Input */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                        Atau Gunakan Tautan URL / Dropbox:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={storeForm.banner}
+                          onChange={e => setStoreForm({ ...storeForm, banner: e.target.value })}
+                          placeholder="https://images.unsplash.com/... atau link Dropbox"
+                          className="w-full text-xs font-mono px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-8"
+                        />
+                        {storeForm.banner && (
+                          <button
+                            type="button"
+                            onClick={() => setStoreForm({ ...storeForm, banner: '' })}
+                            className="absolute right-2 top-2 text-stone-400 hover:text-stone-600 p-0.5 text-xs"
+                            title="Hapus URL"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Presets 1:2 Gallery */}
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-600 block mb-1.5">
+                        Pilihan Cepat Koleksi Banner (1200 x 600 px):
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                        {[
+                          { name: 'Kebun Madinah', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80' },
+                          { name: 'Panen Sukari', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80' },
+                          { name: 'Gudang Grosir', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&fit=crop&q=80' },
+                          { name: 'Ajwa Al-Aliya VIP', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&fit=crop&q=80' },
+                          { name: 'Oasis Padang Pasir', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&h=600&fit=crop&q=80' }
+                        ].map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setStoreForm({ ...storeForm, banner: preset.url })}
+                            className={`text-left p-1.5 rounded-xl border text-[10px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              storeForm.banner === preset.url
+                                ? 'bg-amber-100 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
+                                : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                            }`}
+                          >
+                            <img src={preset.url} alt={preset.name} className="w-5 h-5 rounded-md object-cover shrink-0" />
+                            <span className="truncate">{preset.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      URL Foto Profil / Logo Toko (Avatar)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={storeForm.logo}
-                        onChange={e => setStoreForm({ ...storeForm, logo: e.target.value })}
-                        placeholder="https://... atau link foto Dropbox"
-                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-16"
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] text-stone-400 font-mono">
-                        Rasio 1:1
+                  {/* 2. KONTROL FOTO PROFIL / LOGO TOKO (1:1) */}
+                  <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-blue-100 text-blue-900 rounded-xl">
+                          <Store className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-900 block">
+                            Foto Profil / Logo Toko Resmi
+                          </label>
+                          <span className="text-[10px] text-stone-500">
+                            Format Persegi 1:1 (300 x 300 px atau 500 x 500 px)
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
+                        Maks 3MB
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                      <span className="text-[10px] text-stone-400">Pilihan Cepat Logo:</span>
-                      <button
-                        type="button"
-                        onClick={() => setStoreForm({ ...storeForm, logo: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&auto=format&fit=crop&q=80' })}
-                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                      >
-                        Kurma Emas
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStoreForm({ ...storeForm, logo: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=300&auto=format&fit=crop&q=80' })}
-                        className="text-[10px] bg-stone-200 hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                      >
-                        Logo Sunnah
-                      </button>
+
+                    {/* Hidden input file for logo */}
+                    <input
+                      type="file"
+                      ref={logoFileInputRef}
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      onChange={handleLogoFileUpload}
+                      className="hidden"
+                    />
+
+                    {/* Drag and Drop / Click Upload Dropzone */}
+                    <div
+                      onClick={() => logoFileInputRef.current?.click()}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          if (file.size > 3 * 1024 * 1024) {
+                            showToast('Ukuran file foto terlalu besar (maks 3MB)', 'error');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = ev => {
+                            const b64 = ev.target?.result as string;
+                            if (b64) {
+                              setStoreForm(prev => ({ ...prev, logo: b64 }));
+                              showToast('Foto profil berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan.', 'info');
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50/80 rounded-xl p-3 text-center cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-xs font-bold text-blue-900">
+                        <Upload className="w-4 h-4 text-blue-700 group-hover:-translate-y-0.5 transition-transform" />
+                        <span>Unggah Foto Profil / Logo dari HP / Komputer</span>
+                      </div>
+                      <p className="text-[10px] text-stone-500 mt-1">
+                        Pilih foto avatar atau logo resmi toko Anda (JPG, PNG, WEBP)
+                      </p>
+                    </div>
+
+                    {/* Or URL Input */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                        Atau Gunakan Tautan URL / Dropbox:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={storeForm.logo}
+                          onChange={e => setStoreForm({ ...storeForm, logo: e.target.value })}
+                          placeholder="https://images.unsplash.com/... atau link Dropbox"
+                          className="w-full text-xs font-mono px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-8"
+                        />
+                        {storeForm.logo && (
+                          <button
+                            type="button"
+                            onClick={() => setStoreForm({ ...storeForm, logo: '' })}
+                            className="absolute right-2 top-2 text-stone-400 hover:text-stone-600 p-0.5 text-xs"
+                            title="Hapus URL"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Presets 1:1 Gallery */}
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-600 block mb-1.5">
+                        Pilihan Cepat Logo Toko:
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          { name: 'Kurma Emas Royal', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80' },
+                          { name: 'Emblem Sunnah Hijau', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=300&h=300&fit=crop&q=80' },
+                          { name: 'Pohon Kurma Al-Madinah', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300&h=300&fit=crop&q=80' },
+                          { name: 'Gold Palm Luxury', url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=300&h=300&fit=crop&q=80' }
+                        ].map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setStoreForm({ ...storeForm, logo: preset.url })}
+                            className={`text-left p-1.5 rounded-xl border text-[10px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              storeForm.logo === preset.url
+                                ? 'bg-blue-100 border-blue-400 text-blue-950 font-bold ring-1 ring-blue-400'
+                                : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                            }`}
+                          >
+                            <img src={preset.url} alt={preset.name} className="w-5 h-5 rounded-full object-cover shrink-0 border" />
+                            <span className="truncate">{preset.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
+
                 </div>
               </div>
 
@@ -1559,18 +1918,51 @@ export const SellerDashboardScreen: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Rekening Bank Penarikan */}
               <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs">
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-3">
-                  <CreditCard className="w-4 h-4 text-emerald-600" />
-                  Rekening Bank Penarikan Dana (Payout)
-                </h3>
-                <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-1.5 text-xs">
-                  <div className="text-stone-500 text-[11px]">Bank Rekening Utama:</div>
-                  <div className="font-black text-stone-900 text-sm">{sellerStore.bankAccount.bankName}</div>
-                  <div className="font-mono font-bold text-stone-800">{sellerStore.bankAccount.accountNumber}</div>
-                  <div className="text-stone-600 text-[11px]">a/n {sellerStore.bankAccount.holderName}</div>
-                  <span className="inline-block mt-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                    Terverifikasi Otomatis
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    Rekening Bank Penarikan Dana (Payout)
+                  </h3>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                    Terverifikasi
                   </span>
+                </div>
+                <p className="text-xs text-stone-500 mb-3">
+                  Hasil penjualan toko akan ditransfer ke rekening bank resmi yang Anda daftarkan di sini.
+                </p>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-700 mb-1">Nama Bank / Bank Tujuan</label>
+                    <input
+                      type="text"
+                      value={storeForm.bankName}
+                      onChange={e => setStoreForm({ ...storeForm, bankName: e.target.value })}
+                      placeholder="Contoh: BCA (Bank Central Asia), Mandiri, BSI"
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">Nomor Rekening</label>
+                      <input
+                        type="text"
+                        value={storeForm.accountNumber}
+                        onChange={e => setStoreForm({ ...storeForm, accountNumber: e.target.value })}
+                        placeholder="Contoh: 883019284410"
+                        className="w-full text-xs font-mono font-bold px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">Nama Pemilik Rekening</label>
+                      <input
+                        type="text"
+                        value={storeForm.holderName}
+                        onChange={e => setStoreForm({ ...storeForm, holderName: e.target.value })}
+                        placeholder="Sesuai buku tabungan"
+                        className="w-full text-xs font-bold uppercase px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2422,8 +2814,6 @@ export const SellerDashboardScreen: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mt-1 text-[10px] text-stone-500 flex-wrap">
                                       <span>Origin: <b>{prod.origin}</b></span>
-                                      <span>•</span>
-                                      <span className="text-amber-700 font-semibold">{prod.harvestYear || 'Panen 2026'}</span>
                                       {prod.isNewArrival && (
                                         <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full text-[9px] flex items-center gap-0.5">
                                           <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
@@ -4179,7 +4569,7 @@ export const SellerDashboardScreen: React.FC = () => {
             {/* Navigation Tabs inside Modal */}
             <div className="flex items-center gap-1.5 border-b border-stone-200 pb-2 mb-4 overflow-x-auto shrink-0 text-xs">
               {[
-                { id: 'general', label: '1. Info & Panen' },
+                { id: 'general', label: '1. Info Produk' },
                 { id: 'pricing', label: '2. Finansial & HPP' },
                 { id: 'inventory', label: '3. SKU & Gudang' },
                 { id: 'variations', label: `4. Varian SKU (${newProd.variations?.length || 0})` },
@@ -4264,7 +4654,7 @@ export const SellerDashboardScreen: React.FC = () => {
               }}
               className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs"
             >
-              {/* TAB 1: INFO & PANEN */}
+              {/* TAB 1: INFO PRODUK */}
               {productFormTab === 'general' && (
                 <div className="space-y-3.5 animate-in fade-in-50">
                   <div>
@@ -4310,28 +4700,15 @@ export const SellerDashboardScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-bold text-stone-700 mb-1">Musim / Tahun Panen</label>
-                      <input
-                        type="text"
-                        value={newProd.harvestYear}
-                        onChange={e => setNewProd({ ...newProd, harvestYear: e.target.value })}
-                        placeholder="Panen Baru 2025/2026"
-                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-stone-700 mb-1">Sertifikasi & Kualitas</label>
-                      <input
-                        type="text"
-                        value={newProd.certification}
-                        onChange={e => setNewProd({ ...newProd, certification: e.target.value })}
-                        placeholder="Halal MUI & Kementan RI"
-                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
-                      />
-                    </div>
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1">Sertifikasi & Standar Mutu</label>
+                    <input
+                      type="text"
+                      value={newProd.certification}
+                      onChange={e => setNewProd({ ...newProd, certification: e.target.value })}
+                      placeholder="Halal MUI & Kementan RI - Grade A Ekspor"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500"
+                    />
                   </div>
 
                   <div>
@@ -4404,11 +4781,11 @@ export const SellerDashboardScreen: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-emerald-600" />
                         <span className="font-bold text-xs text-emerald-950">
-                          Tandai sebagai New Product (Panen Perdana 2026)
+                          Tandai sebagai New Product (Produk Baru)
                         </span>
                       </div>
                       <p className="text-[11px] text-emerald-800 leading-tight">
-                        Produk ini akan otomatis terdeteksi dan diunggulkan di bagian &ldquo;New Product 2026 / Panen Perdana&rdquo; pada Beranda pembeli.
+                        Produk ini akan otomatis terdeteksi dan diunggulkan di bagian &ldquo;New Product 2026&rdquo; pada Beranda pembeli.
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer shrink-0">

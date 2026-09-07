@@ -748,8 +748,8 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
   storeHandle: '@allkurma.official',
   tagline: 'Pusat Kurma Impor Timur Tengah & Grosir Berkah Se-Indonesia',
   description: 'Supplier dan distributor resmi langsung dari perkebunan kurma Madinah, Al Qassim, California, dan Tunisia. Menyediakan kurma retail kemasan higienis ber-BPOM dan partai besar kartonan grosir.',
-  logo: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80',
-  banner: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&auto=format&fit=crop&q=80',
+  logo: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80',
+  banner: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80',
   city: 'Jakarta Pusat',
   fullAddress: 'Jl. Tanah Abang Bukit No. 88, Petojo Selatan, Gambir, Jakarta Pusat 10160',
   postalCode: '10160',
@@ -823,7 +823,7 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
 export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
   {
     id: 'banner-01',
-    badge: 'Panen Raya 2026',
+    badge: 'Koleksi Pilihan 2026',
     title: 'Kurma Ajwa Madinah Grade VIP',
     subtitle: 'Dipetik langsung dari perkebunan pilihan Madinah. 100% Alami & Berkhasiat.',
     cta: 'Beli Sekarang',

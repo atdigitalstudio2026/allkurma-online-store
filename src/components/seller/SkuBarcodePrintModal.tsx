@@ -227,8 +227,8 @@ export const SkuBarcodePrintModal: React.FC<SkuBarcodePrintModalProps> = ({
               <span className="font-bold text-stone-800">{activeRack}</span>
             </div>
             <div>
-              <span className="text-stone-400 block text-[9px]">TAHUN PANEN</span>
-              <span className="font-bold text-stone-800">{product.harvestYear || '2026'}</span>
+              <span className="text-stone-400 block text-[9px]">STANDAR MUTU</span>
+              <span className="font-bold text-stone-800">Grade A Ekspor</span>
             </div>
           </div>
 

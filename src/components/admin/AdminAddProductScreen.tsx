@@ -22,7 +22,7 @@ export const AdminAddProductScreen: React.FC = () => {
   const [stock, setStock] = useState(100);
   const [minStockAlert, setMinStockAlert] = useState(20);
   const [description, setDescription] = useState('');
-  const [badge, setBadge] = useState('PANEN 2026');
+  const [badge, setBadge] = useState('PREMIUM GRADE A');
   
   // Wholesale pricing rules
   const [wholesalePrices, setWholesalePrices] = useState<TierPriceRule[]>([

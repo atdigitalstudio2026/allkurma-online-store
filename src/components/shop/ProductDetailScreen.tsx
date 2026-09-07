@@ -22,7 +22,7 @@ import {
   PackageCheck,
   Barcode,
   Layers,
-  CalendarDays,
+  Globe,
   Shield,
   Box
 } from 'lucide-react';
@@ -163,7 +163,7 @@ export const ProductDetailScreen: React.FC = () => {
 
       {/* Product Image Carousel with Dots */}
       <div className="relative bg-white border-b border-stone-200">
-        <div className="aspect-square w-full max-h-[380px] overflow-hidden flex items-center justify-center bg-stone-100">
+        <div className="aspect-square w-full overflow-hidden flex items-center justify-center bg-stone-100">
           <img
             src={product.images[selectedImageIndex] || product.images[0]}
             alt={product.name}
@@ -371,7 +371,7 @@ export const ProductDetailScreen: React.FC = () => {
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-stone-900 flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-amber-600" />
-              <span>Spesifikasi Produk, Panen & Inventori</span>
+              <span>Spesifikasi Produk & Inventori</span>
             </h4>
             <span className="text-[10px] text-emerald-700 bg-emerald-50 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
               QC Lulus Grade A
@@ -407,14 +407,14 @@ export const ProductDetailScreen: React.FC = () => {
 
             <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/70">
               <span className="text-[10px] text-stone-400 block font-semibold flex items-center gap-1">
-                <CalendarDays className="w-3 h-3 text-stone-500" />
-                <span>Asal & Musim Panen</span>
+                <Globe className="w-3 h-3 text-stone-500" />
+                <span>Negara & Asal Produk</span>
               </span>
               <span className="font-bold text-stone-900 text-[11px] block mt-0.5">
                 {product.origin}
               </span>
               <span className="text-[10px] text-stone-500">
-                {product.harvestYear || 'Panen Terbaru 2025/2026'}
+                Impor Resmi Bergaransi
               </span>
             </div>
 

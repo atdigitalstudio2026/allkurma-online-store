@@ -883,7 +883,7 @@ export const HomeScreen: React.FC = () => {
             <span className="text-[10px] font-bold text-stone-800 mt-1.5 text-center leading-tight group-hover:text-emerald-800">
               New Product
             </span>
-            <span className="text-[8px] font-bold text-[#009A44]">Panen Baru</span>
+            <span className="text-[8px] font-bold text-[#009A44]">Produk Baru</span>
           </button>
 
           {/* 5. Grosir B2B */}
@@ -1141,7 +1141,7 @@ export const HomeScreen: React.FC = () => {
                     New Product 2026
                   </h3>
                   <span className="text-[8px] bg-[#009A44] text-white font-extrabold px-1.5 py-0.2 rounded-full">
-                    PANEN PERDANA
+                    PRODUK TERBARU
                   </span>
                 </div>
                 <p className="text-[10px] text-stone-500">
@@ -1193,8 +1193,7 @@ export const HomeScreen: React.FC = () => {
                 const hasImage = Boolean(prod.images && prod.images.length > 0 && prod.images[0]);
                 const displayPrice = prod.discountPrice || prod.regularPrice;
                 const hasDiscount = Boolean(prod.discountPrice && prod.discountPrice < prod.regularPrice);
-                const badgeText = prod.badge || (prod.harvestYear ? prod.harvestYear : 'NEW HARVEST 2026');
-                const harvestTag = prod.harvestYear || prod.origin || 'Panen Terbaru';
+                const badgeText = prod.badge || 'NEW ARRIVAL';
 
                 return (
                   <div 
@@ -1203,7 +1202,7 @@ export const HomeScreen: React.FC = () => {
                     className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-2xs flex flex-col justify-between hover:border-emerald-400 hover:shadow-xs transition-all group cursor-pointer"
                   >
                     <div>
-                      <div className="relative aspect-4/3 bg-stone-100 overflow-hidden">
+                      <div className="relative aspect-square bg-stone-100 overflow-hidden">
                         {hasImage && (
                           <img 
                             src={prod.images[0]} 
@@ -1223,10 +1222,6 @@ export const HomeScreen: React.FC = () => {
                         <span className="absolute top-1.5 left-1.5 bg-[#009A44] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-sm shadow-xs flex items-center gap-0.5">
                           <Sparkles className="w-2.5 h-2.5" />
                           <span>{badgeText}</span>
-                        </span>
-                        <span className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-xs text-white text-[8px] font-semibold px-1.5 py-0.2 rounded-sm flex items-center gap-0.5">
-                          <Calendar className="w-2.5 h-2.5" />
-                          <span>{harvestTag}</span>
                         </span>
                       </div>
 
@@ -1513,7 +1508,7 @@ export const HomeScreen: React.FC = () => {
             <h3 className="text-xs font-bold text-stone-900 tracking-tight">
               Koleksi Kurma Terlaris
             </h3>
-            <p className="text-[10px] text-stone-500">Panen segar pilihan grade premium standar ekspor</p>
+            <p className="text-[10px] text-stone-500">Pilihan kurma grade premium standar ekspor</p>
           </div>
           <button
             onClick={() => setCurrentView('catalog')}
@@ -1534,7 +1529,7 @@ export const HomeScreen: React.FC = () => {
                 className="cursor-pointer"
                 onClick={() => handleProductClick(prod.id)}
               >
-                <div className="relative aspect-4/3 bg-stone-100 overflow-hidden">
+                <div className="relative aspect-square bg-stone-100 overflow-hidden">
                   <img
                     src={prod.images[0]}
                     alt={prod.name}
