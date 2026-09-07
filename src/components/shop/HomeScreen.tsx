@@ -998,22 +998,29 @@ export const HomeScreen: React.FC = () => {
         </div>
 
         {/* Flash Sale Cards Horizontal Scroll */}
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
-          {flashSaleProducts.map((prod) => (
-            <div
-              key={prod.id}
-              className="min-w-[145px] max-w-[145px] bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs shrink-0 snap-start flex flex-col justify-between"
-            >
-              <div 
-                className="cursor-pointer"
-                onClick={() => handleProductClick(prod.id)}
+        {flashSaleProducts.length === 0 ? (
+          <div className="bg-white/80 rounded-xl p-4 text-center border border-dashed border-stone-200 text-xs text-stone-500">
+            <Flame className="w-5 h-5 text-amber-500/70 mx-auto mb-1" />
+            <p className="font-semibold text-stone-700">Sesi Flash Sale Berikutnya Segera Hadir!</p>
+            <p className="text-[10px] text-stone-400 mt-0.5">Seller sedang menyiapkan kurma pilihan dengan diskon promo kilat.</p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
+            {flashSaleProducts.map((prod) => (
+              <div
+                key={prod.id}
+                className="min-w-[145px] max-w-[145px] bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs shrink-0 snap-start flex flex-col justify-between"
               >
-                <div className="relative aspect-square bg-stone-100">
-                  <img
-                    src={prod.images[0]}
-                    alt={prod.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => handleProductClick(prod.id)}
+                >
+                  <div className="relative aspect-square bg-stone-100">
+                    <img
+                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                      alt={prod.name}
+                      className="w-full h-full object-cover"
+                    />
                   {prod.flashSaleDiscountPercent && (
                     <div className="absolute top-1.5 left-1.5 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
                       -{prod.flashSaleDiscountPercent}%
@@ -1058,6 +1065,7 @@ export const HomeScreen: React.FC = () => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* 7. DEDICATED SECTION: New Product / Panen Raya 2026 */}

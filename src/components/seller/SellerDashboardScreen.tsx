@@ -51,7 +51,10 @@ import {
   RefreshCw,
   Box,
   Warehouse,
-  CalendarDays
+  CalendarDays,
+  Flame,
+  Zap,
+  Timer
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation } from '../../types';
@@ -92,7 +95,14 @@ export const SellerDashboardScreen: React.FC = () => {
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'vouchers' | 'reviews' | 'followers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'flashsale' | 'vouchers' | 'reviews' | 'followers'>('overview');
+
+  // Flash Sale Management State
+  const [isFlashSaleModalOpen, setIsFlashSaleModalOpen] = useState(false);
+  const [flashSaleTargetProduct, setFlashSaleTargetProduct] = useState<Product | null>(null);
+  const [flashSaleDiscountInput, setFlashSaleDiscountInput] = useState<number>(25);
+  const [flashSalePriceInput, setFlashSalePriceInput] = useState<number>(0);
+  const [flashSaleSessionActive, setFlashSaleSessionActive] = useState<boolean>(true);
 
   // Broadcast to Followers Form State
   const [broadcastTitle, setBroadcastTitle] = useState('');
@@ -175,6 +185,8 @@ export const SellerDashboardScreen: React.FC = () => {
     images: ['https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'],
     freeShippingExtra: true,
     cashbackExtra: true,
+    isFlashSale: false,
+    flashSaleDiscountPercent: 20,
     variations: []
   });
 
@@ -351,11 +363,51 @@ export const SellerDashboardScreen: React.FC = () => {
       images: prod.images,
       freeShippingExtra: prod.freeShippingExtra,
       cashbackExtra: prod.cashbackExtra,
+      isFlashSale: prod.isFlashSale || false,
+      flashSaleDiscountPercent: prod.flashSaleDiscountPercent || 20,
       variations: prod.variations ? JSON.parse(JSON.stringify(prod.variations)) : [],
       wholesalePrices: prod.wholesalePrices ? JSON.parse(JSON.stringify(prod.wholesalePrices)) : []
     });
     setProductFormTab('general');
     setIsAddProductOpen(true);
+  };
+
+  const handleOpenFlashSaleForProduct = (prod: Product) => {
+    setFlashSaleTargetProduct(prod);
+    const initialDiscount = prod.flashSaleDiscountPercent || 25;
+    setFlashSaleDiscountInput(initialDiscount);
+    const calcPrice = prod.discountPrice || Math.round(prod.regularPrice * (1 - initialDiscount / 100));
+    setFlashSalePriceInput(calcPrice);
+    setIsFlashSaleModalOpen(true);
+  };
+
+  const handleSaveFlashSaleProduct = () => {
+    if (!flashSaleTargetProduct) return;
+    const discount = Math.max(5, Math.min(90, Number(flashSaleDiscountInput) || 20));
+    const finalPrice = flashSalePriceInput > 0 
+      ? flashSalePriceInput 
+      : Math.round(flashSaleTargetProduct.regularPrice * (1 - discount / 100));
+
+    updateProduct(flashSaleTargetProduct.id, {
+      isFlashSale: true,
+      flashSaleDiscountPercent: discount,
+      discountPrice: finalPrice
+    });
+    showToast(`Produk "${flashSaleTargetProduct.name}" berhasil didaftarkan ke Flash Sale (Diskon ${discount}%)!`, 'success');
+    setIsFlashSaleModalOpen(false);
+    setFlashSaleTargetProduct(null);
+  };
+
+  const handleRemoveFromFlashSale = (productId: string, productName: string) => {
+    updateProduct(productId, {
+      isFlashSale: false,
+      flashSaleDiscountPercent: undefined
+    });
+    showToast(`Produk "${productName}" telah dikeluarkan dari Flash Sale.`, 'info');
+    if (flashSaleTargetProduct?.id === productId) {
+      setIsFlashSaleModalOpen(false);
+      setFlashSaleTargetProduct(null);
+    }
   };
 
   const handleToggleExpandVariation = (prodId: string) => {
@@ -629,6 +681,23 @@ export const SellerDashboardScreen: React.FC = () => {
             >
               <Package className="w-4 h-4" />
               Katalog & Stok SKU ({products.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('flashsale')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'flashsale'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span>Flash Sale ({products.filter(p => p.isFlashSale).length})</span>
+              {products.filter(p => p.isFlashSale).length > 0 && (
+                <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+                  LIVE
+                </span>
+              )}
             </button>
 
             <button
@@ -2045,6 +2114,17 @@ export const SellerDashboardScreen: React.FC = () => {
                                       Rp {profitMargin.toLocaleString('id-ID')} ({marginPercent}%)
                                     </span>
                                   </div>
+                                  {prod.isFlashSale && (
+                                    <div className="mt-1 flex items-center justify-between bg-red-50 px-1.5 py-0.5 rounded border border-red-200 text-[10px]">
+                                      <span className="flex items-center gap-1 font-extrabold text-red-600">
+                                        <Flame className="w-3 h-3 fill-red-600" />
+                                        Flash Sale
+                                      </span>
+                                      <span className="font-mono font-bold text-red-700">
+                                        -{prod.flashSaleDiscountPercent || 20}%
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
 
@@ -2108,6 +2188,20 @@ export const SellerDashboardScreen: React.FC = () => {
                                     title="Cetak Label Barcode & Price Tag Thermal"
                                   >
                                     <Barcode className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Flash Sale Quick Toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenFlashSaleForProduct(prod)}
+                                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                      prod.isFlashSale
+                                        ? 'text-red-600 bg-red-50 hover:bg-red-600 hover:text-white ring-1 ring-red-200'
+                                        : 'text-stone-400 bg-stone-100 hover:text-red-600 hover:bg-red-50'
+                                    }`}
+                                    title={prod.isFlashSale ? `Kelola Flash Sale (${prod.flashSaleDiscountPercent || 20}% OFF)` : 'Daftarkan Produk ke Flash Sale'}
+                                  >
+                                    <Flame className="w-3.5 h-3.5" />
                                   </button>
 
                                   {/* Edit Product */}
@@ -2266,6 +2360,348 @@ export const SellerDashboardScreen: React.FC = () => {
               </div>
             </div>
             )}
+          </div>
+        )}
+
+        {/* FLASH SALE TOKO MANAGEMENT TAB */}
+        {activeTab === 'flashsale' && (
+          <div className="space-y-4 animate-in fade-in-50">
+            {/* Top Campaign Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 p-6 text-white shadow-md">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase">
+                      <Flame className="w-3.5 h-3.5 fill-amber-300 text-amber-300 animate-bounce" />
+                      Flash Sale Toko Berjalan
+                    </span>
+                    <span className="bg-amber-400 text-stone-950 font-black text-[10px] px-2 py-0.5 rounded-full">
+                      TAYANG DI BERANDA
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-white">
+                    Pusat Pengaturan Produk Promo Kilat (Flash Sale)
+                  </h2>
+                  <p className="text-xs text-white/90 leading-relaxed">
+                    Daftarkan produk kurma unggulan Anda ke dalam Flash Sale untuk mendapatkan posisi teratas beranda dengan countdown timer kilat, mendorong lonjakan transaksi toko hingga 3x lipat.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="bg-stone-950/40 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-center">
+                    <div className="text-[10px] font-bold text-amber-300 flex items-center justify-center gap-1">
+                      <Timer className="w-3 h-3" /> Sesi Kilat Toko
+                    </div>
+                    <div className="text-sm font-black font-mono mt-0.5">
+                      12:00 - 18:00 WIB
+                    </div>
+                    <span className="text-[9px] text-white/75 block mt-0.5">
+                      Berakhir dlm: <b className="text-amber-300">03:42:15</b>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFlashSaleTargetProduct(null);
+                      setFlashSaleDiscountInput(25);
+                      setFlashSalePriceInput(0);
+                      setIsFlashSaleModalOpen(true);
+                    }}
+                    className="bg-white hover:bg-amber-50 text-red-700 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4 text-red-600" />
+                    <span>+ Daftarkan Produk Flash Sale</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Decorative Background Elements */}
+              <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute right-20 -top-10 w-32 h-32 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
+            </div>
+
+            {/* Quick Metrics */}
+            {(() => {
+              const fsProds = products.filter(p => p.isFlashSale);
+              const avgDisc = fsProds.length > 0 
+                ? Math.round(fsProds.reduce((acc, p) => acc + (p.flashSaleDiscountPercent || 20), 0) / fsProds.length)
+                : 0;
+              const totalFsStock = fsProds.reduce((acc, p) => acc + p.stock, 0);
+
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                    <div className="flex items-center justify-between text-stone-500 mb-1">
+                      <span className="text-xs font-bold">Produk Flash Sale Aktif</span>
+                      <Flame className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div className="text-2xl font-black text-stone-900 font-mono">
+                      {fsProds.length} <span className="text-xs font-normal text-stone-400">SKU</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                      ● Tayang live di beranda pembeli
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                    <div className="flex items-center justify-between text-stone-500 mb-1">
+                      <span className="text-xs font-bold">Rata-rata Diskon</span>
+                      <Percent className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="text-2xl font-black text-amber-600 font-mono">
+                      {avgDisc}%
+                    </div>
+                    <span className="text-[10px] text-stone-400 font-medium block mt-0.5">
+                      Rekomendasi min. 15% - 50%
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                    <div className="flex items-center justify-between text-stone-500 mb-1">
+                      <span className="text-xs font-bold">Total Stok Cadangan</span>
+                      <Boxes className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <div className="text-2xl font-black text-stone-900 font-mono">
+                      {totalFsStock} <span className="text-xs font-normal text-stone-400">unit</span>
+                    </div>
+                    <span className="text-[10px] text-stone-400 font-medium block mt-0.5">
+                      Dari seluruh SKU Flash Sale
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                    <div className="flex items-center justify-between text-stone-500 mb-1">
+                      <span className="text-xs font-bold">Estimasi Traffic Boost</span>
+                      <TrendingUp className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div className="text-2xl font-black text-emerald-600 font-mono">
+                      +320%
+                    </div>
+                    <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                      Konversi tinggi di Beranda
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* List of Flash Sale Products */}
+            {(() => {
+              const fsProds = products.filter(p => p.isFlashSale);
+
+              if (fsProds.length === 0) {
+                return (
+                  <div className="bg-white rounded-3xl border border-dashed border-stone-300 p-10 text-center space-y-4 shadow-2xs">
+                    <div className="w-16 h-16 rounded-3xl bg-red-50 text-red-500 flex items-center justify-center mx-auto shadow-inner">
+                      <Flame className="w-8 h-8 fill-red-500 text-red-500 animate-pulse" />
+                    </div>
+                    <div className="max-w-md mx-auto space-y-1">
+                      <h3 className="text-base font-extrabold text-stone-900">
+                        Belum Ada Produk yang Didaftarkan ke Flash Sale
+                      </h3>
+                      <p className="text-xs text-stone-500 leading-relaxed">
+                        Pilih kurma dari etalase Anda untuk diikutkan dalam program Flash Sale Toko. Produk akan otomatis tampil di banner promo kilat beranda dengan harga spesial.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFlashSaleTargetProduct(null);
+                          setFlashSaleDiscountInput(25);
+                          setFlashSalePriceInput(0);
+                          setIsFlashSaleModalOpen(true);
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-colors inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Daftarkan Produk Pertama ke Flash Sale
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-sm text-stone-900 flex items-center gap-2">
+                        <span>Daftar Produk Flash Sale Terdaftar ({fsProds.length})</span>
+                        <span className="bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          SEDANG AKTIF
+                        </span>
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Produk ini sedang tayang di bagian Flash Sale Beranda pembeli secara real-time.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlashSaleTargetProduct(null);
+                        setFlashSaleDiscountInput(25);
+                        setFlashSalePriceInput(0);
+                        setIsFlashSaleModalOpen(true);
+                      }}
+                      className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
+                      Tambah Produk Lain
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {fsProds.map((prod) => {
+                      const discountPct = prod.flashSaleDiscountPercent || 20;
+                      const normalPrice = prod.regularPrice;
+                      const flashPrice = prod.discountPrice || Math.round(normalPrice * (1 - discountPct / 100));
+                      const hpp = prod.costPrice || Math.round(normalPrice * 0.6);
+                      const profit = flashPrice - hpp;
+
+                      return (
+                        <div
+                          key={prod.id}
+                          className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+                        >
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-start gap-3">
+                              <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200">
+                                <img
+                                  src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                                  alt={prod.name}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-1 left-1 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs">
+                                  -{discountPct}%
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1 text-[10px] text-amber-700 font-bold">
+                                  <Flame className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                  <span>{prod.category}</span>
+                                </div>
+                                <h4 className="font-extrabold text-stone-900 text-xs line-clamp-1 mt-0.5">
+                                  {prod.name}
+                                </h4>
+                                <div className="font-mono text-[10px] text-stone-400 mt-0.5">
+                                  SKU: <span className="text-stone-700 font-semibold">{prod.sku}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Pricing Details */}
+                            <div className="bg-red-50/70 rounded-xl p-2.5 border border-red-100 space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-stone-500 text-[10px]">Harga Normal:</span>
+                                <span className="font-mono line-through text-stone-400">
+                                  Rp {normalPrice.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs font-bold">
+                                <span className="text-red-700 text-[11px] font-extrabold flex items-center gap-1">
+                                  <Flame className="w-3 h-3 fill-red-600 text-red-600" />
+                                  Harga Flash Sale:
+                                </span>
+                                <span className="font-mono font-black text-sm text-red-600">
+                                  Rp {flashPrice.toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between pt-1 border-t border-red-200/60 text-[10px]">
+                                <span className="text-stone-500">Margin Profit Toko:</span>
+                                <span className="font-mono font-bold text-emerald-700">
+                                  Rp {profit.toLocaleString('id-ID')} / unit
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Stock & Quota Status */}
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-stone-500 font-medium">Sisa Stok Fisik:</span>
+                              <span className={`font-mono font-bold ${prod.stock <= 10 ? 'text-amber-700' : 'text-stone-800'}`}>
+                                {prod.stock} unit
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Card Actions */}
+                          <div className="p-3 bg-stone-50/80 border-t border-stone-100 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenFlashSaleForProduct(prod)}
+                              className="flex-1 text-center py-1.5 px-2.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 font-bold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <Edit className="w-3 h-3 text-stone-500" />
+                              <span>Ubah Diskon</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedProductId(prod.id);
+                                setCurrentView('product-detail');
+                              }}
+                              className="p-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-600 transition-colors cursor-pointer"
+                              title="Lihat Tampilan Pembeli"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFromFlashSale(prod.id, prod.name)}
+                              className="p-1.5 rounded-xl bg-red-50 hover:bg-red-600 hover:text-white text-red-600 transition-colors cursor-pointer"
+                              title="Keluarkan dari Flash Sale"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Seller Strategy & Tips for Flash Sale */}
+            <div className="bg-stone-50 rounded-2xl border border-stone-200 p-4 space-y-3">
+              <h4 className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Tips & Panduan Sukses Kampanye Flash Sale AllKurma
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="bg-white p-3 rounded-xl border border-stone-200/80 space-y-1">
+                  <div className="font-bold text-stone-800 flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-red-100 text-red-600 text-[10px] font-black flex items-center justify-center">1</span>
+                    Pilih Produk Terlaris
+                  </div>
+                  <p className="text-stone-500 text-[11px] leading-relaxed">
+                    Prioritaskan jenis kurma favorit seperti Ajwa, Sukari, atau Medjool karena memiliki rasio konversi kilat tertinggi.
+                  </p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-stone-200/80 space-y-1">
+                  <div className="font-bold text-stone-800 flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-red-100 text-red-600 text-[10px] font-black flex items-center justify-center">2</span>
+                    Diskon Menarik (15% - 50%)
+                  </div>
+                  <p className="text-stone-500 text-[11px] leading-relaxed">
+                    Pembeli terdorong checkout seketika jika diskon berada di atas 15%. Pastikan margin laba HPP tetap terjaga.
+                  </p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-stone-200/80 space-y-1">
+                  <div className="font-bold text-stone-800 flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-red-100 text-red-600 text-[10px] font-black flex items-center justify-center">3</span>
+                    Kesiapan Stok Fisik
+                  </div>
+                  <p className="text-stone-500 text-[11px] leading-relaxed">
+                    Pastikan stok di rak gudang mencukupi agar pesanan yang masuk selama periode flash sale dapat langsung diproses dan dikirim.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -2889,6 +3325,8 @@ export const SellerDashboardScreen: React.FC = () => {
                   costPrice: Number(newProd.costPrice) || Math.round(Number(newProd.regularPrice) * 0.6),
                   regularPrice: Number(newProd.regularPrice),
                   discountPrice: newProd.discountPrice ? Number(newProd.discountPrice) : undefined,
+                  isFlashSale: !!newProd.isFlashSale,
+                  flashSaleDiscountPercent: newProd.isFlashSale ? (Number(newProd.flashSaleDiscountPercent) || 20) : undefined,
                   stock: newProd.variations && newProd.variations.length > 0 
                     ? newProd.variations.reduce((sum, v) => sum + v.stock, 0) 
                     : (Number(newProd.stock) || 50),
@@ -3142,6 +3580,108 @@ export const SellerDashboardScreen: React.FC = () => {
                         );
                       })()}
                     </div>
+                  </div>
+
+                  {/* Flash Sale Setting Inside Add/Edit Product */}
+                  <div className="p-3.5 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50/80 via-orange-50/40 to-amber-50/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 rounded-xl bg-red-100 text-red-600">
+                          <Flame className="w-4 h-4 fill-red-600" />
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h5 className="font-extrabold text-xs text-stone-900">Program Flash Sale Toko</h5>
+                            <span className="bg-red-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded-full">PROMO KILAT</span>
+                          </div>
+                          <p className="text-[10px] text-stone-500">Tampilkan produk di baris Flash Sale Beranda dengan countdown kilat</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!newProd.isFlashSale}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            const defaultDiscount = newProd.flashSaleDiscountPercent || 20;
+                            const calculatedPrice = Math.round(Number(newProd.regularPrice || 0) * (1 - defaultDiscount / 100));
+                            setNewProd({
+                              ...newProd,
+                              isFlashSale: checked,
+                              flashSaleDiscountPercent: checked ? defaultDiscount : undefined,
+                              discountPrice: checked ? calculatedPrice : newProd.discountPrice
+                            });
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                      </label>
+                    </div>
+
+                    {newProd.isFlashSale && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-red-200/60 animate-in fade-in">
+                        <div>
+                          <label className="block font-bold text-stone-700 text-[11px] mb-1">Pilih / Masukkan Diskon Flash Sale (%)</label>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {[15, 20, 30, 40, 50].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => {
+                                  const calculatedPrice = Math.round(Number(newProd.regularPrice || 0) * (1 - pct / 100));
+                                  setNewProd({
+                                    ...newProd,
+                                    flashSaleDiscountPercent: pct,
+                                    discountPrice: calculatedPrice
+                                  });
+                                }}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                                  newProd.flashSaleDiscountPercent === pct
+                                    ? 'bg-red-600 text-white border-red-600'
+                                    : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                                }`}
+                              >
+                                {pct}%
+                              </button>
+                            ))}
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="number"
+                                min={5}
+                                max={90}
+                                value={newProd.flashSaleDiscountPercent || 20}
+                                onChange={(e) => {
+                                  const pct = Math.max(1, Math.min(99, Number(e.target.value) || 0));
+                                  const calculatedPrice = Math.round(Number(newProd.regularPrice || 0) * (1 - pct / 100));
+                                  setNewProd({
+                                    ...newProd,
+                                    flashSaleDiscountPercent: pct,
+                                    discountPrice: calculatedPrice
+                                  });
+                                }}
+                                className="w-14 px-1.5 py-1 text-center font-mono font-bold text-xs rounded-lg border border-stone-300 bg-white"
+                              />
+                              <span className="text-[10px] text-stone-400 ml-1 font-bold">%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/80 p-2.5 rounded-xl border border-red-100 flex flex-col justify-center">
+                          <span className="text-[10px] text-stone-500 font-bold uppercase block">Harga Promo Flash Sale</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-black font-mono text-red-600">
+                              Rp {(newProd.discountPrice || Math.round(Number(newProd.regularPrice || 0) * 0.8)).toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-[10px] text-stone-400 font-normal line-through">
+                              Rp {(Number(newProd.regularPrice) || 0).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-emerald-700 font-medium mt-0.5">
+                            Hemat Rp {Math.max(0, (Number(newProd.regularPrice) || 0) - (newProd.discountPrice || Math.round(Number(newProd.regularPrice || 0) * 0.8))).toLocaleString('id-ID')} untuk pembeli
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3743,6 +4283,321 @@ export const SellerDashboardScreen: React.FC = () => {
                 className="px-4 py-2.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 Ya, Hapus Terpilih
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Modal Pengaturan & Pendaftaran Produk Flash Sale */}
+      {isFlashSaleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shadow-2xs">
+                  <Flame className="w-5 h-5 fill-red-600" />
+                </span>
+                <div>
+                  <h3 className="text-base font-extrabold text-stone-900 leading-tight">
+                    {flashSaleTargetProduct?.isFlashSale ? 'Kelola Diskon Flash Sale' : 'Daftarkan Produk ke Flash Sale'}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Produk akan langsung tayang pada section Flash Sale Beranda
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFlashSaleModalOpen(false);
+                  setFlashSaleTargetProduct(null);
+                }}
+                className="text-stone-400 hover:text-stone-600 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto pr-1 py-4 space-y-4 text-xs flex-1">
+              {/* Product Selector if not yet chosen */}
+              {!flashSaleTargetProduct ? (
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1.5">
+                    Pilih Produk Kurma dari Etalase Toko:
+                  </label>
+                  {products.length === 0 ? (
+                    <div className="p-4 bg-stone-50 rounded-2xl border border-dashed border-stone-300 text-center text-stone-500">
+                      Belum ada produk di etalase toko. Silakan tambahkan produk terlebih dahulu di tab &quot;Katalog &amp; Stok SKU&quot;.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {products.map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            setFlashSaleTargetProduct(p);
+                            const discount = p.flashSaleDiscountPercent || 25;
+                            setFlashSaleDiscountInput(discount);
+                            setFlashSalePriceInput(p.discountPrice || Math.round(p.regularPrice * (1 - discount / 100)));
+                          }}
+                          className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            flashSaleTargetProduct?.id === p.id
+                              ? 'border-red-500 bg-red-50/70 ring-2 ring-red-200'
+                              : 'border-stone-200 hover:border-stone-300 hover:bg-stone-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={p.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                              alt={p.name}
+                              className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <h5 className="font-extrabold text-stone-900 text-xs truncate">
+                                {p.name}
+                              </h5>
+                              <div className="flex items-center gap-2 text-[10px] text-stone-500 mt-0.5">
+                                <span className="font-mono">SKU: {p.sku}</span>
+                                <span>•</span>
+                                <span>Stok: {p.stock} unit</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-bold text-xs text-stone-900">
+                              Rp {p.regularPrice.toLocaleString('id-ID')}
+                            </div>
+                            {p.isFlashSale && (
+                              <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.2 rounded-sm inline-block mt-0.5">
+                                Flash Sale Aktif
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Selected Product Summary Card */
+                <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={flashSaleTargetProduct.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                      alt={flashSaleTargetProduct.name}
+                      className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded text-[9px]">
+                          {flashSaleTargetProduct.category}
+                        </span>
+                        <span className="text-[10px] font-mono text-stone-400">
+                          SKU: {flashSaleTargetProduct.sku}
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-stone-900 text-xs truncate mt-0.5">
+                        {flashSaleTargetProduct.name}
+                      </h4>
+                      <div className="text-[11px] font-mono text-stone-500 mt-0.5">
+                        Harga Normal: <b className="text-stone-800">Rp {flashSaleTargetProduct.regularPrice.toLocaleString('id-ID')}</b>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFlashSaleTargetProduct(null)}
+                    className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-white hover:bg-stone-100 border border-stone-200 px-2.5 py-1.5 rounded-xl shrink-0 cursor-pointer"
+                  >
+                    Ganti Produk
+                  </button>
+                </div>
+              )}
+
+              {/* Discount & Price Inputs */}
+              {flashSaleTargetProduct && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-bold text-stone-700 mb-1.5">
+                      Pilihan Diskon Promo Flash Sale:
+                    </label>
+                    <div className="grid grid-cols-5 gap-2 mb-2">
+                      {[15, 20, 25, 30, 50].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setFlashSaleDiscountInput(pct);
+                            const calcPrice = Math.round(flashSaleTargetProduct.regularPrice * (1 - pct / 100));
+                            setFlashSalePriceInput(calcPrice);
+                          }}
+                          className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                            flashSaleDiscountInput === pct
+                              ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                              : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                          Persentase Custom (%)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={5}
+                            max={90}
+                            value={flashSaleDiscountInput}
+                            onChange={(e) => {
+                              const pct = Math.max(1, Math.min(95, Number(e.target.value) || 0));
+                              setFlashSaleDiscountInput(pct);
+                              const calcPrice = Math.round(flashSaleTargetProduct.regularPrice * (1 - pct / 100));
+                              setFlashSalePriceInput(calcPrice);
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold text-stone-900 text-sm"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">%</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                          Harga Flash Sale (Rp)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">Rp</span>
+                          <input
+                            type="number"
+                            value={flashSalePriceInput}
+                            onChange={(e) => {
+                              const price = Number(e.target.value) || 0;
+                              setFlashSalePriceInput(price);
+                              if (flashSaleTargetProduct.regularPrice > 0 && price > 0) {
+                                const calculatedDiscount = Math.round(((flashSaleTargetProduct.regularPrice - price) / flashSaleTargetProduct.regularPrice) * 100);
+                                setFlashSaleDiscountInput(Math.max(1, Math.min(95, calculatedDiscount)));
+                              }
+                            }}
+                            className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 font-mono font-black text-red-600 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial & Profit Simulator */}
+                  {(() => {
+                    const hpp = flashSaleTargetProduct.costPrice || Math.round(flashSaleTargetProduct.regularPrice * 0.6);
+                    const flashPrice = flashSalePriceInput > 0 
+                      ? flashSalePriceInput 
+                      : Math.round(flashSaleTargetProduct.regularPrice * (1 - (flashSaleDiscountInput || 20) / 100));
+                    const profitPerUnit = flashPrice - hpp;
+                    const profitPct = flashPrice > 0 ? Math.round((profitPerUnit / flashPrice) * 100) : 0;
+                    const buyerSaving = Math.max(0, flashSaleTargetProduct.regularPrice - flashPrice);
+
+                    return (
+                      <div className="p-3 bg-red-50/80 rounded-2xl border border-red-200/80 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-stone-600">HPP Modal Toko:</span>
+                          <span className="font-mono font-bold text-stone-700">Rp {hpp.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-stone-600">Hemat untuk Pembeli:</span>
+                          <span className="font-mono font-bold text-emerald-700">Rp {buyerSaving.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-red-200 text-xs">
+                          <span className="font-bold text-stone-900">Estimasi Margin Laba Bersih:</span>
+                          <span className="font-mono font-black text-emerald-700 text-sm">
+                            Rp {profitPerUnit.toLocaleString('id-ID')} ({profitPct}%)
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Buyer View Live Preview */}
+                  <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">
+                      Preview Tampilan Kartu di Beranda Pembeli
+                    </span>
+                    <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
+                      <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-stone-100 shrink-0">
+                        <img
+                          src={flashSaleTargetProduct.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                          alt={flashSaleTargetProduct.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-0.5 left-0.5 bg-red-600 text-white text-[8px] font-black px-1 py-0.2 rounded">
+                          -{flashSaleDiscountInput}%
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-extrabold text-stone-900 truncate">
+                          {flashSaleTargetProduct.name}
+                        </div>
+                        <div className="flex items-baseline gap-1.5 mt-0.5">
+                          <span className="font-mono font-black text-xs text-red-600">
+                            Rp {(flashSalePriceInput || Math.round(flashSaleTargetProduct.regularPrice * (1 - (flashSaleDiscountInput || 20) / 100))).toLocaleString('id-ID')}
+                          </span>
+                          <span className="font-mono text-[10px] text-stone-400 line-through">
+                            Rp {flashSaleTargetProduct.regularPrice.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9px] text-amber-600 font-bold mt-0.5">
+                          <Flame className="w-2.5 h-2.5 fill-amber-500" />
+                          <span>Promo Kilat Terbatas</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-stone-100 shrink-0 mt-2">
+              {flashSaleTargetProduct?.isFlashSale ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (flashSaleTargetProduct) {
+                      handleRemoveFromFlashSale(flashSaleTargetProduct.id, flashSaleTargetProduct.name);
+                    }
+                  }}
+                  className="text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Hapus dari Flash Sale
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFlashSaleModalOpen(false);
+                    setFlashSaleTargetProduct(null);
+                  }}
+                  className="text-stone-500 hover:bg-stone-100 px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={!flashSaleTargetProduct}
+                onClick={handleSaveFlashSaleProduct}
+                className={`px-5 py-2.5 rounded-xl font-extrabold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  flashSaleTargetProduct
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                }`}
+              >
+                <Flame className="w-4 h-4 fill-white" />
+                <span>Simpan &amp; Tayangkan di Flash Sale</span>
               </button>
             </div>
           </div>
