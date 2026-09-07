@@ -77,11 +77,11 @@ const BANNER_GRADIENT_PRESETS = [
 ];
 
 const BANNER_IMAGE_PRESETS = [
-  { label: 'Kurma Ajwa Madinah', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Paket Kombo Bundling', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Panen Perdana 2026', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Gudang Grosir B2B', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80' },
-  { label: 'Hampers Mewah Eid', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80' }
+  { label: 'Poster Kurma Ajwa VIP', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Banner Penuh Widescreen', url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Paket Kombo Bundling', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Panen Perdana 2026', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Gudang Grosir B2B', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&auto=format&fit=crop&q=80' }
 ];
 
 export const SellerDashboardScreen: React.FC = () => {
@@ -139,7 +139,10 @@ export const SellerDashboardScreen: React.FC = () => {
     bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
     image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-emerald-100 border-white/30',
-    active: true
+    active: true,
+    displayMode: 'standard' as 'standard' | 'full-image',
+    showTextOverlay: false,
+    objectFit: 'cover' as 'cover' | 'contain'
   });
 
   // Flash Sale Management State
@@ -315,7 +318,10 @@ export const SellerDashboardScreen: React.FC = () => {
       bgGradient: 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
       image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
       tagColor: 'bg-white/20 text-emerald-100 border-white/30',
-      active: true
+      active: true,
+      displayMode: 'standard',
+      showTextOverlay: false,
+      objectFit: 'cover'
     });
     setIsBannerModalOpen(true);
   };
@@ -333,7 +339,10 @@ export const SellerDashboardScreen: React.FC = () => {
       bgGradient: banner.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]',
       image: banner.image || '',
       tagColor: banner.tagColor || 'bg-white/20 text-emerald-100 border-white/30',
-      active: banner.active !== false
+      active: banner.active !== false,
+      displayMode: banner.displayMode || 'standard',
+      showTextOverlay: !!banner.showTextOverlay,
+      objectFit: banner.objectFit || 'cover'
     });
     setIsBannerModalOpen(true);
   };
@@ -359,7 +368,10 @@ export const SellerDashboardScreen: React.FC = () => {
         bgGradient: bannerForm.bgGradient,
         image: normalizedImg,
         tagColor: bannerForm.tagColor,
-        active: bannerForm.active
+        active: bannerForm.active,
+        displayMode: bannerForm.displayMode,
+        showTextOverlay: bannerForm.showTextOverlay,
+        objectFit: bannerForm.objectFit
       });
       showToast(`Banner "${bannerForm.title}" berhasil diperbarui!`, 'success');
     } else {
@@ -374,7 +386,10 @@ export const SellerDashboardScreen: React.FC = () => {
         bgGradient: bannerForm.bgGradient,
         image: normalizedImg,
         tagColor: bannerForm.tagColor,
-        active: bannerForm.active
+        active: bannerForm.active,
+        displayMode: bannerForm.displayMode,
+        showTextOverlay: bannerForm.showTextOverlay,
+        objectFit: bannerForm.objectFit
       });
       showToast(`Banner baru "${bannerForm.title}" berhasil ditambahkan!`, 'success');
     }
@@ -3613,73 +3628,152 @@ export const SellerDashboardScreen: React.FC = () => {
                   );
                 }
 
+                const isFullImg = currentSlide.displayMode === 'full-image';
+
                 return (
                   <div className={`mx-auto transition-all ${previewDevice === 'mobile' ? 'max-w-md' : 'max-w-4xl'}`}>
-                    <div className={`relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-r ${currentSlide.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]'} p-5 sm:p-7 min-h-[170px] sm:min-h-[220px] flex flex-col justify-between border border-white/20`}>
-                      {/* Background Overlay Image */}
-                      <div className="absolute right-0 top-0 bottom-0 w-1/2 sm:w-5/12 overflow-hidden pointer-events-none opacity-35 sm:opacity-50">
-                        <img
-                          src={normalizeImageUrl(currentSlide.image)}
-                          alt={currentSlide.title}
-                          className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-stone-900/60 via-transparent to-transparent" />
-                      </div>
+                    <div className={`relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ${
+                      isFullImg
+                        ? 'bg-stone-950 border border-stone-700/80 min-h-[180px] sm:min-h-[230px]'
+                        : `bg-gradient-to-r ${currentSlide.bgGradient || 'from-[#1E3A8A] via-blue-700 to-[#009A44]'} border border-white/20 min-h-[170px] sm:min-h-[220px]`
+                    } p-5 sm:p-7 flex flex-col justify-between`}>
+                      {isFullImg ? (
+                        <>
+                          {/* 100% Pure Full Image without gradient color overlay */}
+                          <img
+                            src={normalizeImageUrl(currentSlide.image)}
+                            alt={currentSlide.title}
+                            className={`absolute inset-0 w-full h-full ${currentSlide.objectFit === 'contain' ? 'object-contain bg-stone-950' : 'object-cover'} block`}
+                          />
 
-                      {/* Top Badges & Status in Simulator */}
-                      <div className="relative z-10 flex items-center justify-between gap-2">
-                        <span className={`inline-block text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs border ${currentSlide.tagColor || 'bg-white/20 text-emerald-100 border-white/30'}`}>
-                          {currentSlide.badge || 'PROMO'}
-                        </span>
+                          {/* Top Badges & Status in Simulator */}
+                          <div className="relative z-10 flex items-center justify-between gap-2">
+                            <span className="inline-block text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-wider bg-black/65 text-amber-300 backdrop-blur-md border border-amber-400/40 shadow-xs">
+                              🖼️ Full Image (Tanpa Gradien)
+                            </span>
 
-                        <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-bold border border-white/10">
-                          <span className={`w-2 h-2 rounded-full ${currentSlide.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
-                          <span>{currentSlide.active !== false ? 'Aktif' : 'Draf Nonaktif'}</span>
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold border border-white/20">
+                              <span className={`w-2 h-2 rounded-full ${currentSlide.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
+                              <span>{currentSlide.active !== false ? 'Aktif' : 'Draf Nonaktif'}</span>
+                            </div>
+                          </div>
 
-                      {/* Main Copy */}
-                      <div className="relative z-10 max-w-[70%] sm:max-w-[65%] my-2">
-                        <h4 className="text-base sm:text-2xl font-black text-white leading-tight drop-shadow-xs">
-                          {currentSlide.title}
-                        </h4>
-                        <p className="text-[11px] sm:text-xs text-stone-100/90 line-clamp-2 mt-1 drop-shadow-xs">
-                          {currentSlide.subtitle}
-                        </p>
-                      </div>
+                          {/* Optional text overlay if enabled */}
+                          {currentSlide.showTextOverlay ? (
+                            <div className="relative z-10 mt-auto pt-8 pb-1 px-3 -mx-3 -mb-3 bg-gradient-to-t from-black/85 via-black/40 to-transparent rounded-b-2xl">
+                              <h4 className="text-base sm:text-xl font-black text-white leading-tight drop-shadow-xs">
+                                {currentSlide.title}
+                              </h4>
+                              {currentSlide.subtitle && (
+                                <p className="text-[11px] sm:text-xs text-stone-100/90 line-clamp-1 mt-0.5">
+                                  {currentSlide.subtitle}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex-1" />
+                          )}
 
-                      {/* CTA button & Navigation Dots */}
-                      <div className="relative z-10 flex items-center justify-between pt-2">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black bg-amber-400 text-stone-950 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-md">
-                          <span>{currentSlide.cta || 'Beli Sekarang'}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
+                          {/* CTA button & Navigation Dots */}
+                          <div className="relative z-10 flex items-center justify-between pt-2">
+                            <span className="text-[10px] sm:text-[11px] text-white/90 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20">
+                              {currentSlide.showTextOverlay ? `Tombol: ${currentSlide.cta || 'Beli Sekarang'}` : 'Poster Grafis Penuh (Bersih)'}
+                            </span>
 
-                        {/* Slider Controls */}
-                        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-xs px-2 py-1 rounded-xl border border-white/10">
-                          <button
-                            type="button"
-                            onClick={() => setBannerPreviewIndex((prev) => (prev > 0 ? prev - 1 : activeList.length - 1))}
-                            className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
-                            title="Slide Sebelumnya"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
+                            {/* Slider Controls */}
+                            <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-1 rounded-xl border border-white/20">
+                              <button
+                                type="button"
+                                onClick={() => setBannerPreviewIndex((prev) => (prev > 0 ? prev - 1 : activeList.length - 1))}
+                                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                                title="Slide Sebelumnya"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
 
-                          <span className="text-[10px] font-mono text-stone-300 px-1">
-                            {safeIndex + 1}/{activeList.length}
-                          </span>
+                              <span className="text-[10px] font-mono text-stone-200 px-1">
+                                {safeIndex + 1}/{activeList.length}
+                              </span>
 
-                          <button
-                            type="button"
-                            onClick={() => setBannerPreviewIndex((prev) => (prev < activeList.length - 1 ? prev + 1 : 0))}
-                            className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
-                            title="Slide Berikutnya"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+                              <button
+                                type="button"
+                                onClick={() => setBannerPreviewIndex((prev) => (prev < activeList.length - 1 ? prev + 1 : 0))}
+                                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                                title="Slide Berikutnya"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Standard Gradient Background Overlay Image */}
+                          <div className="absolute right-0 top-0 bottom-0 w-1/2 sm:w-5/12 overflow-hidden pointer-events-none opacity-35 sm:opacity-50">
+                            <img
+                              src={normalizeImageUrl(currentSlide.image)}
+                              alt={currentSlide.title}
+                              className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-stone-900/60 via-transparent to-transparent" />
+                          </div>
+
+                          {/* Top Badges & Status in Simulator */}
+                          <div className="relative z-10 flex items-center justify-between gap-2">
+                            <span className={`inline-block text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-xs border ${currentSlide.tagColor || 'bg-white/20 text-emerald-100 border-white/30'}`}>
+                              {currentSlide.badge || 'PROMO'}
+                            </span>
+
+                            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-bold border border-white/10">
+                              <span className={`w-2 h-2 rounded-full ${currentSlide.active !== false ? 'bg-emerald-400 animate-pulse' : 'bg-stone-400'}`} />
+                              <span>{currentSlide.active !== false ? 'Aktif' : 'Draf Nonaktif'}</span>
+                            </div>
+                          </div>
+
+                          {/* Main Copy */}
+                          <div className="relative z-10 max-w-[70%] sm:max-w-[65%] my-2">
+                            <h4 className="text-base sm:text-2xl font-black text-white leading-tight drop-shadow-xs">
+                              {currentSlide.title}
+                            </h4>
+                            <p className="text-[11px] sm:text-xs text-stone-100/90 line-clamp-2 mt-1 drop-shadow-xs">
+                              {currentSlide.subtitle}
+                            </p>
+                          </div>
+
+                          {/* CTA button & Navigation Dots */}
+                          <div className="relative z-10 flex items-center justify-between pt-2">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-black bg-amber-400 text-stone-950 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-md">
+                              <span>{currentSlide.cta || 'Beli Sekarang'}</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </span>
+
+                            {/* Slider Controls */}
+                            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-xs px-2 py-1 rounded-xl border border-white/10">
+                              <button
+                                type="button"
+                                onClick={() => setBannerPreviewIndex((prev) => (prev > 0 ? prev - 1 : activeList.length - 1))}
+                                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                                title="Slide Sebelumnya"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+
+                              <span className="text-[10px] font-mono text-stone-300 px-1">
+                                {safeIndex + 1}/{activeList.length}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => setBannerPreviewIndex((prev) => (prev < activeList.length - 1 ? prev + 1 : 0))}
+                                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors cursor-pointer"
+                                title="Slide Berikutnya"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Active Slide Info Bar */}
@@ -3770,19 +3864,32 @@ export const SellerDashboardScreen: React.FC = () => {
                           </div>
 
                           {/* Mini Visual Banner Preview */}
-                          <div className={`relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-gradient-to-r ${banner.bgGradient || 'from-[#1E3A8A] to-[#009A44]'} p-2 flex flex-col justify-between shrink-0 shadow-xs border border-stone-200`}>
-                            <img
-                              src={normalizeImageUrl(banner.image)}
-                              alt={banner.title}
-                              className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
-                            />
-                            <span className="relative z-10 text-[8px] font-black uppercase text-white bg-black/30 px-1 py-0.2 rounded self-start truncate max-w-full">
-                              {banner.badge || 'PROMO'}
-                            </span>
-                            <span className="relative z-10 text-[9px] font-bold text-white line-clamp-1">
-                              {banner.title}
-                            </span>
-                          </div>
+                          {banner.displayMode === 'full-image' ? (
+                            <div className="relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-stone-950 p-1 flex flex-col justify-between shrink-0 shadow-xs border border-stone-300">
+                              <img
+                                src={normalizeImageUrl(banner.image)}
+                                alt={banner.title}
+                                className={`w-full h-full ${banner.objectFit === 'contain' ? 'object-contain' : 'object-cover'} rounded-lg`}
+                              />
+                              <span className="absolute top-1 left-1 z-10 text-[8px] font-black uppercase text-amber-300 bg-black/70 backdrop-blur-xs px-1 py-0.2 rounded border border-amber-400/30">
+                                Full Image
+                              </span>
+                            </div>
+                          ) : (
+                            <div className={`relative w-28 sm:w-36 h-18 sm:h-20 rounded-xl overflow-hidden bg-gradient-to-r ${banner.bgGradient || 'from-[#1E3A8A] to-[#009A44]'} p-2 flex flex-col justify-between shrink-0 shadow-xs border border-stone-200`}>
+                              <img
+                                src={normalizeImageUrl(banner.image)}
+                                alt={banner.title}
+                                className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
+                              />
+                              <span className="relative z-10 text-[8px] font-black uppercase text-white bg-black/30 px-1 py-0.2 rounded self-start truncate max-w-full">
+                                {banner.badge || 'PROMO'}
+                              </span>
+                              <span className="relative z-10 text-[9px] font-bold text-white line-clamp-1">
+                                {banner.title}
+                              </span>
+                            </div>
+                          )}
 
                           {/* Details */}
                           <div className="min-w-0 flex-1">
@@ -3799,6 +3906,15 @@ export const SellerDashboardScreen: React.FC = () => {
                               >
                                 {isActive ? '● Aktif' : '○ Nonaktif'}
                               </span>
+                              {banner.displayMode === 'full-image' ? (
+                                <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                                  🖼️ Full Image
+                                </span>
+                              ) : (
+                                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                                  🎨 Gradien
+                                </span>
+                              )}
                               {banner.badge && (
                                 <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                                   🏷️ {banner.badge}
@@ -5444,62 +5560,245 @@ export const SellerDashboardScreen: React.FC = () => {
                     <span>Pratinjau Langsung Banner (Live Preview)</span>
                   </label>
                   <span className="text-[10px] font-mono text-stone-400">
-                    Rasio Responsif Carousel
+                    {bannerForm.displayMode === 'full-image' ? 'Mode: Full Image (Bebas Gradien)' : 'Mode: Standar Gradien'}
                   </span>
                 </div>
 
-                <div className={`relative rounded-2xl overflow-hidden shadow-lg bg-gradient-to-r ${bannerForm.bgGradient} p-5 min-h-[160px] flex flex-col justify-between border border-white/20`}>
-                  {/* Background Overlay Image */}
-                  <div className="absolute right-0 top-0 bottom-0 w-5/12 overflow-hidden pointer-events-none opacity-40">
+                {bannerForm.displayMode === 'full-image' ? (
+                  <div className="relative rounded-2xl overflow-hidden shadow-lg bg-stone-950 min-h-[170px] flex flex-col justify-between border border-stone-700">
+                    {/* Full Image without gradient color tint */}
                     <img
                       src={normalizeImageUrl(bannerForm.image)}
                       alt="Pratinjau Banner"
-                      className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
+                      className={`absolute inset-0 w-full h-full ${bannerForm.objectFit === 'contain' ? 'object-contain bg-stone-950' : 'object-cover'} block`}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80';
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-stone-900/50 via-transparent to-transparent" />
-                  </div>
 
-                  {/* Top Badge */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs border ${bannerForm.tagColor}`}>
-                      {bannerForm.badge || 'PROMO'}
-                    </span>
-                    <span className="text-[9px] font-bold text-white/80 bg-black/30 px-2 py-0.5 rounded-full">
-                      {bannerForm.active ? '● Aktif Tampil' : '○ Draf Nonaktif'}
-                    </span>
-                  </div>
+                    {/* Top Status */}
+                    <div className="relative z-10 flex items-center justify-between p-3">
+                      <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-black/70 text-amber-300 backdrop-blur-md border border-amber-400/40">
+                        🖼️ Full Image (Tanpa Gradien)
+                      </span>
+                      <span className="text-[9px] font-bold text-white/90 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/20">
+                        {bannerForm.active ? '● Aktif Tampil' : '○ Draf Nonaktif'}
+                      </span>
+                    </div>
 
-                  {/* Copy */}
-                  <div className="relative z-10 max-w-[70%] my-2">
-                    <h4 className="text-base font-black text-white leading-tight drop-shadow-xs">
-                      {bannerForm.title || 'Judul Banner Promosi'}
-                    </h4>
-                    <p className="text-[11px] text-stone-100/90 line-clamp-2 mt-0.5">
-                      {bannerForm.subtitle || 'Tuliskan deskripsi ringkas penawaran promosi atau keunggulan kurma di sini.'}
-                    </p>
-                  </div>
+                    {/* Optional Copy */}
+                    {bannerForm.showTextOverlay ? (
+                      <div className="relative z-10 p-4 pt-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+                        <h4 className="text-sm sm:text-base font-black text-white leading-tight drop-shadow-xs">
+                          {bannerForm.title || 'Judul Banner Promosi'}
+                        </h4>
+                        {bannerForm.subtitle && (
+                          <p className="text-[11px] text-stone-100/90 line-clamp-1 mt-0.5">
+                            {bannerForm.subtitle}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
 
-                  {/* CTA button */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-black bg-amber-400 text-stone-950 px-3 py-1 rounded-xl shadow-xs">
-                      <span>{bannerForm.cta || 'Beli Sekarang'}</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </span>
-
-                    <span className="text-[10px] text-white/80 font-medium">
-                      {bannerForm.isBundlingTrigger
-                        ? '🛍️ Buka Modal Bundling'
-                        : bannerForm.targetView === 'b2b-portal'
-                        ? '🌐 Buka Portal B2B'
-                        : bannerForm.targetCategory
-                        ? `🏷️ Kategori: ${bannerForm.targetCategory}`
-                        : '📦 Semua Katalog'}
-                    </span>
+                    {/* Bottom Status bar in Preview */}
+                    <div className="relative z-10 px-3 pb-2 flex items-center justify-between text-[10px]">
+                      <span className="text-stone-300 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded">
+                        {bannerForm.showTextOverlay ? `Tombol: ${bannerForm.cta || 'Beli Sekarang'}` : 'Poster Bersih (Tanpa Teks Overlay)'}
+                      </span>
+                      <span className="text-amber-300 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded font-mono">
+                        Fit: {bannerForm.objectFit}
+                      </span>
+                    </div>
                   </div>
+                ) : (
+                  <div className={`relative rounded-2xl overflow-hidden shadow-lg bg-gradient-to-r ${bannerForm.bgGradient} p-5 min-h-[160px] flex flex-col justify-between border border-white/20`}>
+                    {/* Background Overlay Image */}
+                    <div className="absolute right-0 top-0 bottom-0 w-5/12 overflow-hidden pointer-events-none opacity-40">
+                      <img
+                        src={normalizeImageUrl(bannerForm.image)}
+                        alt="Pratinjau Banner"
+                        className="w-full h-full object-cover object-center mix-blend-overlay scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-stone-900/50 via-transparent to-transparent" />
+                    </div>
+
+                    {/* Top Badge */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-xs border ${bannerForm.tagColor}`}>
+                        {bannerForm.badge || 'PROMO'}
+                      </span>
+                      <span className="text-[9px] font-bold text-white/80 bg-black/30 px-2 py-0.5 rounded-full">
+                        {bannerForm.active ? '● Aktif Tampil' : '○ Draf Nonaktif'}
+                      </span>
+                    </div>
+
+                    {/* Copy */}
+                    <div className="relative z-10 max-w-[70%] my-2">
+                      <h4 className="text-base font-black text-white leading-tight drop-shadow-xs">
+                        {bannerForm.title || 'Judul Banner Promosi'}
+                      </h4>
+                      <p className="text-[11px] text-stone-100/90 line-clamp-2 mt-0.5">
+                        {bannerForm.subtitle || 'Tuliskan deskripsi ringkas penawaran promosi atau keunggulan kurma di sini.'}
+                      </p>
+                    </div>
+
+                    {/* CTA button */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-black bg-amber-400 text-stone-950 px-3 py-1 rounded-xl shadow-xs">
+                        <span>{bannerForm.cta || 'Beli Sekarang'}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+
+                      <span className="text-[10px] text-white/80 font-medium">
+                        {bannerForm.isBundlingTrigger
+                          ? '🛍️ Buka Modal Bundling'
+                          : bannerForm.targetView === 'b2b-portal'
+                          ? '🌐 Buka Portal B2B'
+                          : bannerForm.targetCategory
+                          ? `🏷️ Kategori: ${bannerForm.targetCategory}`
+                          : '📦 Semua Katalog'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pilihan Mode Tampilan Banner (Full Image vs Gradien) */}
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-stone-900 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-amber-600" />
+                    <span>Format / Gaya Tampilan Banner di Beranda</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">
+                    Pilihan Tampilan
+                  </span>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Option 1: Full Image */}
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, displayMode: 'full-image' })}
+                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      bannerForm.displayMode === 'full-image'
+                        ? 'bg-white border-amber-500 ring-2 ring-amber-400/50 shadow-sm'
+                        : 'bg-white/60 border-stone-200 hover:bg-white text-stone-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🖼️</span>
+                        <span className="text-xs font-black text-stone-900">Full Image (Gambar Penuh 100%)</span>
+                      </div>
+                      {bannerForm.displayMode === 'full-image' && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      Gambar/poster promo tampil penuh &amp; jernih <strong>tanpa terganggu gradien warna</strong> atau efek pencampuran.
+                    </p>
+                  </button>
+
+                  {/* Option 2: Standard Gradient */}
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, displayMode: 'standard' })}
+                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      bannerForm.displayMode !== 'full-image'
+                        ? 'bg-white border-amber-500 ring-2 ring-amber-400/50 shadow-sm'
+                        : 'bg-white/60 border-stone-200 hover:bg-white text-stone-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🎨</span>
+                        <span className="text-xs font-black text-stone-900">Standar (Gradien Warna)</span>
+                      </div>
+                      {bannerForm.displayMode !== 'full-image' && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      Kombinasi warna gradien elegan, teks judul &amp; subjudul tebal, serta foto produk di samping kanan.
+                    </p>
+                  </button>
+                </div>
+
+                {/* Sub-options for Full Image Mode */}
+                {bannerForm.displayMode === 'full-image' && (
+                  <div className="pt-2.5 border-t border-amber-200/70 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        Penskalaan Foto (Object Fit):
+                      </label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, objectFit: 'cover' })}
+                          className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                            bannerForm.objectFit !== 'contain'
+                              ? 'bg-amber-500 text-stone-950 border-amber-600 shadow-2xs'
+                              : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          Cover (Penuh Area)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, objectFit: 'contain' })}
+                          className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                            bannerForm.objectFit === 'contain'
+                              ? 'bg-amber-500 text-stone-950 border-amber-600 shadow-2xs'
+                              : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          Contain (Utuh Proporsional)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                        Teks di Atas Gambar Poster:
+                      </label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, showTextOverlay: false })}
+                          className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                            !bannerForm.showTextOverlay
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                              : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          🚫 Poster Bersih (Murni)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, showTextOverlay: true })}
+                          className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                            bannerForm.showTextOverlay
+                              ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                              : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          📝 Tampilkan Teks
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-stone-500 mt-1">
+                        {!bannerForm.showTextOverlay
+                          ? 'Cocok jika gambar sudah memuat desain tulisan promo mandiri.'
+                          : 'Menambahkan tulisan judul banner di bagian bawah dengan bayangan lembut.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 1. URL Foto Gambar Banner */}
@@ -5718,35 +6017,53 @@ export const SellerDashboardScreen: React.FC = () => {
               </div>
 
               {/* 5. Tema Warna Gradien Background */}
-              <div>
-                <label className="block text-xs font-bold text-stone-800 mb-2">
-                  Pilih Tema Warna Latar Belakang (Gradien):
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {BANNER_GRADIENT_PRESETS.map((grad) => (
-                    <button
-                      key={grad.name}
-                      type="button"
-                      onClick={() => setBannerForm({ ...bannerForm, bgGradient: grad.value, tagColor: grad.tag })}
-                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                        bannerForm.bgGradient === grad.value
-                          ? 'border-amber-500 ring-2 ring-amber-400/40 bg-stone-50'
-                          : 'border-stone-200 hover:border-stone-400 bg-white'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${grad.value} shrink-0 shadow-xs border border-white/40`} />
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-bold text-stone-900 truncate">
-                          {grad.name}
-                        </div>
-                        <div className="text-[9px] text-stone-400 truncate">
-                          {bannerForm.bgGradient === grad.value ? '✓ Terpilih' : 'Klik pilih'}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+              {bannerForm.displayMode === 'full-image' ? (
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-stone-600">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">ℹ️</span>
+                    <span>
+                      Tema gradien warna <strong>dinonaktifkan</strong> karena Anda memilih <strong>Mode Full Image</strong> (foto/poster tampil 100% utuh &amp; alami tanpa efek gradien).
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, displayMode: 'standard' })}
+                    className="text-amber-600 font-bold hover:underline shrink-0 text-xs cursor-pointer text-left"
+                  >
+                    Beralih ke Standar Gradien →
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 mb-2">
+                    Pilih Tema Warna Latar Belakang (Gradien):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {BANNER_GRADIENT_PRESETS.map((grad) => (
+                      <button
+                        key={grad.name}
+                        type="button"
+                        onClick={() => setBannerForm({ ...bannerForm, bgGradient: grad.value, tagColor: grad.tag })}
+                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                          bannerForm.bgGradient === grad.value
+                            ? 'border-amber-500 ring-2 ring-amber-400/40 bg-stone-50'
+                            : 'border-stone-200 hover:border-stone-400 bg-white'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${grad.value} shrink-0 shadow-xs border border-white/40`} />
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-bold text-stone-900 truncate">
+                            {grad.name}
+                          </div>
+                          <div className="text-[9px] text-stone-400 truncate">
+                            {bannerForm.bgGradient === grad.value ? '✓ Terpilih' : 'Klik pilih'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 6. Status Banner */}
               <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between">

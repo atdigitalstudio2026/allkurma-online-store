@@ -36,6 +36,7 @@ import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { PromoBundlingModal, BUNDLE_DEALS, BundleDeal } from './PromoBundlingModal';
 import { StoreFollowHeader } from './StoreFollowHeader';
+import { normalizeImageUrl } from '../../utils/imageUrlHelper';
 
 interface StoryItem {
   id: string;
@@ -605,93 +606,206 @@ export const HomeScreen: React.FC = () => {
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-5 shadow-lg border border-white/20 transition-all duration-500 min-h-[180px] flex flex-col justify-between`}>
-          {/* Seller Shortcut to Banner Management */}
-          {user?.role === 'seller' && (
-            <button
-              onClick={() => setCurrentView('seller-dashboard')}
-              title="Kelola Banner dari Dashboard Seller"
-              className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/40 hover:bg-black/65 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3 h-3 text-amber-300" />
-              <span>Kelola Banner Toko</span>
-            </button>
-          )}
-
-          <div className="relative z-10 max-w-[240px]">
-            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${activeBanner.tagColor}`}>
-              {activeBanner.badge}
-            </span>
-            <h2 className="text-lg sm:text-xl font-bold leading-tight text-white drop-shadow-xs">
-              {activeBanner.title}
-            </h2>
-            <p className="text-[11px] text-white/90 mt-1.5 leading-relaxed line-clamp-2">
-              {activeBanner.subtitle}
-            </p>
-            <button 
-              onClick={() => {
-                if (activeBanner.isBundlingTrigger) {
-                  setIsBundlingModalOpen(true);
-                } else if (activeBanner.targetView) {
-                  setCurrentView(activeBanner.targetView as any);
-                } else if (activeBanner.targetCategory) {
-                  setSelectedCategory(activeBanner.targetCategory);
-                  setCurrentView('catalog');
-                } else {
-                  setCurrentView('catalog');
-                }
-              }}
-              className="mt-3 px-3.5 py-1.5 bg-white hover:bg-slate-100 active:scale-95 text-[#1E3A8A] text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            >
-              <span>{activeBanner.cta}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Background decorative image with smooth transition */}
-          <div className="absolute right-0 bottom-0 top-0 w-1/2 opacity-40 pointer-events-none">
+        {activeBanner.displayMode === 'full-image' ? (
+          <div 
+            onClick={() => {
+              if (activeBanner.isBundlingTrigger) {
+                setIsBundlingModalOpen(true);
+              } else if (activeBanner.targetView) {
+                setCurrentView(activeBanner.targetView as any);
+              } else if (activeBanner.targetCategory) {
+                setSelectedCategory(activeBanner.targetCategory);
+                setCurrentView('catalog');
+              } else {
+                setCurrentView('catalog');
+              }
+            }}
+            className="relative rounded-2xl overflow-hidden bg-stone-950 text-white shadow-lg border border-stone-200/80 transition-all duration-500 min-h-[180px] sm:min-h-[220px] flex flex-col justify-between cursor-pointer group"
+          >
+            {/* 100% Full Image without gradient color tint or wash */}
             <img 
-              src={activeBanner.image} 
+              src={normalizeImageUrl(activeBanner.image)} 
               alt={activeBanner.title} 
-              className="w-full h-full object-cover object-center mix-blend-overlay opacity-60 transition-opacity duration-700" 
+              className={`absolute inset-0 w-full h-full ${activeBanner.objectFit === 'contain' ? 'object-contain bg-stone-950' : 'object-cover'} block transition-transform duration-700 group-hover:scale-[1.02]`} 
             />
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/10 to-black/40" />
-          </div>
 
-          {/* Carousel Arrow Controls */}
-          <div className="absolute top-1/2 -translate-y-1/2 left-2 z-20">
-            <button
-              onClick={handlePrevSlide}
-              aria-label="Previous Slide"
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20">
-            <button
-              onClick={handleNextSlide}
-              aria-label="Next Slide"
-              className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* 5-Slide Indicators Dots */}
-          <div className="relative z-10 flex items-center justify-center gap-1.5 mt-3 pt-2">
-            {heroBanners.map((_, idx) => (
+            {/* Seller Shortcut to Banner Management */}
+            {user?.role === 'seller' && (
               <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                aria-label={`Go to slide ${idx + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  currentSlide === idx ? 'w-6 bg-white shadow-xs' : 'w-2 bg-white/40 hover:bg-white/70'
-                }`}
-              />
-            ))}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentView('seller-dashboard');
+                }}
+                title="Kelola Banner dari Dashboard Seller"
+                className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/60 hover:bg-black/85 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>Kelola Banner Toko</span>
+              </button>
+            )}
+
+            {/* Optional text overlay if enabled by seller */}
+            {activeBanner.showTextOverlay ? (
+              <div className="relative z-10 mt-auto pt-10 pb-4 px-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+                {activeBanner.badge && (
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-1.5 backdrop-blur-xs ${activeBanner.tagColor || 'bg-white/20 text-white border-white/30'}`}>
+                    {activeBanner.badge}
+                  </span>
+                )}
+                <h2 className="text-base sm:text-lg font-bold leading-tight text-white drop-shadow-sm">
+                  {activeBanner.title}
+                </h2>
+                {activeBanner.subtitle && (
+                  <p className="text-[11px] text-white/90 mt-0.5 leading-relaxed line-clamp-1">
+                    {activeBanner.subtitle}
+                  </p>
+                )}
+                {activeBanner.cta && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-white hover:bg-slate-100 text-[#1E3A8A] text-xs font-bold rounded-lg shadow-sm transition-all">
+                    <span>{activeBanner.cta}</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="h-full flex-1" />
+            )}
+
+            {/* Carousel Arrow Controls */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-2 z-20">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrevSlide();
+                }}
+                aria-label="Previous Slide"
+                className="w-7 h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNextSlide();
+                }}
+                aria-label="Next Slide"
+                className="w-7 h-7 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer shadow-sm"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 5-Slide Indicators Dots */}
+            <div 
+              onClick={(e) => e.stopPropagation()} 
+              className="relative z-10 flex items-center justify-center gap-1.5 pb-2.5 pt-1"
+            >
+              {heroBanners.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentSlide(idx);
+                  }}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    currentSlide === idx ? 'w-6 bg-white shadow-xs' : 'w-2 bg-white/50 hover:bg-white/80'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-5 shadow-lg border border-white/20 transition-all duration-500 min-h-[180px] flex flex-col justify-between`}>
+            {/* Seller Shortcut to Banner Management */}
+            {user?.role === 'seller' && (
+              <button
+                onClick={() => setCurrentView('seller-dashboard')}
+                title="Kelola Banner dari Dashboard Seller"
+                className="absolute top-3 right-3 z-30 flex items-center gap-1.5 text-[10px] bg-black/40 hover:bg-black/65 text-amber-300 font-bold px-2.5 py-1 rounded-full backdrop-blur-md border border-amber-400/40 shadow-xs transition-all cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>Kelola Banner Toko</span>
+              </button>
+            )}
+
+            <div className="relative z-10 max-w-[240px]">
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${activeBanner.tagColor}`}>
+                {activeBanner.badge}
+              </span>
+              <h2 className="text-lg sm:text-xl font-bold leading-tight text-white drop-shadow-xs">
+                {activeBanner.title}
+              </h2>
+              <p className="text-[11px] text-white/90 mt-1.5 leading-relaxed line-clamp-2">
+                {activeBanner.subtitle}
+              </p>
+              <button 
+                onClick={() => {
+                  if (activeBanner.isBundlingTrigger) {
+                    setIsBundlingModalOpen(true);
+                  } else if (activeBanner.targetView) {
+                    setCurrentView(activeBanner.targetView as any);
+                  } else if (activeBanner.targetCategory) {
+                    setSelectedCategory(activeBanner.targetCategory);
+                    setCurrentView('catalog');
+                  } else {
+                    setCurrentView('catalog');
+                  }
+                }}
+                className="mt-3 px-3.5 py-1.5 bg-white hover:bg-slate-100 active:scale-95 text-[#1E3A8A] text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <span>{activeBanner.cta}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Background decorative image with smooth transition */}
+            <div className="absolute right-0 bottom-0 top-0 w-1/2 opacity-40 pointer-events-none">
+              <img 
+                src={normalizeImageUrl(activeBanner.image)} 
+                alt={activeBanner.title} 
+                className="w-full h-full object-cover object-center mix-blend-overlay opacity-60 transition-opacity duration-700" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/10 to-black/40" />
+            </div>
+
+            {/* Carousel Arrow Controls */}
+            <div className="absolute top-1/2 -translate-y-1/2 left-2 z-20">
+              <button
+                onClick={handlePrevSlide}
+                aria-label="Previous Slide"
+                className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20">
+              <button
+                onClick={handleNextSlide}
+                aria-label="Next Slide"
+                className="w-7 h-7 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* 5-Slide Indicators Dots */}
+            <div className="relative z-10 flex items-center justify-center gap-1.5 mt-3 pt-2">
+              {heroBanners.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    currentSlide === idx ? 'w-6 bg-white shadow-xs' : 'w-2 bg-white/40 hover:bg-white/70'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Official Store Card with Follow Button & Followers Perk */}

@@ -451,10 +451,10 @@ export interface SystemSettings {
 
 export interface AppHeroBanner {
   id: string;
-  badge: string;
+  badge?: string;
   title: string;
-  subtitle: string;
-  cta: string;
+  subtitle?: string;
+  cta?: string;
   targetCategory?: string;
   targetView?: string;
   isBundlingTrigger?: boolean;
@@ -462,4 +462,7 @@ export interface AppHeroBanner {
   image: string;
   tagColor?: string;
   active?: boolean;
+  displayMode?: 'standard' | 'full-image';
+  showTextOverlay?: boolean;
+  objectFit?: 'cover' | 'contain';
 }
