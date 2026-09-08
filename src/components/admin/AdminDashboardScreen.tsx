@@ -224,7 +224,7 @@ export const AdminDashboardScreen: React.FC = () => {
                   className="bg-white p-2.5 rounded-xl border border-red-200 flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2">
-                    <img src={p.images[0]} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
+                    <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
                     <div>
                       <span className="font-bold text-stone-900 block truncate max-w-[140px]">{p.name}</span>
                       <span className="text-[10px] font-mono text-red-700 font-bold">

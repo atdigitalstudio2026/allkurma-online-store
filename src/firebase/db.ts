@@ -15,6 +15,28 @@ import {
 import { db } from './firebase';
 import { UserProfile, Address, Order, Product } from '../types';
 
+// Recursively remove undefined values for Firestore serialization safety
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return null as any;
+  }
+  if (Array.isArray(data)) {
+    return data
+      .filter(item => item !== undefined)
+      .map(item => sanitizeForFirestore(item)) as any;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = sanitizeForFirestore(value);
+      }
+    }
+    return cleaned as any;
+  }
+  return data;
+}
+
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
     const userDocRef = doc(db, 'users', uid);
@@ -32,11 +54,12 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 export const createUserProfile = async (uid: string, profile: UserProfile): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', uid);
-    await setDoc(userDocRef, {
+    const sanitized = sanitizeForFirestore({
       ...profile,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(userDocRef, sanitized, { merge: true });
   } catch (error) {
     console.warn('Firestore createUserProfile fallback/offline:', error);
   }
@@ -45,10 +68,11 @@ export const createUserProfile = async (uid: string, profile: UserProfile): Prom
 export const updateUserProfileDoc = async (uid: string, updates: Partial<UserProfile>): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', uid);
-    await updateDoc(userDocRef, {
+    const sanitized = sanitizeForFirestore({
       ...updates,
       updatedAt: new Date().toISOString()
     });
+    await updateDoc(userDocRef, sanitized);
   } catch (error) {
     console.warn('Firestore updateUserProfileDoc fallback/offline:', error);
   }
@@ -134,10 +158,11 @@ export const getAllOrdersFromFirestore = async (): Promise<Order[]> => {
 
 export const saveOrderToFirestore = async (order: Order): Promise<void> => {
   try {
-    await setDoc(doc(db, 'orders', order.id), {
+    const sanitized = sanitizeForFirestore({
       ...order,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(doc(db, 'orders', order.id), sanitized, { merge: true });
   } catch (error) {
     console.warn('Firestore saveOrder fallback:', error);
   }
@@ -200,10 +225,11 @@ export const getStoreSettingsFromFirestore = async (): Promise<any | null> => {
 
 export const saveStoreSettingsToFirestore = async (storeData: any): Promise<void> => {
   try {
-    await setDoc(doc(db, 'store_settings', 'allkurma'), {
+    const sanitized = sanitizeForFirestore({
       ...storeData,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(doc(db, 'store_settings', 'allkurma'), sanitized, { merge: true });
   } catch (error) {
     console.warn('Firestore saveStoreSettings fallback:', error);
   }
@@ -295,12 +321,14 @@ export const getProductsFromFirestore = async (): Promise<Product[]> => {
 export const saveProductToFirestore = async (product: Product): Promise<void> => {
   try {
     const prodRef = doc(db, 'products', product.id);
-    await setDoc(prodRef, {
+    const sanitized = sanitizeForFirestore({
       ...product,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(prodRef, sanitized, { merge: true });
+    console.log('[Firestore] Successfully synced product to cloud:', product.id, product.name);
   } catch (error) {
-    console.error('Failed to save product to Firestore:', error);
+    console.error('[Firestore] Failed to save product to Firestore:', error);
     throw error;
   }
 };

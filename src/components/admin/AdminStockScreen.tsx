@@ -95,7 +95,7 @@ export const AdminStockScreen: React.FC = () => {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <img
-                    src={prod.images[0]}
+                    src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                     alt={prod.name}
                     className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0"
                   />

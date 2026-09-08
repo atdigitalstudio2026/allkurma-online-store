@@ -329,7 +329,11 @@ export class PaymentService {
       paymentCode = vaNumber;
       bankName = method.name;
     } else if (method.category === 'bank_transfer') {
-      const primaryBank = this.config.manualAccounts[0];
+      const primaryBank = this.config.manualAccounts?.[0] || {
+        bank: 'BCA (Bank Central Asia)',
+        accountNumber: '873-091-8899',
+        holder: 'PT ALL KURMA INDONESIA'
+      };
       bankName = primaryBank.bank;
       paymentCode = primaryBank.accountNumber;
       accountHolder = primaryBank.holder;

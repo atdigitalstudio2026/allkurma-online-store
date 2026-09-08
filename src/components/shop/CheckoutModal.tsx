@@ -268,7 +268,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onClose, directBuy
             productId: it.product.id,
             productName: it.selectedVariation ? `${it.product.name} - ${it.selectedVariation.name}` : it.product.name,
             sku: it.selectedVariation?.sku || it.product.sku,
-            image: it.product.images[0],
+            image: it.product.images?.[0] || '',
             unitPrice,
             quantity: it.quantity,
             lineTotal: unitPrice * it.quantity,
@@ -750,7 +750,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ onClose, directBuy
                 return (
                   <div key={idx} className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-stone-200">
                     <img
-                      src={it.product.images[0]}
+                      src={it.product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                       alt={it.product.name}
                       className="w-10 h-10 rounded-lg object-cover border border-stone-100 shrink-0"
                     />

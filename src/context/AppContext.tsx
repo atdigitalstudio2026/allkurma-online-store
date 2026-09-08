@@ -687,30 +687,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsFirebaseConnected(true);
         setIsProductsLoading(false);
 
-        if (cloudProducts && cloudProducts.length > 0) {
-          // Cloud has products! Update state & local storage cache
-          setProducts(cloudProducts);
-          localStorage.setItem('allkurma_products', JSON.stringify(cloudProducts));
-        } else {
-          // Cloud has NO products yet (first time initialization).
-          // If local storage has products from user uploads, migrate them to cloud!
-          const saved = localStorage.getItem('allkurma_products');
-          let localList: Product[] = [];
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                localList = parsed.filter((p: Product) => p?.id && !/^prod-0[1-9]$/.test(p.id));
-              }
-            } catch {}
-          }
+        // Check if there are local products created on this machine that were not synced yet
+        const saved = localStorage.getItem('allkurma_products');
+        const deletedIdsStr = localStorage.getItem('allkurma_deleted_ids');
+        const deletedIds = new Set<string>(deletedIdsStr ? JSON.parse(deletedIdsStr) : []);
 
-          if (localList.length > 0) {
-            console.log('Migrating local products to Firestore cloud database...', localList.length);
-            for (const item of localList) {
+        let localProducts: Product[] = [];
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              localProducts = parsed.filter(
+                (p: Product) => p?.id && !deletedIds.has(p.id) && !/^prod-0[1-9]$/.test(p.id)
+              );
+            }
+          } catch (e) {
+            console.warn('Failed parsing local products for sync check:', e);
+          }
+        }
+
+        const cloudIdSet = new Set((cloudProducts || []).map(p => p.id));
+        const unsyncedLocals = localProducts.filter(p => !cloudIdSet.has(p.id));
+
+        if (unsyncedLocals.length > 0) {
+          console.log('[Firestore] Synchronizing local products to cloud server...', unsyncedLocals.length);
+          for (const item of unsyncedLocals) {
+            try {
               await saveProductToFirestore(item);
+            } catch (err) {
+              console.warn('Auto sync of local product failed:', item.id, err);
             }
           }
+          // Merge local and cloud products so user sees their product immediately
+          const combined = [...unsyncedLocals, ...(cloudProducts || [])];
+          setProducts(combined);
+          localStorage.setItem('allkurma_products', JSON.stringify(combined));
+        } else {
+          setProducts(cloudProducts || []);
+          localStorage.setItem('allkurma_products', JSON.stringify(cloudProducts || []));
         }
       },
       (err) => {
@@ -941,6 +955,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isNewArrival: newProd.isNewArrival !== undefined ? newProd.isNewArrival : true
     };
 
+    // Remove from deleted tracking if re-added
+    try {
+      const deletedIdsStr = localStorage.getItem('allkurma_deleted_ids');
+      if (deletedIdsStr) {
+        const deletedSet = new Set(JSON.parse(deletedIdsStr));
+        deletedSet.delete(id);
+        localStorage.setItem('allkurma_deleted_ids', JSON.stringify(Array.from(deletedSet)));
+      }
+    } catch {}
+
     // Update local state and cache immediately
     setProducts(prev => {
       const updated = [productWithId, ...prev];
@@ -951,8 +975,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Write to Firebase Firestore cloud so all computers get it in real-time
     try {
       await saveProductToFirestore(productWithId);
+      console.log('[Product] Saved and broadcasted via Firestore cloud:', productWithId.id);
     } catch (err) {
-      console.warn('Could not save product to Firestore cloud:', err);
+      console.error('Could not save product to Firestore cloud:', err);
+      showToast('Peringatan: Gagal menyimpan ke server cloud Firestore. Periksa koneksi internet.', 'error');
     }
     
     // Notify followers of new product arrival!
@@ -997,6 +1023,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProduct = async (id: string) => {
+    // Record as deleted to prevent resurrection from local cache
+    try {
+      const deletedIdsStr = localStorage.getItem('allkurma_deleted_ids');
+      const deletedSet = new Set(deletedIdsStr ? JSON.parse(deletedIdsStr) : []);
+      deletedSet.add(id);
+      localStorage.setItem('allkurma_deleted_ids', JSON.stringify(Array.from(deletedSet)));
+    } catch {}
+
     setProducts(prev => {
       const filtered = prev.filter(p => p.id !== id);
       localStorage.setItem('allkurma_products', JSON.stringify(filtered));
@@ -1016,6 +1050,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearAllProducts = async () => {
     const currentList = [...products];
+    try {
+      const deletedIdsStr = localStorage.getItem('allkurma_deleted_ids');
+      const deletedSet = new Set(deletedIdsStr ? JSON.parse(deletedIdsStr) : []);
+      currentList.forEach(p => deletedSet.add(p.id));
+      localStorage.setItem('allkurma_deleted_ids', JSON.stringify(Array.from(deletedSet)));
+    } catch {}
+
     setProducts([]);
     setCart([]);
     setWishlistProductIds([]);
@@ -1206,7 +1247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         productId: item.product.id,
         productName: item.product.name,
         sku: item.product.sku,
-        image: item.product.images[0],
+        image: item.product.images?.[0] || '',
         unitPrice: item.product.discountPrice || item.product.regularPrice,
         quantity: item.quantity,
         lineTotal: (item.product.discountPrice || item.product.regularPrice) * item.quantity

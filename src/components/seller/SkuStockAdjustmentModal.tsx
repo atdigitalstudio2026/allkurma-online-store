@@ -131,7 +131,7 @@ export const SkuStockAdjustmentModal: React.FC<SkuStockAdjustmentModalProps> = (
           {/* Target Product Summary Banner */}
           <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 flex items-center gap-3">
             <img
-              src={product.images[0]}
+              src={product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
               alt={product.name}
               className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0"
             />

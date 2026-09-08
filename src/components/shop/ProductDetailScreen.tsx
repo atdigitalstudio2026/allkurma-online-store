@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
 import { 
   ArrowLeft, 
   Share2, 
@@ -30,7 +32,7 @@ import {
   Link2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ProductVariation } from '../../types';
+import { Product, ProductVariation } from '../../types';
 import { ShopeeReviewsSection } from './ShopeeReviewsSection';
 import { StoreFollowHeader } from './StoreFollowHeader';
 
@@ -49,9 +51,35 @@ export const ProductDetailScreen: React.FC = () => {
     getProductShareUrl
   } = useApp();
 
+  const [directFetchedProduct, setDirectFetchedProduct] = useState<Product | null>(null);
+  const [isFetchingDirect, setIsFetchingDirect] = useState(false);
+
+  useEffect(() => {
+    if (selectedProductId && !products.find(p => p.id === selectedProductId)) {
+      let isMounted = true;
+      setIsFetchingDirect(true);
+      getDoc(doc(db, 'products', selectedProductId))
+        .then((snap) => {
+          if (!isMounted) return;
+          setIsFetchingDirect(false);
+          if (snap.exists()) {
+            setDirectFetchedProduct({ id: snap.id, ...(snap.data() as Omit<Product, 'id'>) });
+          }
+        })
+        .catch(() => {
+          if (isMounted) setIsFetchingDirect(false);
+        });
+      return () => {
+        isMounted = false;
+      };
+    } else {
+      setDirectFetchedProduct(null);
+    }
+  }, [selectedProductId, products]);
+
   const matchedProduct = selectedProductId 
-    ? products.find(p => p.id === selectedProductId)
-    : products[0];
+    ? (products.find(p => p.id === selectedProductId) || directFetchedProduct)
+    : (products[0] || directFetchedProduct);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | undefined>(
@@ -73,7 +101,7 @@ export const ProductDetailScreen: React.FC = () => {
   }, [matchedProduct?.id]);
 
   // If viewing via a direct link and Firestore products are still synchronizing
-  if (selectedProductId && !matchedProduct && isProductsLoading) {
+  if (selectedProductId && !matchedProduct && (isProductsLoading || isFetchingDirect)) {
     return (
       <div className="max-w-md mx-auto px-4 py-28 text-center font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="w-12 h-12 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -229,7 +257,7 @@ export const ProductDetailScreen: React.FC = () => {
       <div className="relative bg-white border-b border-stone-200">
         <div className="aspect-square w-full overflow-hidden flex items-center justify-center bg-stone-100">
           <img
-            src={product.images[selectedImageIndex] || product.images[0]}
+            src={product.images?.[selectedImageIndex] || product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
             alt={product.name}
             className="w-full h-full object-cover"
           />

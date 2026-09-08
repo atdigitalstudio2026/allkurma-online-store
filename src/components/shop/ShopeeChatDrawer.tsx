@@ -64,7 +64,7 @@ export const ShopeeChatDrawer: React.FC = () => {
       {
         id: activeProduct.id,
         name: activeProduct.name,
-        image: activeProduct.images[0],
+        image: activeProduct.images?.[0] || '',
         price: activeProduct.discountPrice || activeProduct.regularPrice
       }
     );
@@ -127,7 +127,7 @@ export const ShopeeChatDrawer: React.FC = () => {
           <div className="bg-white p-2.5 px-3 border-b border-stone-200 flex items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <img 
-                src={activeProduct.images[0]} 
+                src={activeProduct.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'} 
                 alt={activeProduct.name} 
                 className="w-10 h-10 rounded-lg object-cover bg-stone-100 shrink-0" 
               />

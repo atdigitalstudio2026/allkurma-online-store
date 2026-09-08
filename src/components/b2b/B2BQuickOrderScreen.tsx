@@ -165,7 +165,7 @@ export const B2BQuickOrderScreen: React.FC = () => {
                   className="p-2.5 flex items-center justify-between hover:bg-amber-50 cursor-pointer text-xs transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <img src={p.images[0]} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
+                    <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'} alt={p.name} className="w-8 h-8 rounded-md object-cover" />
                     <div>
                       <span className="font-bold text-stone-900 block">{p.name}</span>
                       <span className="text-[10px] font-mono text-stone-500">SKU: {p.sku} • Stok: {p.stock}</span>
@@ -202,7 +202,7 @@ export const B2BQuickOrderScreen: React.FC = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <img
-                      src={row.product.images[0]}
+                      src={row.product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                       alt={row.product.name}
                       className="w-12 h-12 rounded-xl object-cover border border-stone-100 shrink-0"
                     />

@@ -192,7 +192,7 @@ export const CartScreen: React.FC = () => {
 
                   {/* Image */}
                   <img
-                    src={product.images[0]}
+                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                     alt={product.name}
                     className="w-16 h-16 rounded-xl object-cover border border-stone-100 shrink-0 bg-stone-100"
                   />

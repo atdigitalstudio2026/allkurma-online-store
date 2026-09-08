@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import firebaseConfigData from '../../firebase-applet-config.json';
 
 const firebaseConfig = {
@@ -24,7 +24,16 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Initialize Cloud Firestore with custom database ID
-export const db = getFirestore(app, firebaseConfigData.firestoreDatabaseId || undefined);
+// Initialize Cloud Firestore with custom database ID & ignoreUndefinedProperties
+let firestoreInstance: any;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    ignoreUndefinedProperties: true
+  }, firebaseConfigData.firestoreDatabaseId || undefined);
+} catch {
+  firestoreInstance = getFirestore(app, firebaseConfigData.firestoreDatabaseId || undefined);
+}
+
+export const db = firestoreInstance;
 
 export default app;

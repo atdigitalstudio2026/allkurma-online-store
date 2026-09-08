@@ -1531,7 +1531,7 @@ export const HomeScreen: React.FC = () => {
               >
                 <div className="relative aspect-square bg-stone-100 overflow-hidden">
                   <img
-                    src={prod.images[0]}
+                    src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
                     alt={prod.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -1561,7 +1561,7 @@ export const HomeScreen: React.FC = () => {
                     )}
                   </div>
                   <p className="text-[9px] text-stone-500 mt-0.5">
-                    Mulai dari {prod.wholesalePrices[0] ? `Rp ${prod.wholesalePrices[prod.wholesalePrices.length - 1].pricePerUnit.toLocaleString('id-ID')}/pcs` : 'Harga Grosir'}
+                    Mulai dari {prod.wholesalePrices && prod.wholesalePrices.length > 0 && prod.wholesalePrices[0] ? `Rp ${prod.wholesalePrices[prod.wholesalePrices.length - 1].pricePerUnit.toLocaleString('id-ID')}/pcs` : 'Harga Grosir'}
                   </p>
                 </div>
               </div>
