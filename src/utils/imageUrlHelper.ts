@@ -9,9 +9,16 @@ export function normalizeImageUrl(rawUrl: string): string {
 
   // 1. Handle Dropbox URLs
   // Standard Dropbox share links: https://www.dropbox.com/scl/fi/.../image.jpeg?rlkey=...&st=...&dl=0
-  // To serve directly as an image in <img src="...">, change dl=0 to raw=1
-  if (trimmed.includes('dropbox.com')) {
+  // To serve directly as an image in <img src="...">, convert to dl.dropboxusercontent.com and set raw=1
+  if (trimmed.includes('dropbox.com') || trimmed.includes('dropboxusercontent.com')) {
     let normalized = trimmed;
+
+    // Convert host to dl.dropboxusercontent.com for instant direct CDN delivery without redirect
+    if (normalized.includes('www.dropbox.com')) {
+      normalized = normalized.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+    } else if (normalized.includes('dropbox.com') && !normalized.includes('dropboxusercontent.com')) {
+      normalized = normalized.replace('dropbox.com', 'dl.dropboxusercontent.com');
+    }
 
     // Replace dl=0 or dl=1 with raw=1
     if (normalized.includes('dl=0')) {

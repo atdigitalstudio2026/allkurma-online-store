@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Share2, 
@@ -24,7 +24,10 @@ import {
   Layers,
   Globe,
   Shield,
-  Box
+  Box,
+  Copy,
+  ExternalLink,
+  Link2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ProductVariation } from '../../types';
@@ -41,38 +44,104 @@ export const ProductDetailScreen: React.FC = () => {
     showToast,
     wishlistProductIds,
     toggleWishlist,
-    setIsChatOpen
+    setIsChatOpen,
+    isProductsLoading,
+    getProductShareUrl
   } = useApp();
 
-  const product = products.find(p => p.id === selectedProductId) || products[0];
+  const matchedProduct = selectedProductId 
+    ? products.find(p => p.id === selectedProductId)
+    : products[0];
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | undefined>(
-    product?.variations?.[1] || product?.variations?.[0]
+    matchedProduct?.variations?.[1] || matchedProduct?.variations?.[0]
   );
   const [buyQty, setBuyQty] = useState(1);
   const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
   const [quotationNote, setQuotationNote] = useState('');
   const [quotationCompany, setQuotationCompany] = useState('');
   const [quotationQty, setQuotationQty] = useState(50);
+  const [copiedLink, setCopiedLink] = useState(false);
 
-  if (!product) {
+  useEffect(() => {
+    if (matchedProduct) {
+      setSelectedVariation(matchedProduct.variations?.[1] || matchedProduct.variations?.[0]);
+      setSelectedImageIndex(0);
+      setBuyQty(1);
+    }
+  }, [matchedProduct?.id]);
+
+  // If viewing via a direct link and Firestore products are still synchronizing
+  if (selectedProductId && !matchedProduct && isProductsLoading) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-28 text-center font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-12 h-12 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <h2 className="text-base font-bold text-stone-800">Menghubungkan ke Database Cloud...</h2>
+        <p className="text-xs text-stone-500 mt-1">Mengambil data produk ({selectedProductId}) dari database toko Firebase...</p>
+      </div>
+    );
+  }
+
+  if (!matchedProduct) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-stone-400">
           <Box className="w-8 h-8" />
         </div>
         <h2 className="text-lg font-bold text-stone-800">Produk Tidak Ditemukan</h2>
-        <p className="text-xs text-stone-500 mt-1">Produk telah dihapus atau belum tersedia di etalase toko.</p>
+        <p className="text-xs text-stone-500 mt-1">
+          {selectedProductId ? `Produk dengan ID "${selectedProductId}" belum tersedia atau telah dihapus.` : 'Produk belum tersedia di etalase toko.'}
+        </p>
         <button
-          onClick={() => setCurrentView('home')}
+          onClick={() => setCurrentView('catalog')}
           className="mt-5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Beranda</span>
+          <span>Lihat Katalog Produk Toko</span>
         </button>
       </div>
     );
   }
+
+  const product = matchedProduct;
+  const directProductUrl = getProductShareUrl(product.id);
+
+  const handleShareProduct = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${product.name} - SRA AllKurma`,
+          text: `Beli ${product.name} kualitas grade premium di SRA AllKurma:`,
+          url: directProductUrl
+        });
+        showToast('Link produk berhasil dibagikan!', 'success');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(directProductUrl);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2500);
+        showToast('Link unik produk berhasil disalin!', 'success');
+      } else {
+        showToast(`Link produk: ${directProductUrl}`, 'info');
+      }
+    } catch {
+      showToast('Gagal menyalin link secara otomatis.', 'error');
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = encodeURIComponent(
+      `Assalamu'alaikum! Cek produk pilihan ${product.name} di SRA AllKurma Official Store: ${directProductUrl}`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
 
   const isFavorite = wishlistProductIds.includes(product.id);
 
@@ -135,14 +204,9 @@ export const ProductDetailScreen: React.FC = () => {
           </button>
 
           <button 
-            onClick={() => {
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(window.location.href);
-                showToast('Link produk berhasil disalin!');
-              }
-            }}
+            onClick={handleShareProduct}
             className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
-            title="Bagikan"
+            title="Bagikan Link Produk"
           >
             <Share2 className="w-4 h-4" />
           </button>
@@ -460,6 +524,69 @@ export const ProductDetailScreen: React.FC = () => {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 5.1 Deep Link & Bagikan Produk Card */}
+      <div className="mt-3 p-4 bg-white border-y border-stone-200">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Link2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs text-stone-900">Link Unik Produk</h3>
+              <p className="text-[10px] text-stone-500">Tautan langsung tertuju ke produk ini saat dibagikan</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+            Direct Link
+          </span>
+        </div>
+
+        {/* Link Display Box with Copy Button */}
+        <div className="flex items-center gap-2 p-2 bg-stone-50 border border-stone-200 rounded-xl mb-3">
+          <div className="flex-1 font-mono text-[11px] text-stone-700 truncate select-all px-1">
+            {directProductUrl}
+          </div>
+          <button
+            onClick={handleShareProduct}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+              copiedLink 
+                ? 'bg-emerald-600 text-white shadow-xs' 
+                : 'bg-stone-800 hover:bg-stone-900 text-white'
+            }`}
+          >
+            {copiedLink ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Salin Link</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Share buttons: WhatsApp & Web Share */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Bagikan via WhatsApp</span>
+          </button>
+          <button
+            onClick={handleShareProduct}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold transition-colors"
+          >
+            <Share2 className="w-3.5 h-3.5 text-amber-700" />
+            <span>Bagikan Lainnya</span>
+          </button>
         </div>
       </div>
 

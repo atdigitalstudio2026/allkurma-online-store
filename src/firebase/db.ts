@@ -9,10 +9,11 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
-  orderBy
+  orderBy,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order } from '../types';
+import { UserProfile, Address, Order, Product } from '../types';
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
@@ -207,3 +208,109 @@ export const saveStoreSettingsToFirestore = async (storeData: any): Promise<void
     console.warn('Firestore saveStoreSettings fallback:', error);
   }
 };
+
+export const listenToStoreSettingsFromFirestore = (
+  onSuccess: (settings: any) => void
+): (() => void) => {
+  try {
+    const unsubscribe = onSnapshot(
+      doc(db, 'store_settings', 'allkurma'),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onSuccess(docSnap.data());
+        }
+      },
+      (err) => {
+        console.warn('Store settings listener warning:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (e) {
+    console.warn('Could not attach store settings listener:', e);
+    return () => {};
+  }
+};
+
+// ==========================================
+// Products Real-time Synchronization across All Devices
+// ==========================================
+
+export const listenToProductsFromFirestore = (
+  onSuccess: (products: Product[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const productsColl = collection(db, 'products');
+    const unsubscribe = onSnapshot(
+      productsColl,
+      (snapshot) => {
+        const items: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<Product, 'id'>)
+          });
+        });
+
+        // Order products: newest first
+        items.sort((a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToProducts snapshot error:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach products listener:', err);
+    return () => {};
+  }
+};
+
+export const getProductsFromFirestore = async (): Promise<Product[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'products'));
+    const list: Product[] = [];
+    querySnapshot.forEach((d) => {
+      list.push({ id: d.id, ...(d.data() as Omit<Product, 'id'>) });
+    });
+    list.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
+    return list;
+  } catch (error) {
+    console.warn('Firestore getProducts fallback:', error);
+    return [];
+  }
+};
+
+export const saveProductToFirestore = async (product: Product): Promise<void> => {
+  try {
+    const prodRef = doc(db, 'products', product.id);
+    await setDoc(prodRef, {
+      ...product,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Failed to save product to Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteProductFromFirestore = async (productId: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'products', productId));
+  } catch (error) {
+    console.error('Failed to delete product from Firestore:', error);
+    throw error;
+  }
+};
+

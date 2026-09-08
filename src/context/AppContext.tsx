@@ -48,7 +48,16 @@ import {
 } from '../data/mockData';
 import { normalizeImageUrl } from '../utils/imageUrlHelper';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
-import { getUserProfile, getStoreSettingsFromFirestore, saveStoreSettingsToFirestore } from '../firebase/db';
+import { 
+  getUserProfile, 
+  getStoreSettingsFromFirestore, 
+  saveStoreSettingsToFirestore,
+  listenToStoreSettingsFromFirestore,
+  listenToProductsFromFirestore,
+  saveProductToFirestore,
+  deleteProductFromFirestore
+} from '../firebase/db';
+import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
 
 export type AppView =
   | 'home'
@@ -127,6 +136,9 @@ interface AppContextType {
   
   // Products
   products: Product[];
+  isProductsLoading: boolean;
+  isFirebaseConnected: boolean;
+  getProductShareUrl: (productId: string) => string;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -288,12 +300,44 @@ interface AppContextType {
   setIsQuickOrderOpen: (open: boolean) => void;
 }
 
+const getInitialNavState = (): { view: AppView; productId: string | null } => {
+  if (typeof window === 'undefined') return { view: 'home', productId: null };
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const prodId = searchParams.get('productId') || searchParams.get('product') || searchParams.get('id');
+    const viewParam = searchParams.get('view') as AppView;
+
+    // Check hash fallback (e.g. #product=prod-123 or #/product/prod-123)
+    let hashProdId: string | null = null;
+    if (window.location.hash) {
+      const match = window.location.hash.match(/(?:product|prod)[=/]([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        hashProdId = match[1];
+      }
+    }
+
+    const effectiveProdId = prodId || hashProdId;
+    if (effectiveProdId) {
+      return { view: 'product-detail', productId: effectiveProdId };
+    }
+    if (viewParam) {
+      return { view: viewParam, productId: null };
+    }
+  } catch (e) {
+    console.warn('Failed reading initial URL params:', e);
+  }
+  return { view: 'home', productId: null };
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Navigation
-  const [currentView, setCurrentView] = useState<AppView>('home');
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // Navigation & Deep Linking State from URL
+  const initialNav = getInitialNavState();
+  const [currentView, setCurrentView] = useState<AppView>(initialNav.view);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(initialNav.productId);
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(true);
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -566,34 +610,144 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(heroBanners));
   }, [heroBanners]);
 
-  // Sync Store Settings & Staff Whitelist from Firestore on Startup
+  // Deep Linking: Synchronize URL query parameters when viewing a product or changing view
   useEffect(() => {
-    const fetchCloudStoreSettings = async () => {
-      try {
-        const cloudSettings = await getStoreSettingsFromFirestore();
-        if (cloudSettings) {
-          setSellerStore(prev => {
-            // Merge authorized staff ensuring no duplicates
-            const currentStaff = prev.authorizedStaff || [];
-            const cloudStaff = cloudSettings.authorizedStaff || [];
-            const mergedMap = new Map();
-            [...currentStaff, ...cloudStaff].forEach(s => {
-              if (s?.email) mergedMap.set(s.email.toLowerCase().trim(), s);
-            });
+    if (typeof window === 'undefined') return;
+    try {
+      const currentUrl = new URL(window.location.href);
+      const urlProdId = currentUrl.searchParams.get('productId') || currentUrl.searchParams.get('product');
 
-            return {
-              ...prev,
-              ...cloudSettings,
-              authorizedStaff: Array.from(mergedMap.values())
-            };
-          });
+      if (currentView === 'product-detail' && selectedProductId) {
+        if (urlProdId !== selectedProductId) {
+          currentUrl.searchParams.set('productId', selectedProductId);
+          currentUrl.searchParams.delete('product');
+          currentUrl.searchParams.delete('id');
+          window.history.pushState({ view: 'product-detail', productId: selectedProductId }, '', currentUrl.toString());
         }
-      } catch (err) {
-        console.warn('Could not sync store settings from Firestore:', err);
+      } else {
+        if (urlProdId) {
+          currentUrl.searchParams.delete('productId');
+          currentUrl.searchParams.delete('product');
+          currentUrl.searchParams.delete('id');
+          window.history.pushState({ view: currentView }, '', currentUrl.toString());
+        }
+      }
+    } catch (e) {
+      console.warn('URL sync error:', e);
+    }
+  }, [currentView, selectedProductId]);
+
+  // Browser Navigation: Listen to popstate (Back / Forward)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const prodId = searchParams.get('productId') || searchParams.get('product') || searchParams.get('id');
+        if (prodId) {
+          setSelectedProductId(prodId);
+          setCurrentView('product-detail');
+        } else {
+          const viewParam = searchParams.get('view') as AppView;
+          if (viewParam) {
+            setCurrentView(viewParam);
+          } else {
+            setCurrentView(prev => (prev === 'product-detail' ? 'catalog' : prev));
+          }
+          setSelectedProductId(null);
+        }
+      } catch (e) {
+        console.warn('PopState error:', e);
       }
     };
 
-    fetchCloudStoreSettings();
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Helper to generate full shareable product link
+  const getProductShareUrl = (productId: string): string => {
+    if (typeof window === 'undefined') return '';
+    try {
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set('productId', productId);
+      return url.toString();
+    } catch {
+      return `${window.location.origin}/?productId=${productId}`;
+    }
+  };
+
+  // Real-time synchronization of products across all devices using Firestore
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToProductsFromFirestore(
+      async (cloudProducts) => {
+        if (!isSubscribed) return;
+        setIsFirebaseConnected(true);
+        setIsProductsLoading(false);
+
+        if (cloudProducts && cloudProducts.length > 0) {
+          // Cloud has products! Update state & local storage cache
+          setProducts(cloudProducts);
+          localStorage.setItem('allkurma_products', JSON.stringify(cloudProducts));
+        } else {
+          // Cloud has NO products yet (first time initialization).
+          // If local storage has products from user uploads, migrate them to cloud!
+          const saved = localStorage.getItem('allkurma_products');
+          let localList: Product[] = [];
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                localList = parsed.filter((p: Product) => p?.id && !/^prod-0[1-9]$/.test(p.id));
+              }
+            } catch {}
+          }
+
+          if (localList.length > 0) {
+            console.log('Migrating local products to Firestore cloud database...', localList.length);
+            for (const item of localList) {
+              await saveProductToFirestore(item);
+            }
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore products listener warning:', err);
+        setIsProductsLoading(false);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Real-time synchronization of store settings & staff whitelist across devices
+  useEffect(() => {
+    const unsubscribe = listenToStoreSettingsFromFirestore((cloudSettings) => {
+      if (cloudSettings) {
+        setSellerStore(prev => {
+          const currentStaff = prev.authorizedStaff || [];
+          const cloudStaff = cloudSettings.authorizedStaff || [];
+          const mergedMap = new Map();
+          [...currentStaff, ...cloudStaff].forEach(s => {
+            if (s?.email) mergedMap.set(s.email.toLowerCase().trim(), s);
+          });
+
+          return {
+            ...prev,
+            ...cloudSettings,
+            logo: cloudSettings.logo || prev.logo || OFFICIAL_SRA_LOGO_URL,
+            authorizedStaff: Array.from(mergedMap.values())
+          };
+        });
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Listen to Firebase Auth State changes for secure session persistence
@@ -774,8 +928,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Beralih ke mode akun: ${newRole.replace('_', ' ').toUpperCase()}`, 'info');
   };
 
-  // Products CRUD
-  const addProduct = (newProd: Omit<Product, 'id'>) => {
+  // Products CRUD with Instant Local + Cloud Firestore Synchronization
+  const addProduct = async (newProd: Omit<Product, 'id'>) => {
     const id = `prod-${Date.now().toString(36)}`;
     const normalizedImages = newProd.images?.map(img => normalizeImageUrl(img)).filter(Boolean) || [];
     const finalImages = normalizedImages;
@@ -786,11 +940,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: newProd.createdAt || new Date().toISOString(),
       isNewArrival: newProd.isNewArrival !== undefined ? newProd.isNewArrival : true
     };
+
+    // Update local state and cache immediately
     setProducts(prev => {
       const updated = [productWithId, ...prev];
       localStorage.setItem('allkurma_products', JSON.stringify(updated));
       return updated;
     });
+
+    // Write to Firebase Firestore cloud so all computers get it in real-time
+    try {
+      await saveProductToFirestore(productWithId);
+    } catch (err) {
+      console.warn('Could not save product to Firestore cloud:', err);
+    }
     
     // Notify followers of new product arrival!
     addNotification({
@@ -801,19 +964,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isRead: false
     });
 
-    showToast(`Produk "${productWithId.name}" berhasil ditambahkan & disiarkan ke pengikut!`, 'success');
+    showToast(`Produk "${productWithId.name}" berhasil ditambahkan & tersimpan ke cloud!`, 'success');
   };
 
-  const updateProduct = (id: string, updated: Partial<Product>) => {
+  const updateProduct = async (id: string, updated: Partial<Product>) => {
     const sanitizedUpdated = { ...updated };
     if (updated.images) {
       sanitizedUpdated.images = updated.images.map(img => normalizeImageUrl(img));
     }
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...sanitizedUpdated } : p));
-    showToast('Data produk berhasil diperbarui');
+
+    let updatedProductObj: Product | null = null;
+    setProducts(prev => {
+      const next = prev.map(p => {
+        if (p.id === id) {
+          updatedProductObj = { ...p, ...sanitizedUpdated };
+          return updatedProductObj;
+        }
+        return p;
+      });
+      localStorage.setItem('allkurma_products', JSON.stringify(next));
+      return next;
+    });
+
+    if (updatedProductObj) {
+      try {
+        await saveProductToFirestore(updatedProductObj);
+      } catch (err) {
+        console.warn('Could not update product in Firestore cloud:', err);
+      }
+    }
+    showToast('Data produk berhasil diperbarui di cloud');
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     setProducts(prev => {
       const filtered = prev.filter(p => p.id !== id);
       localStorage.setItem('allkurma_products', JSON.stringify(filtered));
@@ -822,17 +1005,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCart(prev => prev.filter(item => item.product?.id !== id));
     setWishlistProductIds(prev => prev.filter(pId => pId !== id));
     setSelectedProductId(prev => (prev === id ? null : prev));
-    showToast('Produk berhasil dihapus dari etalase toko', 'success');
+
+    try {
+      await deleteProductFromFirestore(id);
+    } catch (err) {
+      console.warn('Could not delete product from Firestore cloud:', err);
+    }
+    showToast('Produk berhasil dihapus dari etalase toko & cloud', 'success');
   };
 
-  const clearAllProducts = () => {
+  const clearAllProducts = async () => {
+    const currentList = [...products];
     setProducts([]);
     setCart([]);
     setWishlistProductIds([]);
     setSelectedProductId(null);
     localStorage.removeItem('allkurma_products');
     localStorage.removeItem('allkurma_cart');
-    showToast('Semua produk katalog telah berhasil dikosongkan', 'success');
+
+    for (const p of currentList) {
+      try {
+        await deleteProductFromFirestore(p.id);
+      } catch (err) {
+        console.warn('Failed deleting product during clearAll:', p.id, err);
+      }
+    }
+    showToast('Semua produk katalog telah berhasil dikosongkan dari cloud', 'success');
   };
 
   // Cart Management with Variations & Dynamic Wholesale Pricing
@@ -1715,6 +1913,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switchRole,
         tiers: WHOLESALE_TIERS,
         products,
+        isProductsLoading,
+        isFirebaseConnected,
+        getProductShareUrl,
         addProduct,
         updateProduct,
         deleteProduct,

@@ -748,7 +748,7 @@ export const INITIAL_SELLER_STORE: SellerStoreProfile = {
   storeHandle: '@allkurma.official',
   tagline: 'Pusat Kurma Impor Timur Tengah & Grosir Berkah Se-Indonesia',
   description: 'Supplier dan distributor resmi langsung dari perkebunan kurma Madinah, Al Qassim, California, dan Tunisia. Menyediakan kurma retail kemasan higienis ber-BPOM dan partai besar kartonan grosir.',
-  logo: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80',
+  logo: 'https://dl.dropboxusercontent.com/scl/fi/nb2nlqyg2burby32mfadd/SRA-logo-jpg.jpg.jpeg?rlkey=0dvqdlukpnotnkudj76bfdw24&st=5rg8xcav&raw=1',
   banner: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80',
   city: 'Jakarta Pusat',
   fullAddress: 'Jl. Tanah Abang Bukit No. 88, Petojo Selatan, Gambir, Jakarta Pusat 10160',

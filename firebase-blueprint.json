@@ -78,6 +78,44 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id", "customerId", "status", "totalAmount", "items"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Store product catalog item synchronized across all devices.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "images": { "type": "array" },
+        "regularPrice": { "type": "number" },
+        "discountPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "origin": { "type": "string" },
+        "weightGram": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "soldCount": { "type": "number" },
+        "isNewArrival": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "regularPrice", "stock"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Store profile branding and settings synchronized across devices.",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "logo": { "type": "string" },
+        "banner": { "type": "string" },
+        "city": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "authorizedStaff": { "type": "array" }
+      }
     }
   },
   "firestore": {
@@ -96,6 +134,14 @@
     "orders": {
       "schema": "Order",
       "description": "Stores customer orders."
+    },
+    "products": {
+      "schema": "Product",
+      "description": "Stores product catalog items synchronized across devices."
+    },
+    "store_settings": {
+      "schema": "StoreSettings",
+      "description": "Stores store profile settings and authorized staff."
     }
   }
 }

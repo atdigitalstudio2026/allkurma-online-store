@@ -59,7 +59,9 @@ import {
   CalendarDays,
   Flame,
   Zap,
-  Timer
+  Timer,
+  Share2,
+  Link2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner } from '../../types';
@@ -118,7 +120,8 @@ export const SellerDashboardScreen: React.FC = () => {
     addHeroBanner,
     updateHeroBanner,
     deleteHeroBanner,
-    resetHeroBanners
+    resetHeroBanners,
+    getProductShareUrl
   } = useApp();
 
   // Active Tab in Seller Center
@@ -3001,6 +3004,22 @@ export const SellerDashboardScreen: React.FC = () => {
                                     title="Lihat Tampilan Pembeli"
                                   >
                                     <Eye className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Copy Direct Product Link */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const url = getProductShareUrl(prod.id);
+                                      if (navigator.clipboard) {
+                                        navigator.clipboard.writeText(url);
+                                        showToast(`Link produk "${prod.name}" berhasil disalin! Siap dishare.`, 'success');
+                                      }
+                                    }}
+                                    className="p-1.5 text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-600 rounded-lg transition-colors cursor-pointer"
+                                    title="Salin Link Unik Produk (Direct Link)"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5" />
                                   </button>
 
                                   {/* Delete */}
