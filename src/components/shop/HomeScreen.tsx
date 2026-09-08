@@ -69,7 +69,8 @@ export const HomeScreen: React.FC = () => {
     lastCheckInDate,
     showToast,
     user,
-    heroBanners: appHeroBanners
+    heroBanners: appHeroBanners,
+    categories: appCategories
   } = useApp();
 
   // Active Hero Banners from Store / App Context
@@ -389,13 +390,13 @@ export const HomeScreen: React.FC = () => {
 
   const currentShippingRate = shippingRates[shippingDestCity] || shippingRates['Surabaya'];
 
-  const categories = [
+  const categories = appCategories && appCategories.length > 0 ? appCategories : [
     { id: 'Ajwa', name: 'Kurma Ajwa', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80' },
     { id: 'Sukari', name: 'Sukari', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
     { id: 'Medjool', name: 'Medjool', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80' },
     { id: 'Tunisia', name: 'Tunisia', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
     { id: 'Khalas', name: 'Khalas', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Grosir', name: 'Grosir B2B', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=160&auto=format&fit=crop&q=80' },
+    { id: 'Madu', name: 'Madu & Herbal', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=160&auto=format&fit=crop&q=80' },
   ];
 
   const flashSaleProducts = products.filter(p => p.isFlashSale);
@@ -1391,21 +1392,21 @@ export const HomeScreen: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-6 gap-2 text-center">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 text-center">
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
+              onClick={() => handleCategoryClick(cat.name || cat.id)}
               className="flex flex-col items-center group cursor-pointer focus:outline-none"
             >
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#009A44] group-active:scale-95 transition-all shadow-xs bg-stone-100">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#009A44] group-active:scale-95 transition-all shadow-xs bg-stone-100 flex items-center justify-center">
                 <img 
-                  src={cat.image} 
+                  src={cat.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'} 
                   alt={cat.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                 />
               </div>
-              <span className="text-[10px] font-medium text-stone-700 mt-1.5 truncate w-full group-hover:text-[#1E3A8A]">
+              <span className="text-[11px] font-medium text-stone-700 mt-1.5 truncate w-full group-hover:text-[#1E3A8A]">
                 {cat.name}
               </span>
             </button>

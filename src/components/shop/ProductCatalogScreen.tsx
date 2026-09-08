@@ -23,7 +23,8 @@ export const ProductCatalogScreen: React.FC = () => {
     selectedCategory, 
     setSelectedCategory,
     searchQuery,
-    setSearchQuery 
+    setSearchQuery,
+    categories: appCategories
   } = useApp();
 
   const [priceSort, setPriceSort] = useState<'all' | 'low-high' | 'high-low'>('all');
@@ -31,12 +32,15 @@ export const ProductCatalogScreen: React.FC = () => {
   const [onlyWholesale, setOnlyWholesale] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  const categories = ['Semua', 'Ajwa', 'Sukari', 'Medjool', 'Tunisia', 'Khalas', 'Madu', 'Grosir', 'Hampers'];
+  // Dynamic categories list from AppContext
+  const categoryTabs = ['Semua', ...appCategories.map(c => c.name || c.id)];
 
   // Filter products
   const filteredProducts = products.filter(p => {
-    if (selectedCategory && selectedCategory !== 'Semua' && p.category !== selectedCategory) {
-      return false;
+    if (selectedCategory && selectedCategory !== 'Semua') {
+      const match = p.category === selectedCategory || 
+        appCategories.some(c => (c.name === selectedCategory || c.id === selectedCategory) && (c.id === p.category || c.name === p.category));
+      if (!match) return false;
     }
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
@@ -151,7 +155,7 @@ export const ProductCatalogScreen: React.FC = () => {
 
         {/* Category horizontal tabs */}
         <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-none">
-          {categories.map((cat) => {
+          {categoryTabs.map((cat) => {
             const isSelected = (selectedCategory === cat) || (!selectedCategory && cat === 'Semua');
             return (
               <button

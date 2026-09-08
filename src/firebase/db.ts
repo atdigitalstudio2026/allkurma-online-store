@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order, Product } from '../types';
+import { UserProfile, Address, Order, Product, CategoryItem } from '../types';
 
 // Recursively remove undefined values for Firestore serialization safety
 export function sanitizeForFirestore<T>(data: T): T {
@@ -341,4 +341,82 @@ export const deleteProductFromFirestore = async (productId: string): Promise<voi
     throw error;
   }
 };
+
+// ==========================================
+// Product Categories Real-time Sync & Management
+// ==========================================
+
+export const listenToCategoriesFromFirestore = (
+  onSuccess: (categories: CategoryItem[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const categoriesColl = collection(db, 'categories');
+    const unsubscribe = onSnapshot(
+      categoriesColl,
+      (snapshot) => {
+        const items: CategoryItem[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<CategoryItem, 'id'>)
+          });
+        });
+
+        // Sort categories: custom order or alphabetically
+        items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToCategories snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach categories listener:', err);
+    return () => {};
+  }
+};
+
+export const getCategoriesFromFirestore = async (): Promise<CategoryItem[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'categories'));
+    const list: CategoryItem[] = [];
+    querySnapshot.forEach((d) => {
+      list.push({ id: d.id, ...(d.data() as Omit<CategoryItem, 'id'>) });
+    });
+    list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return list;
+  } catch (error) {
+    console.warn('Firestore getCategories fallback:', error);
+    return [];
+  }
+};
+
+export const saveCategoryToFirestore = async (category: CategoryItem): Promise<void> => {
+  try {
+    const catRef = doc(db, 'categories', category.id);
+    const sanitized = sanitizeForFirestore({
+      ...category,
+      updatedAt: new Date().toISOString()
+    });
+    await setDoc(catRef, sanitized, { merge: true });
+    console.log('[Firestore] Successfully saved category to cloud:', category.id, category.name);
+  } catch (error) {
+    console.error('[Firestore] Failed to save category to Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteCategoryFromFirestore = async (categoryId: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'categories', categoryId));
+    console.log('[Firestore] Successfully deleted category from cloud:', categoryId);
+  } catch (error) {
+    console.error('[Firestore] Failed to delete category from Firestore:', error);
+    throw error;
+  }
+};
+
 

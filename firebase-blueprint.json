@@ -116,6 +116,19 @@
         "email": { "type": "string" },
         "authorizedStaff": { "type": "array" }
       }
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product categories that can be created and deleted dynamically.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
     }
   },
   "firestore": {
@@ -138,6 +151,10 @@
     "products": {
       "schema": "Product",
       "description": "Stores product catalog items synchronized across devices."
+    },
+    "categories": {
+      "schema": "Category",
+      "description": "Stores product categories for dynamic addition and deletion."
     },
     "store_settings": {
       "schema": "StoreSettings",

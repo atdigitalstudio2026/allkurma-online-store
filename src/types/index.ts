@@ -150,12 +150,21 @@ export interface SellerStoreProfile {
   joinedDate?: string;
 }
 
+export interface CategoryItem {
+  id: string; // Unique identifier / slug, e.g. "Ajwa", "Sukari", "Kurma Muda"
+  name: string; // Display name
+  image?: string; // Thumbnail / avatar image URL
+  description?: string; // Brief description
+  createdAt?: string;
+  isSystem?: boolean; // Default initial categories
+}
+
 export interface Product {
   id: string;
   name: string;
   sku: string;
   barcode?: string;
-  category: 'Ajwa' | 'Sukari' | 'Medjool' | 'Tunisia' | 'Khalas' | 'Madu' | 'Grosir' | 'Hampers' | 'Bundling';
+  category: string; // Flexible category, matches CategoryItem.id or CategoryItem.name
   description: string;
   images: string[];
   regularPrice: number;

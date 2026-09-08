@@ -51,6 +51,7 @@ import {
   KeyRound,
   UserCheck,
   Tag,
+  Tags,
   Barcode,
   Boxes,
   RefreshCw,
@@ -64,7 +65,7 @@ import {
   Link2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner } from '../../types';
+import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem } from '../../types';
 import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../utils/exportReport';
 import { normalizeImageUrl, isDropboxUrl } from '../../utils/imageUrlHelper';
 import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
@@ -121,11 +122,42 @@ export const SellerDashboardScreen: React.FC = () => {
     updateHeroBanner,
     deleteHeroBanner,
     resetHeroBanners,
-    getProductShareUrl
+    getProductShareUrl,
+    categories,
+    addCategory,
+    updateCategory,
+    deleteCategory
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'flashsale' | 'vouchers' | 'reviews' | 'followers' | 'banners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'reviews' | 'followers' | 'banners'>('overview');
+
+  // Dynamic Category Management State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [categoryForm, setCategoryForm] = useState<{
+    name: string;
+    image: string;
+    description: string;
+  }>({
+    name: '',
+    image: '',
+    description: ''
+  });
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryItem | null>(null);
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+
+  const CATEGORY_IMAGE_PRESETS = [
+    { label: 'Kurma Ajwa', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Kurma Sukari', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Kurma Medjool', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Kurma Tunisia', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Kurma Ruthob', url: 'https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Madu & Herbal', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Hampers & Parcel', url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Grosir Kartonan', url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&auto=format&fit=crop&q=80' }
+  ];
 
   // Hero Banner Management State
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
@@ -688,6 +720,75 @@ export const SellerDashboardScreen: React.FC = () => {
     }));
   };
 
+  // Category Action Handlers (Dynamic CRUD)
+  const handleOpenAddCategory = () => {
+    setEditingCategory(null);
+    setCategoryForm({ name: '', image: '', description: '' });
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategory = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setCategoryForm({
+      name: cat.name,
+      image: cat.image || '',
+      description: cat.description || ''
+    });
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = categoryForm.name.trim();
+    if (!trimmed) {
+      showToast('Nama kategori tidak boleh kosong', 'error');
+      return;
+    }
+
+    setIsSubmittingCategory(true);
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, {
+          name: trimmed,
+          image: categoryForm.image.trim() || undefined,
+          description: categoryForm.description.trim() || undefined
+        });
+      } else {
+        await addCategory({
+          name: trimmed,
+          image: categoryForm.image.trim() || undefined,
+          description: categoryForm.description.trim() || undefined
+        });
+
+        // Auto select in product modal if open
+        if (isAddProductOpen) {
+          setNewProd(prev => ({ ...prev, category: trimmed }));
+        }
+      }
+
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      setCategoryForm({ name: '', image: '', description: '' });
+    } catch (err: any) {
+      showToast('Gagal menyimpan kategori: ' + (err?.message || 'Kesalahan sistem'), 'error');
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    setIsSubmittingCategory(true);
+    try {
+      await deleteCategory(categoryToDelete.id);
+      setCategoryToDelete(null);
+    } catch (err: any) {
+      showToast('Gagal menghapus kategori: ' + (err?.message || 'Kesalahan sistem'), 'error');
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
   // Inventory & SKU Metrics
   let totalMasterSkus = products.length;
   let totalActiveSkus = 0;
@@ -746,8 +847,10 @@ export const SellerDashboardScreen: React.FC = () => {
     }
 
     // Category filter
-    if (productCategoryFilter !== 'Semua' && p.category !== productCategoryFilter) {
-      return false;
+    if (productCategoryFilter !== 'Semua') {
+      const match = p.category === productCategoryFilter ||
+        categories.some(c => (c.name === productCategoryFilter || c.id === productCategoryFilter) && (c.id === p.category || c.name === p.category));
+      if (!match) return false;
     }
 
     // Stock status filter
@@ -967,6 +1070,18 @@ export const SellerDashboardScreen: React.FC = () => {
             >
               <Package className="w-4 h-4" />
               Katalog & Stok SKU ({products.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
+                activeTab === 'categories'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Tags className="w-4 h-4 text-emerald-400" />
+              Kelola Kategori ({categories.length})
             </button>
 
             <button
@@ -2580,15 +2695,10 @@ export const SellerDashboardScreen: React.FC = () => {
                     onChange={(e) => setProductCategoryFilter(e.target.value)}
                     className="px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-300 font-semibold text-stone-800 text-xs focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="Semua">Semua Kategori</option>
-                    <option value="Ajwa">Kurma Ajwa</option>
-                    <option value="Sukari">Kurma Sukari</option>
-                    <option value="Medjool">Kurma Medjool</option>
-                    <option value="Tunisia">Kurma Tunisia</option>
-                    <option value="Khalas">Kurma Khalas</option>
-                    <option value="Grosir">Paket Grosir Kartonan</option>
-                    <option value="Hampers">Hampers & Souvenir</option>
-                    <option value="Madu">Madu & Herbal</option>
+                    <option value="Semua">Semua Kategori ({categories.length})</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name || c.id}>{c.name || c.id}</option>
+                    ))}
                   </select>
 
                   {/* Sort Filter */}
@@ -3154,6 +3264,267 @@ export const SellerDashboardScreen: React.FC = () => {
                 </table>
               </div>
             </div>
+            )}
+          </div>
+        )}
+
+        {/* 4B. TAB: KELOLA KATEGORI PRODUK FLEKSIBEL (TAMBAH / HAPUS MANUAL) */}
+        {activeTab === 'categories' && (
+          <div className="space-y-6 font-['Plus_Jakarta_Sans',sans-serif] animate-in fade-in-50">
+            {/* Header Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 via-teal-800 to-[#1E3A8A] p-6 text-white shadow-md">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase">
+                      <Tags className="w-3.5 h-3.5 text-emerald-300" />
+                      Manajemen Kategori Fleksibel
+                    </span>
+                    <span className="bg-emerald-400 text-stone-950 font-black text-[10px] px-2 py-0.5 rounded-full">
+                      CLOUD FIRESTORE SYNC
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-white">
+                    Pusat Pengaturan Kategori Produk
+                  </h2>
+                  <p className="text-xs text-white/90 leading-relaxed">
+                    Kelola pengelompokan produk toko secara fleksibel. Anda dapat menambahkan kategori baru sesuai variasi produk yang dijual, serta menghapus kategori yang tidak sesuai kapan saja. Perubahan tersinkronisasi otomatis ke katalog pembeli di semua perangkat.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleOpenAddCategory}
+                    className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-stone-950 rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Kategori Baru</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Total Kategori
+                </span>
+                <div className="text-2xl font-black text-stone-900 mt-1">
+                  {categories.length}
+                </div>
+                <span className="text-[10px] text-stone-500 font-semibold block mt-0.5">
+                  Tersedia di navigasi katalog
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Kategori Berisi Produk
+                </span>
+                <div className="text-2xl font-black text-emerald-600 mt-1">
+                  {categories.filter(c => products.some(p => p.category === c.name || p.category === c.id)).length}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                  Aktif memiliki etalase SKU
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Kategori Kosong (0 SKU)
+                </span>
+                <div className="text-2xl font-black text-amber-600 mt-1">
+                  {categories.filter(c => !products.some(p => p.category === c.name || p.category === c.id)).length}
+                </div>
+                <span className="text-[10px] text-amber-600 font-semibold block mt-0.5">
+                  Siap diisi produk baru / bisa dihapus
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Total Produk Toko
+                </span>
+                <div className="text-2xl font-black text-[#1E3A8A] mt-1">
+                  {products.length}
+                </div>
+                <span className="text-[10px] text-stone-500 font-semibold block mt-0.5">
+                  Item di seluruh kategori
+                </span>
+              </div>
+            </div>
+
+            {/* Category Search & Filter Toolbar */}
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+              <div className="relative flex-1 min-w-[260px]">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={categorySearchQuery}
+                  onChange={(e) => setCategorySearchQuery(e.target.value)}
+                  placeholder="Cari nama kategori atau deskripsi..."
+                  className="w-full pl-9 pr-8 py-2.5 bg-stone-50 focus:bg-white rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                />
+                {categorySearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setCategorySearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenAddCategory}
+                  className="px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Kategori Baru</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Categories List Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories
+                .filter(cat => {
+                  if (!categorySearchQuery.trim()) return true;
+                  const q = categorySearchQuery.toLowerCase();
+                  return (
+                    (cat.name || '').toLowerCase().includes(q) ||
+                    (cat.description || '').toLowerCase().includes(q) ||
+                    cat.id.toLowerCase().includes(q)
+                  );
+                })
+                .map((cat) => {
+                  const productCount = products.filter(
+                    p => p.category === cat.name || p.category === cat.id
+                  ).length;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      className="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-3 group"
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0 relative group-hover:border-emerald-500 transition-colors">
+                          <img
+                            src={cat.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'}
+                            alt={cat.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className="text-sm font-extrabold text-stone-900 truncate">
+                              {cat.name}
+                            </h4>
+                            <span className="text-[10px] font-mono text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
+                              #{cat.id}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-stone-500 mt-1 line-clamp-2 leading-relaxed">
+                            {cat.description || 'Kategori produk AllKurma Indonesia.'}
+                          </p>
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              productCount > 0
+                                ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                                : 'bg-stone-100 text-stone-600 border border-stone-200'
+                            }`}>
+                              <Package className="w-3 h-3" />
+                              <span>{productCount} Produk</span>
+                            </span>
+
+                            {productCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setProductCategoryFilter(cat.name || cat.id);
+                                  setActiveTab('products');
+                                }}
+                                className="text-[10px] font-bold text-[#1E3A8A] hover:underline cursor-pointer"
+                              >
+                                Filter di Katalog →
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="pt-2.5 border-t border-stone-100 flex items-center justify-between text-xs">
+                        <div className="text-[10px] text-stone-400">
+                          {cat.createdAt ? new Date(cat.createdAt).toLocaleDateString('id-ID') : 'Default'}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditCategory(cat)}
+                            className="p-1.5 text-stone-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-semibold text-[11px]"
+                            title="Edit nama atau foto kategori"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setCategoryToDelete(cat)}
+                            className="p-1.5 text-stone-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-semibold text-[11px]"
+                            title="Hapus kategori yang tidak sesuai"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Empty State */}
+            {categories.filter(cat => {
+              if (!categorySearchQuery.trim()) return true;
+              const q = categorySearchQuery.toLowerCase();
+              return (
+                (cat.name || '').toLowerCase().includes(q) ||
+                (cat.description || '').toLowerCase().includes(q) ||
+                cat.id.toLowerCase().includes(q)
+              );
+            }).length === 0 && (
+              <div className="bg-white rounded-3xl border border-stone-200 p-8 text-center space-y-3">
+                <div className="w-14 h-14 rounded-full bg-stone-100 text-stone-400 mx-auto flex items-center justify-center">
+                  <Tags className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-bold text-stone-800">
+                  Tidak Ada Kategori yang Cocok
+                </h3>
+                <p className="text-xs text-stone-500 max-w-md mx-auto">
+                  {categorySearchQuery
+                    ? `Tidak ditemukan kategori dengan kata kunci "${categorySearchQuery}".`
+                    : 'Belum ada kategori yang dibuat. Klik tombol di bawah untuk menambahkan kategori pertama Anda.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleOpenAddCategory}
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Kategori Baru</span>
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -4690,20 +5061,31 @@ export const SellerDashboardScreen: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-bold text-stone-700 mb-1">Kategori Kurma</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block font-bold text-stone-700">Kategori Produk</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryForm({ name: '', image: '', description: '' });
+                            setEditingCategory(null);
+                            setIsCategoryModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Baru
+                        </button>
+                      </div>
                       <select
                         value={newProd.category}
-                        onChange={e => setNewProd({ ...newProd, category: e.target.value as any })}
-                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-medium"
+                        onChange={e => setNewProd({ ...newProd, category: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 font-medium bg-white"
                       >
-                        <option value="Ajwa">Kurma Ajwa (Nabi)</option>
-                        <option value="Sukari">Kurma Sukari (Raja)</option>
-                        <option value="Medjool">Kurma Medjool</option>
-                        <option value="Tunisia">Kurma Tunisia Tangkai</option>
-                        <option value="Khalas">Kurma Khalas</option>
-                        <option value="Grosir">Paket Grosir Kartonan</option>
-                        <option value="Hampers">Hampers & Souvenir</option>
-                        <option value="Madu">Madu & Herbal</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.name || c.id}>{c.name || c.id}</option>
+                        ))}
+                        {newProd.category && !categories.some(c => c.name === newProd.category || c.id === newProd.category) && (
+                          <option value={newProd.category}>{newProd.category} (Kustom)</option>
+                        )}
                       </select>
                     </div>
 
@@ -6418,14 +6800,9 @@ export const SellerDashboardScreen: React.FC = () => {
                       className="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                     >
                       <option value="Semua">Semua Kategori (Katalog Lengkap)</option>
-                      <option value="Ajwa">Kurma Ajwa</option>
-                      <option value="Sukari">Kurma Sukari</option>
-                      <option value="Medjool">Kurma Medjool</option>
-                      <option value="Tunisia">Kurma Tunisia</option>
-                      <option value="Khalas">Kurma Khalas</option>
-                      <option value="Ruthob">Kurma Ruthob (Segar/Basah)</option>
-                      <option value="Hampers">Hampers & Parcel Mewah</option>
-                      <option value="Olahan">Produk Olahan & Sari Kurma</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.name || c.id}>{c.name || c.id}</option>
+                      ))}
                     </select>
                   </div>
                 )}
@@ -6519,6 +6896,201 @@ export const SellerDashboardScreen: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: TAMBAH / EDIT KATEGORI PRODUK */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in-50 zoom-in-95 my-8">
+            <div className="p-5 bg-gradient-to-r from-emerald-800 to-teal-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <Tags className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">
+                    {editingCategory ? 'Edit Kategori Produk' : 'Tambah Kategori Baru'}
+                  </h3>
+                  <p className="text-xs text-white/80">
+                    {editingCategory ? 'Perbarui informasi dan tampilan kategori' : 'Kategori baru akan langsung muncul di katalog pembeli'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="p-2 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="p-6 space-y-4 text-xs font-['Plus_Jakarta_Sans',sans-serif]">
+              {/* Nama Kategori */}
+              <div>
+                <label className="block font-bold text-stone-700 mb-1.5">
+                  Nama Kategori <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  placeholder="Contoh: Kurma Ruthob, Paket Oleh-Oleh Haji, dll."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-semibold text-stone-900 text-sm"
+                />
+              </div>
+
+              {/* URL Foto / Gambar Kategori */}
+              <div>
+                <label className="block font-bold text-stone-700 mb-1.5">
+                  URL Foto / Thumbnail Kategori
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={categoryForm.image}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, image: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-mono text-xs"
+                  />
+                  {categoryForm.image && (
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-stone-300 bg-stone-100 shrink-0">
+                      <img
+                        src={categoryForm.image}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Preset Buttons */}
+                <div className="mt-2.5">
+                  <span className="text-[11px] font-bold text-stone-500 block mb-1.5">
+                    Atau pilih cepat dari foto kurma berkualitas tinggi:
+                  </span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {CATEGORY_IMAGE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setCategoryForm({ ...categoryForm, image: preset.url })}
+                        className={`p-1.5 rounded-xl border text-left flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                          categoryForm.image === preset.url
+                            ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-500/30'
+                            : 'border-stone-200 hover:border-stone-300 bg-white'
+                        }`}
+                      >
+                        <img
+                          src={preset.url}
+                          alt={preset.label}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                        <span className="text-[9px] font-semibold text-stone-700 text-center truncate w-full">
+                          {preset.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Deskripsi */}
+              <div>
+                <label className="block font-bold text-stone-700 mb-1.5">
+                  Deskripsi Kategori (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  placeholder="Keterangan singkat tentang kelompok produk ini..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 font-medium text-stone-800"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl font-bold text-xs text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingCategory}
+                  className="px-5 py-2.5 rounded-xl font-black text-xs bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    {isSubmittingCategory
+                      ? 'Menyimpan...'
+                      : editingCategory
+                        ? 'Simpan Perubahan'
+                        : 'Tambah Kategori'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI HAPUS KATEGORI */}
+      {categoryToDelete && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 animate-in fade-in-50 zoom-in-95 space-y-4 font-['Plus_Jakarta_Sans',sans-serif]">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-extrabold text-stone-900">
+                Hapus Kategori "{categoryToDelete.name}"?
+              </h3>
+              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                Apakah Anda yakin ingin menghapus kategori ini? Kategori yang dihapus tidak akan lagi muncul pada menu navigasi katalog dan filter belanja pembeli.
+              </p>
+            </div>
+
+            {/* Warning if products exist */}
+            {products.filter(p => p.category === categoryToDelete.name || p.category === categoryToDelete.id).length > 0 && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+                <span className="text-base">⚠️</span>
+                <div>
+                  <strong className="font-bold">
+                    Perhatian: Terdapat {products.filter(p => p.category === categoryToDelete.name || p.category === categoryToDelete.id).length} produk
+                  </strong>
+                  <p className="text-[11px] text-amber-800 mt-0.5">
+                    Produk-produk tersebut tidak akan terhapus, namun tidak lagi memiliki kategori ini di etalase. Anda dapat mengubah kategorinya kapan saja melalui menu Produk.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setCategoryToDelete(null)}
+                className="px-4 py-2.5 rounded-xl font-bold text-xs text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingCategory}
+                onClick={handleConfirmDeleteCategory}
+                className="px-5 py-2.5 rounded-xl font-black text-xs bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{isSubmittingCategory ? 'Menghapus...' : 'Ya, Hapus Kategori'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

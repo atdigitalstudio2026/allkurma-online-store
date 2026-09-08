@@ -24,11 +24,13 @@ import {
   SellerStaffMember,
   ShopeeChatMessage,
   ShopeeNotification,
-  AppHeroBanner
+  AppHeroBanner,
+  CategoryItem
 } from '../types';
 import {
   INITIAL_USER,
   INITIAL_PRODUCTS,
+  INITIAL_CATEGORIES,
   INITIAL_ADDRESSES,
   INITIAL_ORDERS,
   INITIAL_STOCK_MOVEMENTS,
@@ -55,7 +57,10 @@ import {
   listenToStoreSettingsFromFirestore,
   listenToProductsFromFirestore,
   saveProductToFirestore,
-  deleteProductFromFirestore
+  deleteProductFromFirestore,
+  listenToCategoriesFromFirestore,
+  saveCategoryToFirestore,
+  deleteCategoryFromFirestore
 } from '../firebase/db';
 import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
 
@@ -143,6 +148,12 @@ interface AppContextType {
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   clearAllProducts: () => void;
+
+  // Flexible Categories Management
+  categories: CategoryItem[];
+  addCategory: (category: Omit<CategoryItem, 'id'> & { id?: string }) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<CategoryItem>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   
   // Cart & Variations
   cart: CartItem[];
@@ -368,6 +379,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
     return INITIAL_PRODUCTS;
+  });
+
+  const [categories, setCategories] = useState<CategoryItem[]>(() => {
+    const saved = localStorage.getItem('allkurma_categories');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Failed to parse allkurma_categories:', e);
+      }
+    }
+    return INITIAL_CATEGORIES;
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -764,6 +788,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => unsubscribe();
   }, []);
 
+  // Real-time synchronization of product categories across all devices using Firestore
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToCategoriesFromFirestore(
+      async (cloudCategories) => {
+        if (!isSubscribed) return;
+        if (!cloudCategories || cloudCategories.length === 0) {
+          // If Firestore categories collection is empty, seed with INITIAL_CATEGORIES
+          try {
+            for (const cat of INITIAL_CATEGORIES) {
+              await saveCategoryToFirestore(cat);
+            }
+          } catch (e) {
+            console.warn('Initial categories seed error:', e);
+          }
+        } else {
+          setCategories(cloudCategories);
+          localStorage.setItem('allkurma_categories', JSON.stringify(cloudCategories));
+        }
+      },
+      (error) => {
+        console.warn('Firestore categories listener warning:', error);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
   // Listen to Firebase Auth State changes for secure session persistence
   useEffect(() => {
     const unsubscribe = listenToAuthState(async (firebaseUser) => {
@@ -1072,6 +1128,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
     showToast('Semua produk katalog telah berhasil dikosongkan dari cloud', 'success');
+  };
+
+  // Flexible Categories Management with Instant Local + Cloud Firestore Synchronization
+  const addCategory = async (categoryData: Omit<CategoryItem, 'id'> & { id?: string }) => {
+    const trimmedName = categoryData.name.trim();
+    if (!trimmedName) {
+      showToast('Nama kategori tidak boleh kosong', 'error');
+      return;
+    }
+
+    const id = (categoryData.id || trimmedName).trim();
+    // Check if category already exists
+    const exists = categories.some(
+      c => c.id.toLowerCase() === id.toLowerCase() || c.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (exists) {
+      showToast(`Kategori "${trimmedName}" sudah ada dalam daftar`, 'error');
+      return;
+    }
+
+    const newCategory: CategoryItem = {
+      id,
+      name: trimmedName,
+      image: categoryData.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80',
+      description: categoryData.description?.trim() || '',
+      createdAt: new Date().toISOString(),
+      isSystem: false
+    };
+
+    setCategories(prev => {
+      const updated = [...prev, newCategory];
+      localStorage.setItem('allkurma_categories', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      await saveCategoryToFirestore(newCategory);
+      showToast(`Kategori "${newCategory.name}" berhasil ditambahkan & disinkronkan ke server`, 'success');
+    } catch (e) {
+      console.warn('Gagal menyimpan kategori ke Firestore:', e);
+      showToast(`Kategori "${newCategory.name}" tersimpan di perangkat lokal`, 'info');
+    }
+  };
+
+  const updateCategory = async (id: string, updates: Partial<CategoryItem>) => {
+    const existing = categories.find(c => c.id === id);
+    if (!existing) return;
+
+    const updatedCategory: CategoryItem = { ...existing, ...updates };
+    setCategories(prev => {
+      const updated = prev.map(c => c.id === id ? updatedCategory : c);
+      localStorage.setItem('allkurma_categories', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      await saveCategoryToFirestore(updatedCategory);
+      showToast(`Kategori "${updatedCategory.name}" berhasil diperbarui`, 'success');
+    } catch (e) {
+      console.warn('Gagal memperbarui kategori di Firestore:', e);
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    const target = categories.find(c => c.id === id);
+    const catName = target ? target.name : id;
+
+    // Hitung produk yang menggunakan kategori ini
+    const affectedCount = products.filter(p => p.category === id || p.category === catName).length;
+
+    setCategories(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      localStorage.setItem('allkurma_categories', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (selectedCategory === id || selectedCategory === catName) {
+      setSelectedCategory(null);
+    }
+
+    try {
+      await deleteCategoryFromFirestore(id);
+      if (affectedCount > 0) {
+        showToast(`Kategori "${catName}" dihapus (${affectedCount} produk terkait)`, 'info');
+      } else {
+        showToast(`Kategori "${catName}" berhasil dihapus dari cloud`, 'success');
+      }
+    } catch (e) {
+      console.warn('Gagal menghapus kategori dari Firestore:', e);
+      showToast(`Kategori "${catName}" dihapus dari lokal`, 'info');
+    }
   };
 
   // Cart Management with Variations & Dynamic Wholesale Pricing
@@ -1961,6 +2108,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateProduct,
         deleteProduct,
         clearAllProducts,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
         cart,
         addToCart,
         addToCartWithVariation,

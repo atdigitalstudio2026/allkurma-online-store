@@ -16,8 +16,68 @@ import {
   ChatMessage,
   AppNotification,
   SellerStoreProfile,
-  AppHeroBanner
+  AppHeroBanner,
+  CategoryItem
 } from '../types';
+
+export const INITIAL_CATEGORIES: CategoryItem[] = [
+  {
+    id: 'Ajwa',
+    name: 'Kurma Ajwa',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80',
+    description: 'Kurma Nabi dari kota suci Madinah Al-Munawwarah',
+    isSystem: true
+  },
+  {
+    id: 'Sukari',
+    name: 'Kurma Sukari',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80',
+    description: 'Kurma raja basah lumer manis legit rasa toffee',
+    isSystem: true
+  },
+  {
+    id: 'Medjool',
+    name: 'Kurma Medjool',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80',
+    description: 'Kurma jumbo premium "King of Dates" berdaging tebal',
+    isSystem: true
+  },
+  {
+    id: 'Tunisia',
+    name: 'Kurma Tunisia',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80',
+    description: 'Kurma tangkai alami renyah manis sedang menyegarkan',
+    isSystem: true
+  },
+  {
+    id: 'Khalas',
+    name: 'Kurma Khalas',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80',
+    description: 'Kurma kenyal kaya serat cocok untuk diet rendah gula',
+    isSystem: true
+  },
+  {
+    id: 'Madu',
+    name: 'Madu & Herbal',
+    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=160&auto=format&fit=crop&q=80',
+    description: 'Madu murni Yaman, Habbatussauda, Minyak Zaitun murni',
+    isSystem: true
+  },
+  {
+    id: 'Grosir',
+    name: 'Paket Grosir',
+    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=160&auto=format&fit=crop&q=80',
+    description: 'Kartonan partai besar harga reseller agen kurma',
+    isSystem: true
+  },
+  {
+    id: 'Hampers',
+    name: 'Hampers & Parcel',
+    image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=160&auto=format&fit=crop&q=80',
+    description: 'Bingkisan mewah & parcel Idul Fitri / Ramadhan eksklusif',
+    isSystem: true
+  }
+];
 
 export const INITIAL_USER: UserProfile = {
   id: 'guest-allkurma',

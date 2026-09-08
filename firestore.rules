@@ -85,5 +85,10 @@ service cloud.firestore {
     match /store_settings/{settingId} {
       allow read, write: if true;
     }
+
+    // Categories Collection (Public Read & Write for multi-device sync)
+    match /categories/{categoryId} {
+      allow read, write: if true;
+    }
   }
 }
