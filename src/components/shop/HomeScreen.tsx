@@ -403,6 +403,11 @@ export const HomeScreen: React.FC = () => {
   const bestSellers = products.slice(0, 4);
 
   const handleProductClick = (id: string) => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
     setSelectedProductId(id);
     setCurrentView('product-detail');
   };

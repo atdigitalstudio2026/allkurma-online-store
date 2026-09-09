@@ -97,8 +97,10 @@ export type AppView =
   | 'allkurma-wallet'
   | 'shopee-games'
   | 'shopee-vouchers'
+  | 'shopee-coins'
   | 'shopee-wallet'
   | 'kurma-points'
+  | 'loyalty-rewards'
   | 'wishlist'
   | 'seller-center'
   | 'seller-dashboard'
@@ -347,7 +349,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialNav = getInitialNavState();
   const [currentView, setCurrentView] = useState<AppView>(initialNav.view);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(initialNav.productId);
-  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(true);
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('allkurma_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

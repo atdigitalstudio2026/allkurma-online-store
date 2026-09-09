@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import { 
@@ -14,27 +14,76 @@ import {
   Plus, 
   Minus,
   Sparkles, 
-  ChevronRight, 
   Send,
   Heart,
-  Store,
-  BadgePercent,
   Coins,
-  DollarSign,
-  PackageCheck,
   Barcode,
   Layers,
   Globe,
   Shield,
   Box,
   Copy,
-  ExternalLink,
-  Link2
+  Link2,
+  Home
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, ProductVariation } from '../../types';
 import { ShopeeReviewsSection } from './ShopeeReviewsSection';
 import { StoreFollowHeader } from './StoreFollowHeader';
+
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
+
+// High-performance Mobile Skeleton to prevent blank screen flash on slow networks
+const ProductDetailSkeleton: React.FC<{ onBack: () => void; productId?: string | null }> = ({ onBack, productId }) => (
+  <div className="pb-36 max-w-lg mx-auto bg-stone-50 min-h-screen animate-pulse font-['Plus_Jakarta_Sans',sans-serif]">
+    {/* Top Bar Skeleton */}
+    <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-xs">
+      <button
+        onClick={onBack}
+        className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
+        aria-label="Kembali"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+      <div className="h-4 w-28 bg-stone-200 rounded-md" />
+      <div className="w-8 h-8 rounded-lg bg-stone-100" />
+    </div>
+
+    {/* Hero Image Skeleton */}
+    <div className="aspect-square w-full bg-stone-200 relative flex items-center justify-center">
+      <Box className="w-12 h-12 text-stone-300" />
+      <div className="absolute bottom-3 left-4 right-4 bg-white/80 backdrop-blur-xs py-1.5 px-3 rounded-xl flex items-center justify-between">
+        <span className="text-[11px] text-stone-600 font-medium">Memuat detail produk...</span>
+        <div className="w-3 h-3 rounded-full border-2 border-amber-600 border-t-transparent animate-spin" />
+      </div>
+    </div>
+
+    {/* Content Placeholders */}
+    <div className="p-4 bg-white border-b border-stone-200 space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="h-5 w-24 bg-amber-100/70 rounded-full" />
+        <div className="h-4 w-20 bg-stone-200 rounded-md" />
+      </div>
+      <div className="h-6 w-3/4 bg-stone-200 rounded-lg" />
+      <div className="h-4 w-1/2 bg-stone-150 rounded-md" />
+      <div className="h-8 w-40 bg-amber-100/60 rounded-xl mt-2" />
+    </div>
+
+    {/* Features Box Placeholder */}
+    <div className="m-4 p-3.5 bg-white rounded-2xl border border-stone-200 space-y-2.5">
+      <div className="h-4 w-1/3 bg-stone-200 rounded" />
+      <div className="h-12 w-full bg-stone-100 rounded-xl" />
+      <div className="h-12 w-full bg-stone-100 rounded-xl" />
+    </div>
+
+    {/* Floating Footer Placeholder */}
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-stone-200 p-3 shadow-xl max-w-lg mx-auto flex gap-2">
+      <div className="h-10 w-12 bg-stone-200 rounded-xl" />
+      <div className="h-10 flex-1 bg-stone-200 rounded-xl" />
+      <div className="h-10 flex-1 bg-amber-200/80 rounded-xl" />
+    </div>
+  </div>
+);
 
 export const ProductDetailScreen: React.FC = () => {
   const { 
@@ -54,32 +103,92 @@ export const ProductDetailScreen: React.FC = () => {
   const [directFetchedProduct, setDirectFetchedProduct] = useState<Product | null>(null);
   const [isFetchingDirect, setIsFetchingDirect] = useState(false);
 
-  useEffect(() => {
-    if (selectedProductId && !products.find(p => p.id === selectedProductId)) {
-      let isMounted = true;
-      setIsFetchingDirect(true);
-      getDoc(doc(db, 'products', selectedProductId))
-        .then((snap) => {
-          if (!isMounted) return;
-          setIsFetchingDirect(false);
-          if (snap.exists()) {
-            setDirectFetchedProduct({ id: snap.id, ...(snap.data() as Omit<Product, 'id'>) });
-          }
-        })
-        .catch(() => {
-          if (isMounted) setIsFetchingDirect(false);
-        });
-      return () => {
-        isMounted = false;
-      };
-    } else {
-      setDirectFetchedProduct(null);
+  // 1. Synchronous Instant Product Resolution (0ms delay on mobile)
+  const matchedProduct = useMemo(() => {
+    if (!selectedProductId) {
+      return products[0] || directFetchedProduct || null;
     }
+
+    const cleanId = String(selectedProductId).trim();
+
+    // Priority 1: Current in-memory products array
+    const inMemory = products.find(p => p.id === cleanId || String(p.id).trim() === cleanId);
+    if (inMemory) return inMemory;
+
+    // Priority 2: Direct fetched product from Firestore
+    if (directFetchedProduct && (directFetchedProduct.id === cleanId || String(directFetchedProduct.id).trim() === cleanId)) {
+      return directFetchedProduct;
+    }
+
+    // Priority 3: Offline cached products from mobile localStorage
+    try {
+      const cached = localStorage.getItem('allkurma_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          const inCache = parsed.find((p: Product) => p.id === cleanId || String(p.id).trim() === cleanId);
+          if (inCache) return inCache;
+        }
+      }
+    } catch {}
+
+    return null;
+  }, [products, selectedProductId, directFetchedProduct]);
+
+  // 2. Direct fetch with safety timeout for newly-shared external links
+  useEffect(() => {
+    if (!selectedProductId) {
+      setDirectFetchedProduct(null);
+      setIsFetchingDirect(false);
+      return;
+    }
+
+    const cleanId = String(selectedProductId).trim();
+    // If already resolved from memory or cache, no need to show loading
+    if (products.some(p => String(p.id).trim() === cleanId)) {
+      setIsFetchingDirect(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsFetchingDirect(true);
+
+    // Safety timeout: stop spinning after 4.5 seconds to prevent hanging on dead mobile signals
+    const timer = setTimeout(() => {
+      if (isMounted) setIsFetchingDirect(false);
+    }, 4500);
+
+    getDoc(doc(db, 'products', cleanId))
+      .then((snap) => {
+        if (!isMounted) return;
+        clearTimeout(timer);
+        setIsFetchingDirect(false);
+        if (snap.exists()) {
+          setDirectFetchedProduct({ id: snap.id, ...(snap.data() as Omit<Product, 'id'>) });
+        }
+      })
+      .catch((err) => {
+        console.warn('Direct product fetch fallback:', err);
+        if (isMounted) {
+          clearTimeout(timer);
+          setIsFetchingDirect(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [selectedProductId, products]);
 
-  const matchedProduct = selectedProductId 
-    ? (products.find(p => p.id === selectedProductId) || directFetchedProduct)
-    : (products[0] || directFetchedProduct);
+  // 3. Mobile Scroll Position Reset: Instantly reset scroll to top on product change
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+  }, [selectedProductId, matchedProduct?.id]);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | undefined>(
@@ -100,39 +209,59 @@ export const ProductDetailScreen: React.FC = () => {
     }
   }, [matchedProduct?.id]);
 
-  // If viewing via a direct link and Firestore products are still synchronizing
+  // Show Skeleton placeholder if waiting for deep-link / direct Firestore document
   if (selectedProductId && !matchedProduct && (isProductsLoading || isFetchingDirect)) {
     return (
-      <div className="max-w-md mx-auto px-4 py-28 text-center font-['Plus_Jakarta_Sans',sans-serif]">
-        <div className="w-12 h-12 border-3 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <h2 className="text-base font-bold text-stone-800">Menghubungkan ke Database Cloud...</h2>
-        <p className="text-xs text-stone-500 mt-1">Mengambil data produk ({selectedProductId}) dari database toko Firebase...</p>
-      </div>
+      <ProductDetailSkeleton 
+        onBack={() => setCurrentView('catalog')} 
+        productId={selectedProductId} 
+      />
     );
   }
 
+  // Not Found State with dual recovery buttons
   if (!matchedProduct) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center font-['Plus_Jakarta_Sans',sans-serif]">
+      <div className="max-w-md mx-auto px-4 py-20 text-center font-['Plus_Jakarta_Sans',sans-serif]">
         <div className="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-stone-400">
           <Box className="w-8 h-8" />
         </div>
         <h2 className="text-lg font-bold text-stone-800">Produk Tidak Ditemukan</h2>
-        <p className="text-xs text-stone-500 mt-1">
-          {selectedProductId ? `Produk dengan ID "${selectedProductId}" belum tersedia atau telah dihapus.` : 'Produk belum tersedia di etalase toko.'}
+        <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto leading-relaxed">
+          {selectedProductId 
+            ? `Produk dengan ID "${selectedProductId}" belum tersedia di katalog atau telah dinonaktifkan.` 
+            : 'Produk belum tersedia di etalase toko saat ini.'}
         </p>
-        <button
-          onClick={() => setCurrentView('catalog')}
-          className="mt-5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Lihat Katalog Produk Toko</span>
-        </button>
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setCurrentView('catalog')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-[#009A44] hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Lihat Katalog Produk</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentView('home')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center gap-2"
+          >
+            <Home className="w-4 h-4" />
+            <span>Kembali ke Beranda</span>
+          </button>
+        </div>
       </div>
     );
   }
 
   const product = matchedProduct;
+
+  // Safe images list
+  const productImages = Array.isArray(product.images) && product.images.length > 0
+    ? product.images.filter(Boolean)
+    : [DEFAULT_IMAGE];
+
+  const currentMainImage = productImages[selectedImageIndex] || productImages[0] || DEFAULT_IMAGE;
   const directProductUrl = getProductShareUrl(product.id);
 
   const handleShareProduct = async () => {
@@ -173,19 +302,21 @@ export const ProductDetailScreen: React.FC = () => {
 
   const isFavorite = wishlistProductIds.includes(product.id);
 
-  // Dynamic price based on selected variation & wholesale qty
-  const basePrice = selectedVariation
-    ? (selectedVariation.discountPrice || selectedVariation.regularPrice)
-    : (product.discountPrice || product.regularPrice);
+  // Dynamic price calculation
+  const basePrice = Number(
+    selectedVariation
+      ? (selectedVariation.discountPrice || selectedVariation.regularPrice)
+      : (product.discountPrice || product.regularPrice)
+  ) || 0;
 
-  const regularPrice = selectedVariation?.regularPrice || product.regularPrice;
+  const regularPrice = Number(selectedVariation?.regularPrice || product.regularPrice) || 0;
 
   const currentUnitPrice = () => {
-    if (product.wholesalePrices && product.wholesalePrices.length > 0) {
+    if (Array.isArray(product.wholesalePrices) && product.wholesalePrices.length > 0) {
       const match = product.wholesalePrices.find(
         rule => buyQty >= rule.minQty && (!rule.maxQty || buyQty <= rule.maxQty)
       );
-      if (match) return match.pricePerUnit;
+      if (match && Number(match.pricePerUnit)) return Number(match.pricePerUnit);
     }
     return basePrice;
   };
@@ -207,13 +338,14 @@ export const ProductDetailScreen: React.FC = () => {
   };
 
   return (
-    <div className="pb-36 max-w-lg mx-auto bg-stone-50 min-h-screen">
+    <div className="pb-36 max-w-lg mx-auto bg-stone-50 min-h-screen touch-manipulation font-['Plus_Jakarta_Sans',sans-serif]">
       
       {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-xs">
         <button
           onClick={() => setCurrentView('catalog')}
-          className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
+          className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+          aria-label="Kembali ke Katalog"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -225,23 +357,26 @@ export const ProductDetailScreen: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <button 
             onClick={() => toggleWishlist(product.id)}
-            className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
+            className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
             title="Favorit"
+            aria-label="Favoritkan Produk"
           >
             <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-stone-700'}`} />
           </button>
 
           <button 
             onClick={handleShareProduct}
-            className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
+            className="p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
             title="Bagikan Link Produk"
+            aria-label="Bagikan Produk"
           >
             <Share2 className="w-4 h-4" />
           </button>
           
           <button
             onClick={() => setCurrentView('cart')}
-            className="relative p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors"
+            className="relative p-1.5 rounded-lg text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+            aria-label="Buka Keranjang"
           >
             <ShoppingCart className="w-5 h-5" />
             {cartTotals.totalItems > 0 && (
@@ -257,9 +392,10 @@ export const ProductDetailScreen: React.FC = () => {
       <div className="relative bg-white border-b border-stone-200">
         <div className="aspect-square w-full overflow-hidden flex items-center justify-center bg-stone-100">
           <img
-            src={product.images?.[selectedImageIndex] || product.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+            src={currentMainImage}
             alt={product.name}
             className="w-full h-full object-cover"
+            loading="eager"
           />
         </div>
 
@@ -274,14 +410,16 @@ export const ProductDetailScreen: React.FC = () => {
         </div>
 
         {/* Dots */}
-        {product.images.length > 1 && (
+        {productImages.length > 1 && (
           <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-            {product.images.map((_, i) => (
+            {productImages.map((_, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => setSelectedImageIndex(i)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  selectedImageIndex === i ? 'w-5 bg-amber-700' : 'bg-stone-300'
+                aria-label={`Lihat foto ke-${i + 1}`}
+                className={`h-2 rounded-full transition-all cursor-pointer ${
+                  selectedImageIndex === i ? 'w-5 bg-amber-700' : 'w-2 bg-stone-300'
                 }`}
               />
             ))}
@@ -300,13 +438,13 @@ export const ProductDetailScreen: React.FC = () => {
             </span>
             <div className="flex items-center gap-1 text-xs text-stone-600">
               <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-              <span className="font-bold text-stone-900">{product.rating}</span>
-              <span className="text-stone-400">({product.reviewCount} Ulasan)</span>
+              <span className="font-bold text-stone-900">{Number(product.rating || 5).toFixed(1)}</span>
+              <span className="text-stone-400">({Number(product.reviewCount || 0)} Ulasan)</span>
             </div>
           </div>
 
           <div className="text-[11px] text-stone-500">
-            Terjual {product.soldCount.toLocaleString('id-ID')}+ • {product.origin}
+            Terjual {(Number(product.soldCount) || 0).toLocaleString('id-ID')}+ • {product.origin || 'Timur Tengah'}
           </div>
         </div>
 
@@ -316,7 +454,7 @@ export const ProductDetailScreen: React.FC = () => {
         </h1>
 
         {/* Pricing */}
-        <div className="flex items-baseline gap-2 pt-1">
+        <div className="flex items-baseline gap-2 pt-1 flex-wrap">
           <span className="text-2xl font-black text-amber-950 font-mono">
             Rp {basePrice.toLocaleString('id-ID')}
           </span>
@@ -333,13 +471,13 @@ export const ProductDetailScreen: React.FC = () => {
         </div>
 
         {/* 1. Shopee Variations Picker (Kemasan / Ukuran) */}
-        {product.variations && product.variations.length > 0 && (
+        {Array.isArray(product.variations) && product.variations.length > 0 && (
           <div className="pt-2 border-t border-stone-100 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-stone-900">Pilihan Variasi / Kemasan:</span>
               {selectedVariation && (
                 <span className="text-stone-500 text-[11px]">
-                  Stok: <b className="text-stone-800">{selectedVariation.stock} pcs</b>
+                  Stok: <b className="text-stone-800">{selectedVariation.stock ?? 0} pcs</b>
                 </span>
               )}
             </div>
@@ -347,13 +485,14 @@ export const ProductDetailScreen: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {product.variations.map((v) => {
                 const isSelected = selectedVariation?.id === v.id;
-                const vPrice = v.discountPrice || v.regularPrice;
+                const vPrice = Number(v.discountPrice || v.regularPrice) || 0;
 
                 return (
                   <button
                     key={v.id}
+                    type="button"
                     onClick={() => setSelectedVariation(v)}
-                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                       isSelected
                         ? 'border-amber-700 bg-amber-50/90 text-amber-950 shadow-xs ring-1 ring-amber-700'
                         : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
@@ -401,7 +540,7 @@ export const ProductDetailScreen: React.FC = () => {
         </div>
 
         {/* 3. Harga Grosir (B2B) Tier Table Card */}
-        {product.wholesalePrices && product.wholesalePrices.length > 0 && (
+        {Array.isArray(product.wholesalePrices) && product.wholesalePrices.length > 0 && (
           <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5 font-bold text-xs text-amber-950">
@@ -427,7 +566,7 @@ export const ProductDetailScreen: React.FC = () => {
                       {tier.minQty} - {tier.maxQty ? `${tier.maxQty} pcs` : '≥ pcs'}
                     </span>
                     <span className="font-mono">
-                      Rp {tier.pricePerUnit.toLocaleString('id-ID')} / pcs
+                      Rp {(Number(tier.pricePerUnit) || 0).toLocaleString('id-ID')} / pcs
                     </span>
                   </div>
                 );
@@ -438,8 +577,8 @@ export const ProductDetailScreen: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               <span>
                 {buyQty < 11 
-                  ? `Tambah ${11 - buyQty} pcs lagi untuk tier grosir selanjutnya`
-                  : `Anda mendapatkan tier harga grosir terbaik!`}
+                  ? 'Beli minimal 11 pcs untuk mendapatkan harga grosir lebih hemat.' 
+                  : 'Anda memenuhi syarat harga tier grosir volume!'}
               </span>
             </div>
           </div>
@@ -455,7 +594,7 @@ export const ProductDetailScreen: React.FC = () => {
         <div>
           <h3 className="font-bold text-sm text-stone-900 mb-2">Deskripsi Produk</h3>
           <p className="text-stone-600 leading-relaxed whitespace-pre-line">
-            {product.description}
+            {product.description || 'Kurma berkualitas grade premium yang diimpor langsung dari kebun terbaik.'}
           </p>
         </div>
 
@@ -477,7 +616,7 @@ export const ProductDetailScreen: React.FC = () => {
                 <span>SKU & Barcode</span>
               </span>
               <span className="font-bold text-stone-900 font-mono text-[11px] block mt-0.5">
-                {selectedVariation?.sku || product.sku}
+                {selectedVariation?.sku || product.sku || '-'}
               </span>
               <span className="text-[10px] text-stone-500 font-mono">
                 EAN: {selectedVariation?.barcode || product.barcode || '-'}
@@ -490,7 +629,7 @@ export const ProductDetailScreen: React.FC = () => {
                 <span>Kemasan & Netto</span>
               </span>
               <span className="font-bold text-stone-900 text-[11px] block mt-0.5">
-                {selectedVariation?.weightGram || product.weightGram} gram
+                {selectedVariation?.weightGram || product.weightGram || 500} gram
               </span>
               <span className="text-[10px] text-stone-500">
                 {selectedVariation?.packagingType || product.packagingType || 'Food-Grade Sealed'}
@@ -503,7 +642,7 @@ export const ProductDetailScreen: React.FC = () => {
                 <span>Negara & Asal Produk</span>
               </span>
               <span className="font-bold text-stone-900 text-[11px] block mt-0.5">
-                {product.origin}
+                {product.origin || 'Timur Tengah'}
               </span>
               <span className="text-[10px] text-stone-500">
                 Impor Resmi Bergaransi
@@ -541,14 +680,14 @@ export const ProductDetailScreen: React.FC = () => {
               </span>
               <div className="flex items-center justify-between mt-0.5">
                 <span className="font-bold text-emerald-700 text-xs">
-                  {selectedVariation?.stock || product.stock} unit ready
+                  {selectedVariation?.stock ?? product.stock ?? 0} unit ready
                 </span>
                 <span className="text-[10px] font-mono text-stone-500 bg-stone-200/60 px-1.5 py-0.5 rounded">
-                  Rak: {selectedVariation?.warehouseRack || product.warehouseRack || product.warehouseLocation}
+                  Rak: {selectedVariation?.warehouseRack || product.warehouseRack || product.warehouseLocation || 'G-01'}
                 </span>
               </div>
               <span className="text-[10px] text-stone-500">
-                Gudang Hub: {product.warehouseLocation}
+                Gudang Hub: {product.warehouseLocation || 'Gudang Utama Jakarta'}
               </span>
             </div>
           </div>
@@ -578,8 +717,9 @@ export const ProductDetailScreen: React.FC = () => {
             {directProductUrl}
           </div>
           <button
+            type="button"
             onClick={handleShareProduct}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               copiedLink 
                 ? 'bg-emerald-600 text-white shadow-xs' 
                 : 'bg-stone-800 hover:bg-stone-900 text-white'
@@ -602,15 +742,17 @@ export const ProductDetailScreen: React.FC = () => {
         {/* Share buttons: WhatsApp & Web Share */}
         <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={handleShareWhatsApp}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             <span>Bagikan via WhatsApp</span>
           </button>
           <button
+            type="button"
             onClick={handleShareProduct}
-            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold transition-colors"
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
           >
             <Share2 className="w-3.5 h-3.5 text-amber-700" />
             <span>Bagikan Lainnya</span>
@@ -633,22 +775,24 @@ export const ProductDetailScreen: React.FC = () => {
               <span className="text-stone-500 font-medium">Jumlah:</span>
               <div className="flex items-center border border-stone-300 rounded-lg overflow-hidden bg-white shadow-xs">
                 <button
+                  type="button"
                   onClick={() => setBuyQty(prev => Math.max(1, prev - 1))}
-                  className="p-1 px-2.5 text-stone-600 hover:bg-stone-100 active:scale-95"
+                  className="p-1 px-2.5 text-stone-600 hover:bg-stone-100 active:scale-95 cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <input
                   type="number"
                   min="1"
-                  max={selectedVariation?.stock || product.stock}
+                  max={selectedVariation?.stock || product.stock || 999}
                   value={buyQty}
                   onChange={(e) => setBuyQty(Math.max(1, Number(e.target.value)))}
                   className="w-12 text-center text-xs font-bold text-stone-900 border-x border-stone-200 py-1"
                 />
                 <button
+                  type="button"
                   onClick={() => setBuyQty(prev => prev + 1)}
-                  className="p-1 px-2.5 text-stone-600 hover:bg-stone-100 active:scale-95"
+                  className="p-1 px-2.5 text-stone-600 hover:bg-stone-100 active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -658,7 +802,7 @@ export const ProductDetailScreen: React.FC = () => {
             <div className="text-right">
               <span className="text-[10px] text-stone-400 block">Total Estimasi</span>
               <span className="font-bold text-amber-900 text-sm font-mono">
-                Rp {(currentUnitPrice() * buyQty).toLocaleString('id-ID')}
+                Rp {(Number(currentUnitPrice() * buyQty) || 0).toLocaleString('id-ID')}
               </span>
             </div>
           </div>
@@ -666,24 +810,28 @@ export const ProductDetailScreen: React.FC = () => {
           {/* Action buttons row */}
           <div className="grid grid-cols-12 gap-2">
             <button
+              type="button"
               onClick={() => setIsChatOpen(true)}
-              className="col-span-2 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl flex items-center justify-center transition-colors active:scale-95 shadow-xs"
+              className="col-span-2 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl flex items-center justify-center transition-colors active:scale-95 shadow-xs cursor-pointer"
               title="Chat Penjual"
+              aria-label="Chat Penjual"
             >
               <MessageSquare className="w-4 h-4" />
             </button>
 
             <button
+              type="button"
               onClick={handleAddToCart}
-              className="col-span-5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs"
+              className="col-span-5 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs cursor-pointer"
             >
               <ShoppingCart className="w-3.5 h-3.5" />
               <span>+ Keranjang</span>
             </button>
 
             <button
+              type="button"
               onClick={handleBuyNow}
-              className="col-span-5 py-2.5 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all"
+              className="col-span-5 py-2.5 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all cursor-pointer"
             >
               <span>Beli Langsung</span>
             </button>
@@ -691,8 +839,9 @@ export const ProductDetailScreen: React.FC = () => {
 
           {/* B2B Quotation Button */}
           <button
+            type="button"
             onClick={() => setIsQuotationModalOpen(true)}
-            className="w-full py-1.5 bg-stone-900 hover:bg-stone-800 text-amber-300 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full py-1.5 bg-stone-900 hover:bg-stone-800 text-amber-300 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <Building2 className="w-3.5 h-3.5" />
             <span>Request Quotation Grosir (B2B)</span>
@@ -711,8 +860,9 @@ export const ProductDetailScreen: React.FC = () => {
                 <p className="text-[11px] text-stone-500">{product.name}</p>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsQuotationModalOpen(false)}
-                className="text-stone-400 hover:text-stone-600"
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
               >
                 ✕
               </button>
@@ -758,13 +908,13 @@ export const ProductDetailScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsQuotationModalOpen(false)}
-                  className="flex-1 py-2 border border-stone-200 rounded-xl text-stone-600 font-semibold"
+                  className="flex-1 py-2 border border-stone-200 rounded-xl text-stone-600 font-semibold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-amber-800 text-white rounded-xl font-bold flex items-center justify-center gap-1"
+                  className="flex-1 py-2 bg-amber-800 text-white rounded-xl font-bold flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Kirim RFQ</span>
@@ -778,4 +928,3 @@ export const ProductDetailScreen: React.FC = () => {
     </div>
   );
 };
-

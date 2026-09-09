@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/layout/Navbar';
 import { BottomNav } from './components/layout/BottomNav';
 import { ToastContainer } from './components/common/ToastContainer';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Customer Auth & Security Guard Views
 import { CustomerLoginScreen } from './auth/CustomerLoginScreen';
@@ -55,7 +56,16 @@ import { AdminRolesScreen } from './components/admin/AdminRolesScreen';
 import { AdminSettingsScreen } from './components/admin/AdminSettingsScreen';
 
 export default function App() {
-  const { currentView } = useApp();
+  const { currentView, selectedProductId } = useApp();
+
+  // Mobile viewport optimization: auto reset scroll position on view / product transition
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+  }, [currentView, selectedProductId]);
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -226,7 +236,9 @@ export default function App() {
 
       {/* Main Screen Content Body */}
       <main className="flex-1 w-full">
-        {renderCurrentView()}
+        <ErrorBoundary>
+          {renderCurrentView()}
+        </ErrorBoundary>
       </main>
 
       {/* Bottom Sticky Mobile Navigation Bar (Hidden on standalone auth & admin) */}
