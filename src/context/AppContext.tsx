@@ -25,7 +25,8 @@ import {
   ShopeeChatMessage,
   ShopeeNotification,
   AppHeroBanner,
-  CategoryItem
+  CategoryItem,
+  BundleDeal
 } from '../types';
 import {
   INITIAL_USER,
@@ -46,7 +47,8 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_CHAT_MESSAGES,
   INITIAL_SELLER_STORE,
-  INITIAL_HERO_BANNERS
+  INITIAL_HERO_BANNERS,
+  INITIAL_BUNDLE_DEALS
 } from '../data/mockData';
 import { normalizeImageUrl } from '../utils/imageUrlHelper';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
@@ -219,9 +221,9 @@ interface AppContextType {
   checkInStreak: number;
   lastCheckInDate: string | null;
   claimDailyCoin: () => boolean;
-  spinWheel: () => { prize: string; coins?: number; voucher?: string };
+  spinWheel: () => { prize: string; prizeName?: string; coins?: number; voucher?: string; voucherCode?: string };
   plantCoinLevel: number;
-  waterCoinPlant: () => { gainedCoins: number; isHarvest: boolean };
+  waterCoinPlant: () => { gainedCoins: number; isHarvest: boolean; success?: boolean; harvested?: boolean };
   
   kurmaPayBalance: number;
   shopeePayBalance: number; // backward compatibility
@@ -275,6 +277,14 @@ interface AppContextType {
   updateHeroBanner: (id: string | number, updates: Partial<AppHeroBanner>) => void;
   deleteHeroBanner: (id: string | number) => void;
   resetHeroBanners: () => void;
+
+  // Bundling Promo Deals Management
+  bundlingDeals: BundleDeal[];
+  addBundleDeal: (deal: Omit<BundleDeal, 'id'>) => void;
+  updateBundleDeal: (id: string, updates: Partial<BundleDeal>) => void;
+  deleteBundleDeal: (id: string) => void;
+  toggleBundleDealActive: (id: string) => void;
+  resetBundleDeals: () => void;
   
   // Wholesale Invoices
   invoices: WholesaleInvoice[];
@@ -557,6 +567,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('allkurma_hero_banners_v1');
     return saved ? JSON.parse(saved) : INITIAL_HERO_BANNERS;
   });
+
+  // Bundling Deals State (Promo Bundling Paket Hemat)
+  const [bundlingDeals, setBundlingDeals] = useState<BundleDeal[]>(() => {
+    const saved = localStorage.getItem('allkurma_bundle_deals_v1');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Failed to parse allkurma_bundle_deals_v1:', e);
+      }
+    }
+    return INITIAL_BUNDLE_DEALS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(bundlingDeals));
+  }, [bundlingDeals]);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -1714,14 +1742,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
-  const spinWheel = (): { prizeName: string; coins?: number; voucherCode?: string } => {
+  const spinWheel = (): { prize: string; prizeName: string; coins?: number; voucher?: string; voucherCode?: string } => {
     const prizes = [
-      { prizeName: '500 Koin AllKurma', coins: 500 },
-      { prizeName: 'Voucher Diskon Rp 30.000', voucherCode: 'KURMA30K' },
-      { prizeName: '1.000 Koin AllKurma', coins: 1000 },
-      { prizeName: 'Gratis Ongkir XTRA', voucherCode: 'ONGKIR0' },
-      { prizeName: '2.500 Koin AllKurma', coins: 2500 },
-      { prizeName: 'Voucher Cashback 50%', voucherCode: 'CASHBACK50' }
+      { prize: '500 Koin AllKurma', prizeName: '500 Koin AllKurma', coins: 500 },
+      { prize: 'Voucher Diskon Rp 30.000', prizeName: 'Voucher Diskon Rp 30.000', voucher: 'KURMA30K', voucherCode: 'KURMA30K' },
+      { prize: '1.000 Koin AllKurma', prizeName: '1.000 Koin AllKurma', coins: 1000 },
+      { prize: 'Gratis Ongkir XTRA', prizeName: 'Gratis Ongkir XTRA', voucher: 'ONGKIR0', voucherCode: 'ONGKIR0' },
+      { prize: '2.500 Koin AllKurma', prizeName: '2.500 Koin AllKurma', coins: 2500 },
+      { prize: 'Voucher Cashback 50%', prizeName: 'Voucher Cashback 50%', voucher: 'CASHBACK50', voucherCode: 'CASHBACK50' }
     ];
     const picked = prizes[Math.floor(Math.random() * prizes.length)];
     if (picked.coins) {
@@ -1741,12 +1769,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return picked;
   };
 
-  const waterCoinPlant = (): { success: boolean; harvested: boolean } => {
+  const waterCoinPlant = (): { success: boolean; harvested: boolean; gainedCoins: number; isHarvest: boolean } => {
     let harvested = false;
+    let gainedCoins = 0;
     setPlantCoinLevel(prev => {
       const nextLevel = prev + 25;
       if (nextLevel >= 100) {
         harvested = true;
+        gainedCoins = 500;
         setShopeeCoins(c => c + 500);
         showToast('Pohon Koin Panen! +500 Koin AllKurma masuk ke saldo Anda!', 'success');
         try {
@@ -1762,7 +1792,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return nextLevel;
       }
     });
-    return { success: true, harvested };
+    return { success: true, harvested, gainedCoins, isHarvest: harvested };
   };
 
   // KurmaPay / Dompet Top Up
@@ -1861,10 +1891,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleSellerStaffStatus = (id: string) => {
     setSellerStore(prev => {
-      const updated = {
+      const updated: SellerStoreProfile = {
         ...prev,
         authorizedStaff: (prev.authorizedStaff || []).map(s => 
-          s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s
+          s.id === id ? { ...s, status: (s.status === 'active' ? 'inactive' : 'active') as 'active' | 'inactive' } : s
         )
       };
       saveStoreSettingsToFirestore(updated);
@@ -1921,6 +1951,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetHeroBanners = () => {
     setHeroBanners(INITIAL_HERO_BANNERS);
     showToast('Banner promosi dikembalikan ke template awal.', 'info');
+  };
+
+  // Bundling Promo Deals Management
+  const addBundleDeal = (deal: Omit<BundleDeal, 'id'>) => {
+    const newDeal: BundleDeal = {
+      ...deal,
+      id: `bundle-${Date.now().toString(36)}`,
+      active: deal.active !== undefined ? deal.active : true
+    };
+    setBundlingDeals(prev => [newDeal, ...prev]);
+    showToast(`Paket "${newDeal.name}" berhasil dibuat dan langsung aktif!`, 'success');
+  };
+
+  const updateBundleDeal = (id: string, updates: Partial<BundleDeal>) => {
+    setBundlingDeals(prev =>
+      prev.map(b => (b.id === id ? { ...b, ...updates } : b))
+    );
+    showToast('Paket Promo Bundling berhasil diperbarui!', 'success');
+  };
+
+  const deleteBundleDeal = (id: string) => {
+    setBundlingDeals(prev => prev.filter(b => b.id !== id));
+    showToast('Paket Promo Bundling berhasil dihapus.', 'info');
+  };
+
+  const toggleBundleDealActive = (id: string) => {
+    setBundlingDeals(prev =>
+      prev.map(b => {
+        if (b.id === id) {
+          const next = !(b.active !== false);
+          showToast(`Paket "${b.name}" ${next ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
+          return { ...b, active: next };
+        }
+        return b;
+      })
+    );
+  };
+
+  const resetBundleDeals = () => {
+    setBundlingDeals(INITIAL_BUNDLE_DEALS);
+    showToast('Paket Promo Bundling dikembalikan ke template awal.', 'info');
   };
 
   // Wishlist
@@ -2205,6 +2276,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendChatMessage,
         isChatOpen,
         setIsChatOpen,
+        unreadChatCount: 0,
         notifications,
         isNotifOpen,
         setIsNotifOpen,
@@ -2232,6 +2304,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateHeroBanner,
         deleteHeroBanner,
         resetHeroBanners,
+        // Bundling Promo Deals Management
+        bundlingDeals,
+        addBundleDeal,
+        updateBundleDeal,
+        deleteBundleDeal,
+        toggleBundleDealActive,
+        resetBundleDeals,
         claimedVoucherIds,
         claimVoucher,
         claimAllVouchers

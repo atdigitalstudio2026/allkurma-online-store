@@ -65,11 +65,11 @@ export const ShopeeClaimVouchersScreen: React.FC = () => {
     },
     ...promotions.map(p => ({
       code: p.code,
-      title: `${p.title} (${p.code})`,
+      title: `${p.name} (${p.code})`,
       description: `Min. Belanja Rp ${p.minPurchase.toLocaleString('id-ID')} • Potongan ${p.discountType === 'percentage' ? `${p.discountValue}%` : `Rp ${p.discountValue.toLocaleString('id-ID')}`}`,
       type: 'discount',
       badge: 'PROMO OFFICIAL',
-      expiry: p.expiryDate,
+      expiry: p.endDate || 'Berlaku',
       color: 'bg-indigo-600'
     }))
   ];

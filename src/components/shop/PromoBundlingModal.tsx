@@ -15,126 +15,11 @@ import {
   Gift
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Product } from '../../types';
+import { Product, BundleDeal } from '../../types';
+import { INITIAL_BUNDLE_DEALS } from '../../data/mockData';
 
-export interface BundleDeal {
-  id: string;
-  name: string;
-  subtitle: string;
-  badge: string;
-  tag: string;
-  originalPrice: number;
-  bundlePrice: number;
-  discountPct: number;
-  savings: number;
-  rating: number;
-  soldCount: number;
-  image: string;
-  items: {
-    title: string;
-    qty: string;
-    description: string;
-  }[];
-  benefits: string[];
-}
-
-export const BUNDLE_DEALS: BundleDeal[] = [
-  {
-    id: 'bundle-sunnah-vip',
-    name: 'Paket Sehat Sunnah VIP',
-    subtitle: 'Kombinasi kurma nabi + madu herbal + air zamzam murni',
-    badge: 'HEMAT Rp 86.000',
-    tag: 'Best Seller',
-    originalPrice: 325000,
-    bundlePrice: 239000,
-    discountPct: 26,
-    savings: 86000,
-    rating: 5.0,
-    soldCount: 428,
-    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-    items: [
-      { title: 'Kurma Ajwa Madinah Grade VIP', qty: '500 gram (Box Eksklusif)', description: 'Asli kebun Madinah dengan serat halus lembut' },
-      { title: 'Madu Murni Yaman Habbatussauda', qty: '250 gram (Toples Kaca)', description: 'Madu murni kaya antioksidan dan enzim aktif' },
-      { title: 'Air Zamzam Murni Al-Munawwarah', qty: '250 ml (Kemasan Segel)', description: 'Air berkah asli sertifikasi resmi karantina' }
-    ],
-    benefits: [
-      'Menjaga daya tahan tubuh dan imunitas optimal',
-      'Minuman & cemilan sunnah pembuka puasa terbaik',
-      'Kemasan box tebal elegan sangat cocok untuk kado / hadiah'
-    ]
-  },
-  {
-    id: 'bundle-duo-lumer',
-    name: 'Paket Duo Lumer Al-Qassim',
-    subtitle: 'Favorit keluarga: Kurma Sukari basah legit + cokelat almond',
-    badge: 'HEMAT Rp 70.000',
-    tag: 'Paling Laris',
-    originalPrice: 255000,
-    bundlePrice: 185000,
-    discountPct: 27,
-    savings: 70000,
-    rating: 4.9,
-    soldCount: 612,
-    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
-    items: [
-      { title: 'Kurma Sukari Al-Qassim Basah (Rutob)', qty: '2x Box (@850 gram = 1.7 kg)', description: 'Tekstur karamel lumer di lidah, dingin segar' },
-      { title: 'Kurma Cokelat Almond Crispy Premium', qty: '1 Toples (250 gram)', description: 'Kurma manis berbalut dark coklat dan almond utuh' }
-    ],
-    benefits: [
-      'Disukai anak-anak dan lansia karena sangat empuk',
-      'Stok melimpah 1.7kg cukup untuk camilan 1 bulan sekeluarga',
-      'Freezer-friendly tetap lembut saat disajikan dingin'
-    ]
-  },
-  {
-    id: 'bundle-trio-nusantara',
-    name: 'Paket Trio Favorit Nusantara',
-    subtitle: '3 varietas kurma terpopuler dalam 1 paket hemat',
-    badge: 'HEMAT Rp 96.000',
-    tag: 'Kombo Komplit',
-    originalPrice: 365000,
-    bundlePrice: 269000,
-    discountPct: 26,
-    savings: 96000,
-    rating: 4.9,
-    soldCount: 310,
-    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
-    items: [
-      { title: 'Kurma Ajwa Madinah Grade VIP', qty: '1 Box (500 gram)', description: 'Kurma nabi kaya khasiat dan serat' },
-      { title: 'Kurma Sukari Basah Al-Qassim', qty: '1 Box (850 gram)', description: 'Manis legit karamel mentega' },
-      { title: 'Kurma Deglet Nour Tangkai Tunisia', qty: '1 Box (500 gram)', description: 'Renyah segar masih menempel tangkai asli' }
-    ],
-    benefits: [
-      'Mencicipi 3 jenis kurma dari tekstur kering, renyah, hingga lumer',
-      'Harga jauh lebih hemat dibanding beli eceran terpisah',
-      'Bonus kartu ucapan Ramadhan & tas belanja spunbond SRA'
-    ]
-  },
-  {
-    id: 'bundle-bumil-menyusui',
-    name: 'Paket Bundling Bumil & Menyusui',
-    subtitle: 'Formula nutrisi alami pelancar ASI & asam folat janin',
-    badge: 'HEMAT Rp 111.000',
-    tag: 'Rekomendasi Bidan',
-    originalPrice: 410000,
-    bundlePrice: 299000,
-    discountPct: 27,
-    savings: 111000,
-    rating: 5.0,
-    soldCount: 245,
-    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-    items: [
-      { title: 'Kurma Ajwa Madinah Jumbo', qty: '1 Box (1 kg)', description: 'Kandungan zat besi & kalsium tinggi' },
-      { title: 'Sari Kurma Organik Murni Kental', qty: '1 Botol (350 gram)', description: 'Ekstrak murni tanpa gula tambahan' },
-      { title: 'Minyak Zaitun Extra Virgin Palestine', qty: '1 Botol (250 ml)', description: 'Cold-pressed asam lemak tak jenuh ganda' }
-    ],
-    benefits: [
-      'Membantu meningkatkan hormon oksitosin alami saat persalinan',
-      'Mencegah anemia pada ibu hamil dan mempercepat pemulihan',
-      'Meningkatkan kualitas dan volume ASI booster alami'
-    ]
-  }
-];
+export type { BundleDeal };
+export const BUNDLE_DEALS = INITIAL_BUNDLE_DEALS;
 
 interface PromoBundlingModalProps {
   isOpen: boolean;
@@ -142,12 +27,16 @@ interface PromoBundlingModalProps {
 }
 
 export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, onClose }) => {
-  const { addToCart, showToast, setCurrentView } = useApp();
-  const [selectedBundleId, setSelectedBundleId] = useState<string>(BUNDLE_DEALS[0].id);
+  const { addToCart, showToast, setCurrentView, bundlingDeals } = useApp();
+  const availableDeals = (bundlingDeals && bundlingDeals.length > 0 ? bundlingDeals : INITIAL_BUNDLE_DEALS)
+    .filter(b => b.active !== false);
+  const displayDeals = availableDeals.length > 0 ? availableDeals : INITIAL_BUNDLE_DEALS;
+
+  const [selectedBundleId, setSelectedBundleId] = useState<string>(() => displayDeals[0]?.id || '');
 
   if (!isOpen) return null;
 
-  const activeBundle = BUNDLE_DEALS.find(b => b.id === selectedBundleId) || BUNDLE_DEALS[0];
+  const activeBundle = displayDeals.find(b => b.id === selectedBundleId) || displayDeals[0];
 
   const handleAddBundleToCart = (bundle: BundleDeal) => {
     // Create a bundle product representation
@@ -214,7 +103,7 @@ export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, 
 
         {/* Horizontal Bundle Selector Pills */}
         <div className="p-3 bg-slate-50 border-b border-slate-200 overflow-x-auto scrollbar-none flex gap-2">
-          {BUNDLE_DEALS.map((bundle) => {
+          {displayDeals.map((bundle) => {
             const isSelected = selectedBundleId === bundle.id;
             return (
               <button

@@ -70,8 +70,16 @@ export const HomeScreen: React.FC = () => {
     showToast,
     user,
     heroBanners: appHeroBanners,
-    categories: appCategories
+    categories: appCategories,
+    bundlingDeals,
+    sellerStore
   } = useApp();
+
+  // Active Bundling Deals from Store / App Context
+  const activeBundlingDeals = useMemo(() => {
+    const list = bundlingDeals?.filter(b => b.active !== false) || [];
+    return list.length > 0 ? list : (bundlingDeals || []);
+  }, [bundlingDeals]);
 
   // Active Hero Banners from Store / App Context
   const heroBanners = useMemo(() => {
@@ -983,7 +991,7 @@ export const HomeScreen: React.FC = () => {
 
           {/* Bundling Cards Horizontal Scroll */}
           <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none snap-x">
-            {BUNDLE_DEALS.slice(0, 3).map((bundle) => (
+            {activeBundlingDeals.slice(0, 4).map((bundle) => (
               <div
                 key={bundle.id}
                 className="min-w-[210px] max-w-[210px] bg-white rounded-xl p-3 border border-amber-200/80 shrink-0 snap-start flex flex-col justify-between space-y-2 hover:border-amber-400 hover:shadow-xs transition-all shadow-2xs"
@@ -1841,7 +1849,7 @@ export const HomeScreen: React.FC = () => {
                 </label>
                 <div className="p-2.5 bg-stone-100 rounded-xl font-medium text-stone-800 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#1E3A8A]" />
-                  <span>Jakarta Pusat (Gudang Utama SRA Cold Storage)</span>
+                  <span>{sellerStore?.city || 'Jakarta Pusat'} (Gudang Utama {sellerStore?.storeName || 'SRA'} Cold Storage)</span>
                 </div>
               </div>
 
@@ -1887,7 +1895,7 @@ export const HomeScreen: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-stone-900 text-xs">J&T / SiCepat Reguler</span>
                       <span className="text-[8px] bg-[#009A44] text-white px-1.5 py-0.2 rounded-full font-extrabold">
-                        SUBSIDI SRA
+                        SUBSIDI {sellerStore?.storeName?.slice(0, 10) || 'SRA'}
                       </span>
                     </div>
                     <span className="text-[10px] text-stone-500">Estimasi {currentShippingRate.eta}</span>

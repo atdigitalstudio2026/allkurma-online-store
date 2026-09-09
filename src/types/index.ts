@@ -475,3 +475,28 @@ export interface AppHeroBanner {
   showTextOverlay?: boolean;
   objectFit?: 'cover' | 'contain';
 }
+
+export interface BundleDealItem {
+  title: string;
+  qty: string;
+  description: string;
+}
+
+export interface BundleDeal {
+  id: string;
+  name: string;
+  subtitle: string;
+  badge: string;
+  tag: string;
+  originalPrice: number;
+  bundlePrice: number;
+  discountPct: number;
+  savings: number;
+  rating: number;
+  soldCount: number;
+  image: string;
+  items: BundleDealItem[];
+  benefits: string[];
+  active?: boolean;
+}
+

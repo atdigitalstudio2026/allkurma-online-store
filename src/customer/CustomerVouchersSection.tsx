@@ -25,8 +25,9 @@ export const CustomerVouchersSection: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<'semua' | 'diskon' | 'ongkir'>('semua');
 
   const filteredVouchers = promotions.filter(v => {
-    if (activeCategory === 'diskon') return v.discountType === 'percentage' || v.discountType === 'fixed';
-    if (activeCategory === 'ongkir') return v.discountType === 'shipping_free';
+    const isOngkir = v.code.toLowerCase().includes('ongkir') || v.description.toLowerCase().includes('ongkir');
+    if (activeCategory === 'diskon') return !isOngkir;
+    if (activeCategory === 'ongkir') return isOngkir;
     return true;
   });
 
@@ -100,17 +101,22 @@ export const CustomerVouchersSection: React.FC = () => {
               }`}
             >
               <div className="p-4 flex items-start gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                  voucher.discountType === 'shipping_free' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-amber-100 text-amber-900'
-                }`}>
-                  {voucher.discountType === 'shipping_free' ? (
-                    <Truck className="w-6 h-6" />
-                  ) : (
-                    <Percent className="w-6 h-6" />
-                  )}
-                </div>
+                {(() => {
+                  const isOngkir = voucher.code.toLowerCase().includes('ongkir') || voucher.description.toLowerCase().includes('ongkir');
+                  return (
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      isOngkir
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {isOngkir ? (
+                        <Truck className="w-6 h-6" />
+                      ) : (
+                        <Percent className="w-6 h-6" />
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
@@ -118,18 +124,18 @@ export const CustomerVouchersSection: React.FC = () => {
                       {voucher.code}
                     </span>
                     <span className="text-[10px] text-stone-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Berlaku s/d {voucher.expiresAt}
+                      <Clock className="w-3 h-3" /> Berlaku s/d {voucher.endDate}
                     </span>
                   </div>
 
                   <h4 className="font-bold text-xs text-stone-900 line-clamp-1">
-                    {voucher.title}
+                    {voucher.name}
                   </h4>
                   <p className="text-[11px] text-stone-600 line-clamp-2">
                     {voucher.description}
                   </p>
                   <p className="text-[10px] text-stone-500 font-medium">
-                    Min. belanja Rp {voucher.minOrderValue.toLocaleString('id-ID')}
+                    Min. belanja Rp {voucher.minPurchase.toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>

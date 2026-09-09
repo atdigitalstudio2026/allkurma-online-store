@@ -62,7 +62,9 @@ import {
   Zap,
   Timer,
   Share2,
-  Link2
+  Link2,
+  Gift,
+  Heart
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem } from '../../types';
@@ -70,6 +72,7 @@ import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../ut
 import { normalizeImageUrl, isDropboxUrl } from '../../utils/imageUrlHelper';
 import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
 import { SkuStockAdjustmentModal } from './SkuStockAdjustmentModal';
+import { SellerHomeFeaturesHub } from './SellerHomeFeaturesHub';
 
 const BANNER_GRADIENT_PRESETS = [
   { name: 'Royal Blue & Emerald (Resmi)', value: 'from-[#1E3A8A] via-blue-700 to-[#009A44]', tag: 'bg-white/20 text-emerald-100 border-white/30' },
@@ -126,11 +129,13 @@ export const SellerDashboardScreen: React.FC = () => {
     categories,
     addCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    bundlingDeals,
+    wishlistProductIds
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'orders' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'reviews' | 'followers' | 'banners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'home-features' | 'settings' | 'orders' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'bundling' | 'reviews' | 'followers' | 'banners'>('overview');
 
   // Dynamic Category Management State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -549,7 +554,7 @@ export const SellerDashboardScreen: React.FC = () => {
 
   const handleDeleteBannerConfirm = (banner: AppHeroBanner) => {
     if (heroBanners.length <= 1) {
-      showToast('Minimal harus ada 1 banner di sistem!', 'warning');
+      showToast('Minimal harus ada 1 banner di sistem!', 'error');
       return;
     }
     deleteHeroBanner(banner.id);
@@ -1017,6 +1022,21 @@ export const SellerDashboardScreen: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('home-features')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'home-features' || activeTab === 'bundling'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Boxes className="w-4 h-4 text-amber-400" />
+              <span>Hub 8 Fitur Beranda</span>
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                8 AKTIF
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('settings')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
                 activeTab === 'settings'
@@ -1265,6 +1285,141 @@ export const SellerDashboardScreen: React.FC = () => {
                 <div className="text-[11px] font-medium text-rose-600 mt-1">
                   Perlu restock segera
                 </div>
+              </div>
+            </div>
+
+            {/* HUB 8 FITUR BERANDA QUICK-ACCESS CARD */}
+            <div className="bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 text-white rounded-2xl p-5 sm:p-6 shadow-md border border-stone-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-extrabold uppercase">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>8 Fitur Beranda Terhubung (Live Sync)</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white mt-1">
+                    Pusat Akses 8 Fitur Unggulan Toko
+                  </h3>
+                  <p className="text-xs text-stone-300 mt-0.5">
+                    Semua 8 menu shortcut di Beranda pelanggan aktif & terhubung. Pantau katalog, voucher, bundling hemat, produk baru, grosir B2B, ongkir, hampers, & favorit pembeli.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-all cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
+                >
+                  <Boxes className="w-4 h-4" />
+                  <span>Buka Hub 8 Fitur Lengkap</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* 8 Feature Status Pills Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-2 border-t border-stone-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('products')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-blue-400 font-bold flex items-center justify-between">
+                    <span>1. Katalog</span>
+                    <Package className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{products.length} SKU</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Tersinkron</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('vouchers')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-amber-400 font-bold flex items-center justify-between">
+                    <span>2. Voucher</span>
+                    <Percent className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{promotions.filter(p => p.status === 'Active').length} Aktif</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Diskon 50%</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-red-400 font-bold flex items-center justify-between">
+                    <span>3. Bundling</span>
+                    <Boxes className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{bundlingDeals.filter(b => b.active !== false).length} Paket</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Hemat 40%</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-emerald-400 font-bold flex items-center justify-between">
+                    <span>4. New Prod</span>
+                    <Sparkles className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{products.filter(p => p.isNewArrival).length} Baru</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Panen 2026</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-indigo-400 font-bold flex items-center justify-between">
+                    <span>5. Grosir B2B</span>
+                    <Building2 className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{products.filter(p => p.wholesalePrices && p.wholesalePrices.length > 0).length} Produk</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Kartonan</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-amber-400 font-bold flex items-center justify-between">
+                    <span>6. Ongkir</span>
+                    <Truck className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{sellerStore.couriers.filter(c => c.active).length} Kurir</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Gratis XTRA</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-purple-400 font-bold flex items-center justify-between">
+                    <span>7. Hampers</span>
+                    <Gift className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{products.filter(p => p.category === 'Hampers' || p.category.toLowerCase().includes('hamper')).length} Paket</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Gift Box</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('home-features')}
+                  className="p-2.5 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="text-[10px] text-rose-400 font-bold flex items-center justify-between">
+                    <span>8. Favorit</span>
+                    <Heart className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <div className="text-xs font-black text-white mt-1">{wishlistProductIds.length} Simpan</div>
+                  <span className="text-[9px] text-emerald-400 font-semibold">Wishlist</span>
+                </button>
               </div>
             </div>
 
@@ -4780,6 +4935,14 @@ export const SellerDashboardScreen: React.FC = () => {
           </div>
         )}
 
+        {/* 11. TAB: HUB 8 FITUR BERANDA & SHORTCUT TOKO */}
+        {(activeTab === 'home-features' || activeTab === 'bundling') && (
+          <SellerHomeFeaturesHub
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            initialSubTab={activeTab === 'bundling' ? 'bundling' : 'overview'}
+          />
+        )}
+
       </div>
 
       {/* MODAL: TARIK DANA PENJUAL (WITHDRAWAL) */}
@@ -5740,7 +5903,7 @@ export const SellerDashboardScreen: React.FC = () => {
       {selectedProductForBarcode && (
         <SkuBarcodePrintModal
           product={selectedProductForBarcode}
-          storeName={sellerStore.storeName}
+          showToast={showToast}
           onClose={() => setSelectedProductForBarcode(null)}
         />
       )}
@@ -5749,6 +5912,7 @@ export const SellerDashboardScreen: React.FC = () => {
       {selectedProductForStockAdjust && (
         <SkuStockAdjustmentModal
           product={selectedProductForStockAdjust}
+          showToast={showToast}
           onClose={() => setSelectedProductForStockAdjust(null)}
           onConfirm={(productId, variationId, newStock, logDetails) => {
             handleConfirmSkuStockAdjustment(productId, variationId, newStock, logDetails);
