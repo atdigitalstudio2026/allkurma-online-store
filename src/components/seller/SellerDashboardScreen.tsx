@@ -64,7 +64,8 @@ import {
   Share2,
   Link2,
   Gift,
-  Heart
+  Heart,
+  Maximize2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem } from '../../types';
@@ -256,6 +257,18 @@ export const SellerDashboardScreen: React.FC = () => {
   // File upload refs for store branding
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fullscreen Preview Lightbox Modal for Banner or Logo
+  const [fullscreenImageModal, setFullscreenImageModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+    type: 'banner' | 'logo';
+  } | null>(null);
+
+  // Banner view mode in dashboard live preview: 'fullscreen-clean' | 'storefront'
+  const [bannerPreviewMode, setBannerPreviewMode] = useState<'fullscreen-clean' | 'storefront'>('fullscreen-clean');
+  const [bannerDisplayFit, setBannerDisplayFit] = useState<'cover' | 'contain'>('cover');
 
   const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1656,75 +1669,189 @@ export const SellerDashboardScreen: React.FC = () => {
                       Ubah foto background banner sampul toko dan foto profil/logo resmi yang ditampilkan ke seluruh pembeli.
                     </p>
                   </div>
-                  <span className="self-start sm:self-auto text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300/70 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Live Preview Tampilan Toko</span>
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
+                    {/* View mode toggle */}
+                    <div className="flex items-center bg-stone-100 p-0.5 rounded-xl border border-stone-200 text-[10px] font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setBannerPreviewMode('fullscreen-clean')}
+                        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                          bannerPreviewMode === 'fullscreen-clean'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                        title="Tampilan Banner Fullscreen 100% Bersih Tanpa Elemen Penutup"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Banner Bersih</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerPreviewMode('storefront')}
+                        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                          bannerPreviewMode === 'storefront'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                        title="Tampilan Lengkap Toko dengan Logo & Info"
+                      >
+                        <Store className="w-3 h-3" />
+                        <span>Tampilan Toko</span>
+                      </button>
+                    </div>
+
+                    {/* Fit Mode Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setBannerDisplayFit(prev => prev === 'cover' ? 'contain' : 'cover')}
+                      className="text-[10px] font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300/70 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                      title="Ubah mode proporsi gambar (Cover = Penuh Wadah, Contain = Utuh Asli)"
+                    >
+                      Fit: {bannerDisplayFit === 'cover' ? 'Cover (Penuh)' : 'Contain (Utuh)'}
+                    </button>
+
+                    {/* Lightbox Trigger */}
+                    <button
+                      type="button"
+                      onClick={() => setFullscreenImageModal({
+                        isOpen: true,
+                        url: normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80',
+                        title: `Banner Sampul: ${storeForm.storeName || 'AllKurma'}`,
+                        type: 'banner'
+                      })}
+                      className="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-stone-950 px-2.5 py-1 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer font-black"
+                      title="Buka Pratinjau Layar Penuh Lightbox"
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                      <span>Fullscreen</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Live Store Header Preview (Landscape 1:2 Showcase) */}
-                <div className="relative rounded-2xl overflow-hidden border-2 border-stone-300 shadow-md bg-stone-950 aspect-[2/1] max-h-72 w-full group">
+                {/* Live Store Header Preview (Landscape 1:2 Showcase - ZERO Black Gradient, 100% True Color) */}
+                <div 
+                  className={`relative rounded-2xl overflow-hidden border-2 border-amber-300/70 shadow-md aspect-[2/1] max-h-72 w-full group cursor-pointer ${
+                    bannerDisplayFit === 'contain' ? 'bg-stone-900' : 'bg-stone-100'
+                  }`}
+                  onClick={() => setFullscreenImageModal({
+                    isOpen: true,
+                    url: normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80',
+                    title: `Banner Sampul: ${storeForm.storeName || 'AllKurma'}`,
+                    type: 'banner'
+                  })}
+                  title="Klik gambar untuk memperbesar layar penuh"
+                >
+                  {/* Clean uploaded image: NO dark gradient overlay, 100% opacity */}
                   <img
                     src={normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80'}
                     alt="Banner Sampul Toko"
-                    className="w-full h-full object-cover opacity-75 group-hover:scale-102 transition-transform duration-500"
+                    className={`w-full h-full ${
+                      bannerDisplayFit === 'contain' ? 'object-contain' : 'object-cover'
+                    } opacity-100 group-hover:scale-101 transition-transform duration-500 block`}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                   
-                  {/* Aspect Ratio Badge & Live Indicator */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-                    <span className="bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono font-bold px-2 py-1 rounded-lg border border-white/20">
-                      Rasio Landscape 1:2 (1200×600)
+                  {/* Top Badges: Aspect Ratio & Live Indicator */}
+                  <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 right-2.5 sm:right-3 flex items-center justify-between pointer-events-none z-10">
+                    <span className="bg-black/60 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border border-white/20">
+                      Rasio 1:2 (1200×600) • Tanpa Gradasi Hitam
                     </span>
-                    <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-xs flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      Aktif
-                    </span>
-                  </div>
-
-                  {/* Store Profile Floating Badge inside Header */}
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-5 right-3 sm:right-5 flex items-end justify-between gap-3 text-white">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 sm:border-3 border-white shadow-xl bg-white shrink-0 ring-2 ring-black/40">
-                        <img
-                          src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80'}
-                          alt={storeForm.storeName}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute -bottom-1 -right-1 bg-amber-500 text-stone-950 p-1 rounded-full border border-white shadow-xs" title="Official Store">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="font-black text-white text-sm sm:text-lg drop-shadow-md truncate">
-                            {storeForm.storeName || 'AllKurma Official Store'}
-                          </h4>
-                          {storeForm.isOfficialStore && (
-                            <span className="bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded uppercase shadow-xs">
-                              MALL
-                            </span>
-                          )}
-                          <span className="bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            Online
-                          </span>
-                        </div>
-                        <p className="text-[11px] sm:text-xs text-amber-200/90 font-medium line-clamp-1 mt-0.5 drop-shadow-xs">
-                          {storeForm.tagline || 'Pusat Kurma & Herbal Premium Terpercaya Se-Indonesia'}
-                        </p>
-                        <p className="text-[10px] sm:text-[11px] text-stone-300 mt-1 flex items-center gap-2 flex-wrap">
-                          <span className="flex items-center text-amber-400 font-bold">
-                            <Star className="w-3 h-3 fill-amber-400 mr-0.5" /> 4.9
-                          </span>
-                          <span>•</span>
-                          <span>{(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut</span>
-                          <span>•</span>
-                          <span>📍 {storeForm.city || 'Jakarta Utara'}</span>
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-amber-500 text-stone-950 text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-lg shadow-xs flex items-center gap-1">
+                        <Maximize2 className="w-2.5 h-2.5" />
+                        Klik Layar Penuh
+                      </span>
+                      <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-xs flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        Live
+                      </span>
                     </div>
                   </div>
+
+                  {/* Mode 1: Clean Unobstructed Banner Mode */}
+                  {bannerPreviewMode === 'fullscreen-clean' && (
+                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-[10px] bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-xl border border-white/20 pointer-events-none">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        Mode Banner Bersih: Gambar tampil 100% utuh tanpa gradasi hitam & tanpa elemen penutup
+                      </span>
+                      <span className="font-bold text-amber-300 hidden sm:inline">
+                        100% Fullscreen Preview
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mode 2: Storefront Profile Dock (Clean white card, high contrast, no dark rings) */}
+                  {bannerPreviewMode === 'storefront' && (
+                    <div 
+                      className="absolute bottom-2 sm:bottom-3 left-2 sm:left-4 right-2 sm:right-4 bg-white/95 sm:bg-white/90 backdrop-blur-md p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-stone-200/80 shadow-lg flex items-center justify-between gap-3 text-stone-900"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                        <div 
+                          onClick={() => setFullscreenImageModal({
+                            isOpen: true,
+                            url: normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80',
+                            title: `Foto Profil Toko: ${storeForm.storeName || 'AllKurma'}`,
+                            type: 'logo'
+                          })}
+                          className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white shrink-0 ring-2 ring-amber-400/80 cursor-pointer hover:scale-105 transition-transform"
+                          title="Klik untuk lihat foto profil layar penuh"
+                        >
+                          <img
+                            src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80'}
+                            alt={storeForm.storeName}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute -bottom-0.5 -right-0.5 bg-amber-500 text-stone-950 p-0.5 rounded-full border border-white shadow-xs" title="Official Store">
+                            <ShieldCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-black text-stone-900 text-xs sm:text-base truncate">
+                              {storeForm.storeName || 'AllKurma Official Store'}
+                            </h4>
+                            {storeForm.isOfficialStore && (
+                              <span className="bg-red-600 text-white text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded uppercase shadow-xs">
+                                MALL
+                              </span>
+                            )}
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-300 text-[8px] sm:text-[9px] font-semibold px-1.5 py-0.2 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Online
+                            </span>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-stone-600 font-medium line-clamp-1 mt-0.5">
+                            {storeForm.tagline || 'Pusat Kurma & Herbal Premium Terpercaya Se-Indonesia'}
+                          </p>
+                          <p className="text-[9px] sm:text-[10px] text-stone-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="flex items-center text-amber-700 font-bold">
+                              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 mr-0.5" /> 4.9
+                            </span>
+                            <span>•</span>
+                            <span>{(sellerStore.followerCount || 24850).toLocaleString('id-ID')} Pengikut</span>
+                            <span>•</span>
+                            <span>📍 {storeForm.city || 'Jakarta Utara'}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Quick Action Preview */}
+                      <button
+                        type="button"
+                        onClick={() => setFullscreenImageModal({
+                          isOpen: true,
+                          url: normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80',
+                          title: `Banner Sampul: ${storeForm.storeName || 'AllKurma'}`,
+                          type: 'banner'
+                        })}
+                        className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/70 text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors"
+                      >
+                        <Maximize2 className="w-3 h-3 text-amber-700" />
+                        <span className="hidden sm:inline">Perbesar Layar</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Form Controls for Background Banner and Profile Photo */}
@@ -1746,9 +1873,25 @@ export const SellerDashboardScreen: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
-                        Maks 5MB
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setFullscreenImageModal({
+                            isOpen: true,
+                            url: normalizeImageUrl(storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80',
+                            title: `Banner Sampul Toko: ${storeForm.storeName || 'AllKurma'}`,
+                            type: 'banner'
+                          })}
+                          className="text-[10px] font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Lihat Banner Layar Penuh"
+                        >
+                          <Maximize2 className="w-3 h-3 text-amber-700" />
+                          <span>Layar Penuh</span>
+                        </button>
+                        <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
+                          Maks 5MB
+                        </span>
+                      </div>
                     </div>
 
                     {/* Hidden input file for banner */}
@@ -1867,9 +2010,25 @@ export const SellerDashboardScreen: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
-                        Maks 3MB
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setFullscreenImageModal({
+                            isOpen: true,
+                            url: normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80',
+                            title: `Foto Profil Toko: ${storeForm.storeName || 'AllKurma'}`,
+                            type: 'logo'
+                          })}
+                          className="text-[10px] font-bold text-blue-800 hover:text-blue-950 bg-blue-100 hover:bg-blue-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Lihat Foto Profil Layar Penuh"
+                        >
+                          <Maximize2 className="w-3 h-3 text-blue-700" />
+                          <span>Layar Penuh</span>
+                        </button>
+                        <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
+                          Maks 3MB
+                        </span>
+                      </div>
                     </div>
 
                     {/* Hidden input file for logo */}
@@ -7256,6 +7415,65 @@ export const SellerDashboardScreen: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Fullscreen Lightbox Modal for Banner / Logo */}
+      {fullscreenImageModal && fullscreenImageModal.isOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setFullscreenImageModal(null)}
+        >
+          {/* Top Bar */}
+          <div 
+            className="w-full max-w-5xl flex items-center justify-between py-2 text-white mb-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                {fullscreenImageModal.type === 'logo' ? 'Foto Profil Toko (1:1)' : 'Banner Sampul Toko (Landscape 1:2)'}
+              </span>
+              <h3 className="font-bold text-sm sm:text-base truncate text-white">
+                {fullscreenImageModal.title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={fullscreenImageModal.url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 border border-white/20 transition-colors"
+                title="Buka Resolusi Asli"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Buka Resolusi Asli</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setFullscreenImageModal(null)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Tutup (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container: 100% Fullscreen, Zero Black Gradients */}
+          <div 
+            className="relative max-w-5xl max-h-[80vh] w-full flex items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <img
+              src={fullscreenImageModal.url}
+              alt={fullscreenImageModal.title}
+              className="max-h-[80vh] w-auto max-w-full object-contain rounded-xl shadow-2xl block"
+            />
+          </div>
+
+          <p className="text-stone-400 text-xs mt-3 flex items-center gap-1.5">
+            <span>✓ Tampilan 100% Layar Penuh (Fullscreen) tanpa gradasi hitam sesuai gambar asli</span>
+          </p>
         </div>
       )}
     </div>

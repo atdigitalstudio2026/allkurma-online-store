@@ -14,7 +14,10 @@ import {
   Gift, 
   ChevronRight,
   Share2,
-  Info
+  Info,
+  Maximize2,
+  X,
+  Eye
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { normalizeImageUrl } from '../../utils/imageUrlHelper';
@@ -40,6 +43,12 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
   } = useApp();
 
   const [showBenefitModal, setShowBenefitModal] = useState(false);
+  const [fullscreenModal, setFullscreenModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
+    type?: 'banner' | 'logo';
+  } | null>(null);
 
   const followerCount = sellerStore.followerCount || 24850;
 
@@ -126,120 +135,153 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
     );
   }
 
-  // Full Banner / Card Variant (Shopee/Tokopedia/TikTok Mall Style)
+  // Full Banner / Card Variant (Clean, crisp without dark gradients, full-screen banner display)
   return (
     <div className={`overflow-hidden rounded-2xl bg-white border border-stone-200 shadow-sm ${className}`}>
       
-      {/* Top Store Cover / Backdrop with dynamic sellerStore.banner */}
-      <div className="relative bg-stone-950 text-white p-4 sm:p-5 overflow-hidden">
+      {/* Top Store Banner: Clean 100% full visual without dark gradients */}
+      <div className="relative w-full overflow-hidden bg-stone-100 group">
         {sellerStore.banner ? (
-          <img
-            src={normalizeImageUrl(sellerStore.banner)}
-            alt={sellerStore.storeName}
-            className="absolute inset-0 w-full h-full object-cover opacity-35"
-          />
+          <div className="relative w-full aspect-[21/9] sm:aspect-[3/1] max-h-64 sm:max-h-72 overflow-hidden bg-stone-100">
+            <img
+              src={normalizeImageUrl(sellerStore.banner)}
+              alt={sellerStore.storeName || 'Banner Sampul Toko'}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-101 block"
+            />
+            {/* Quick Full Screen View Button on Banner */}
+            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-10">
+              <button
+                type="button"
+                onClick={() => setFullscreenModal({
+                  isOpen: true,
+                  url: normalizeImageUrl(sellerStore.banner),
+                  title: `Banner Sampul Toko ${sellerStore.storeName || 'AllKurma Official'}`,
+                  type: 'banner'
+                })}
+                className="px-2.5 py-1 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[10px] sm:text-[11px] font-bold rounded-full border border-white/30 shadow-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                title="Buka Layar Penuh Banner"
+              >
+                <Maximize2 className="w-3 h-3 text-amber-300" />
+                <span>Layar Penuh</span>
+              </button>
+            </div>
+          </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-950 via-stone-900 to-amber-900 opacity-90" />
+          <div className="w-full h-24 sm:h-28 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 relative">
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:12px_12px]" />
+          </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 to-black/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
+      </div>
+
+      {/* Store Profile & Action Bar: Clean, high-contrast, no black gradient or dark rings */}
+      <div className="p-4 sm:p-5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-stone-100">
         
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          
-          {/* Store Info Left */}
-          <div className="flex items-center gap-3.5">
-            <div className="relative shrink-0">
-              <img
-                src={normalizeImageUrl(sellerStore.logo) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80'}
-                alt={sellerStore.storeName}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-amber-400/80 shadow-md ring-4 ring-black/40 bg-white"
-              />
-              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 p-1 rounded-full border border-white shadow-xs" title="Official Verified Store">
-                <ShieldCheck className="w-3.5 h-3.5" />
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-extrabold text-white text-base sm:text-lg font-['Playfair_Display',serif] tracking-tight">
-                  {sellerStore.storeName || 'AllKurma Official Store'}
-                </h3>
-                <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm tracking-wider uppercase shadow-xs">
-                  OFFICIAL MALL
-                </span>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Online
-                </span>
-              </div>
-
-              <p className="text-xs text-amber-200/90 font-medium mt-0.5 truncate max-w-sm">
-                {sellerStore.tagline || 'Pusat Kurma Impor Timur Tengah & Grosir Berkah Se-Indonesia'}
-              </p>
-
-              {/* Fast stats inline */}
-              <div className="flex items-center gap-3 mt-2 text-[11px] text-stone-300 flex-wrap">
-                <span className="flex items-center gap-1 text-amber-300 font-bold">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  4.9 <span className="font-normal text-stone-300">(18.2RB+ Penilaian)</span>
-                </span>
-                <span className="text-stone-500">•</span>
-                <span className="font-semibold text-white">
-                  {followerCount.toLocaleString('id-ID')} <span className="text-stone-300 font-normal">Pengikut</span>
-                </span>
-                <span className="text-stone-500">•</span>
-                <span className="text-stone-300">
-                  Respon Chat: <b className="text-emerald-400 font-semibold">100%</b>
-                </span>
-              </div>
+        {/* Store Info Left */}
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div 
+            onClick={() => {
+              if (sellerStore.logo) {
+                setFullscreenModal({
+                  isOpen: true,
+                  url: normalizeImageUrl(sellerStore.logo),
+                  title: `Foto Profil Toko ${sellerStore.storeName || 'AllKurma Official'}`,
+                  type: 'logo'
+                });
+              }
+            }}
+            className="relative shrink-0 cursor-pointer group/logo"
+            title="Klik untuk lihat foto profil layar penuh"
+          >
+            <img
+              src={normalizeImageUrl(sellerStore.logo) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80'}
+              alt={sellerStore.storeName}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white shadow-md ring-2 ring-amber-400/60 bg-white group-hover/logo:scale-105 transition-transform"
+            />
+            <div className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 p-1 rounded-full border border-white shadow-xs" title="Official Verified Store">
+              <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </div>
 
-          {/* Action Buttons Right */}
-          <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsChatOpen(true)}
-              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 active:scale-95 backdrop-blur-xs"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-amber-300" />
-              <span>Chat Toko</span>
-            </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-extrabold text-stone-900 text-base sm:text-lg font-['Playfair_Display',serif] tracking-tight">
+                {sellerStore.storeName || 'AllKurma Official Store'}
+              </h3>
+              <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-xs tracking-wider uppercase shadow-xs">
+                OFFICIAL MALL
+              </span>
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-300 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Online
+              </span>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleShareStore}
-              className="p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs transition-all active:scale-95"
-              title="Bagikan Tautan Toko"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
+            <p className="text-xs text-stone-600 font-medium mt-0.5 truncate max-w-sm">
+              {sellerStore.tagline || 'Pusat Kurma Impor Timur Tengah & Grosir Berkah Se-Indonesia'}
+            </p>
 
-            {/* Main Follow / Unfollow Button */}
-            <button
-              type="button"
-              onClick={toggleFollowStore}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 shadow-md active:scale-95 cursor-pointer ${
-                isFollowingStore
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/40'
-                  : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-stone-950 font-black shadow-amber-500/20'
-              }`}
-            >
-              {isFollowingStore ? (
-                <>
-                  <UserCheck className="w-4 h-4 text-white" />
-                  <span>Mengikuti Toko</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4 text-stone-950" />
-                  <span>+ Ikuti Toko</span>
-                </>
-              )}
-            </button>
+            {/* Fast stats inline */}
+            <div className="flex items-center gap-3 mt-2 text-[11px] text-stone-500 flex-wrap">
+              <span className="flex items-center gap-1 text-amber-700 font-bold">
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                4.9 <span className="font-normal text-stone-500">(18.2RB+ Penilaian)</span>
+              </span>
+              <span className="text-stone-300">•</span>
+              <span className="font-semibold text-stone-800">
+                {followerCount.toLocaleString('id-ID')} <span className="text-stone-500 font-normal">Pengikut</span>
+              </span>
+              <span className="text-stone-300">•</span>
+              <span className="text-stone-600">
+                Respon Chat: <b className="text-emerald-700 font-semibold">100%</b>
+              </span>
+            </div>
           </div>
-
         </div>
+
+        {/* Action Buttons Right */}
+        <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsChatOpen(true)}
+            className="px-3.5 py-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-2xs"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+            <span>Chat Toko</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleShareStore}
+            className="p-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 rounded-xl text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
+            title="Bagikan Tautan Toko"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Main Follow / Unfollow Button */}
+          <button
+            type="button"
+            onClick={toggleFollowStore}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer ${
+              isFollowingStore
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/40'
+                : 'bg-amber-500 hover:bg-amber-600 text-stone-950 font-black shadow-amber-500/20'
+            }`}
+          >
+            {isFollowingStore ? (
+              <>
+                <UserCheck className="w-4 h-4 text-white" />
+                <span>Mengikuti Toko</span>
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4 text-stone-950" />
+                <span>+ Ikuti Toko</span>
+              </>
+            )}
+          </button>
+        </div>
+
       </div>
 
       {/* Follower Perk Ribbon / Bar */}
@@ -376,6 +418,65 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Fullscreen Lightbox Modal for Banner / Profile Photo */}
+      {fullscreenModal && fullscreenModal.isOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setFullscreenModal(null)}
+        >
+          {/* Top Bar */}
+          <div 
+            className="w-full max-w-5xl flex items-center justify-between py-2 text-white mb-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                {fullscreenModal.type === 'logo' ? 'Foto Profil Toko' : 'Banner Sampul Toko'}
+              </span>
+              <h3 className="font-bold text-sm sm:text-base truncate text-white">
+                {fullscreenModal.title}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={fullscreenModal.url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 border border-white/20 transition-colors"
+                title="Buka Tab Baru"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Buka Resolusi Asli</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setFullscreenModal(null)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Tutup (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Container: 100% Fullscreen, Unobstructed, Zero Gradients */}
+          <div 
+            className="relative max-w-5xl max-h-[80vh] w-full flex items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <img
+              src={fullscreenModal.url}
+              alt={fullscreenModal.title}
+              className="max-h-[80vh] w-auto max-w-full object-contain rounded-xl shadow-2xl block"
+            />
+          </div>
+
+          <p className="text-stone-400 text-xs mt-3 flex items-center gap-1.5">
+            <span>✓ Tampilan 100% Fullscreen tanpa gradasi hitam sesuai gambar asli</span>
+          </p>
         </div>
       )}
 
