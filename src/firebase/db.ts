@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order, Product, CategoryItem } from '../types';
+import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest } from '../types';
 
 // Recursively remove undefined values for Firestore serialization safety
 export function sanitizeForFirestore<T>(data: T): T {
@@ -180,6 +180,138 @@ export const updateOrderStatusInFirestore = async (
     });
   } catch (error) {
     console.warn('Firestore updateOrderStatus fallback:', error);
+  }
+};
+
+// Real-time listener for all orders across devices (used by Seller & Admin dashboards)
+export const listenToAllOrdersFromFirestore = (
+  onSuccess: (orders: Order[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const ordersColl = collection(db, 'orders');
+    const q = query(ordersColl, orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: Order[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<Order, 'id'>)
+          });
+        });
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToAllOrders snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach all orders listener:', err);
+    return () => {};
+  }
+};
+
+// Real-time listener for customer orders
+export const listenToCustomerOrdersFromFirestore = (
+  userId: string,
+  onSuccess: (orders: Order[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const ordersColl = collection(db, 'orders');
+    const q = query(
+      ordersColl,
+      where('customerId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: Order[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<Order, 'id'>)
+          });
+        });
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToCustomerOrders snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach customer orders listener:', err);
+    return () => {};
+  }
+};
+
+// ==========================================
+// Returns & Complaints Real-time Synchronization
+// ==========================================
+
+export const listenToReturnsFromFirestore = (
+  onSuccess: (returns: ReturnRequest[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const returnsColl = collection(db, 'returns');
+    const q = query(returnsColl, orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: ReturnRequest[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<ReturnRequest, 'id'>)
+          });
+        });
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToReturns snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach returns listener:', err);
+    return () => {};
+  }
+};
+
+export const saveReturnToFirestore = async (returnReq: ReturnRequest): Promise<void> => {
+  try {
+    const sanitized = sanitizeForFirestore({
+      ...returnReq,
+      updatedAt: new Date().toISOString()
+    });
+    await setDoc(doc(db, 'returns', returnReq.id), sanitized, { merge: true });
+    console.log('[Firestore] Successfully synced return request to cloud:', returnReq.id);
+  } catch (error) {
+    console.warn('Firestore saveReturn fallback:', error);
+  }
+};
+
+export const updateReturnStatusInFirestore = async (
+  returnId: string,
+  updates: Partial<ReturnRequest>
+): Promise<void> => {
+  try {
+    const retRef = doc(db, 'returns', returnId);
+    await updateDoc(retRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Firestore updateReturnStatus fallback:', error);
   }
 };
 

@@ -62,7 +62,13 @@ import {
   deleteProductFromFirestore,
   listenToCategoriesFromFirestore,
   saveCategoryToFirestore,
-  deleteCategoryFromFirestore
+  deleteCategoryFromFirestore,
+  saveOrderToFirestore,
+  updateOrderStatusInFirestore,
+  listenToAllOrdersFromFirestore,
+  listenToReturnsFromFirestore,
+  saveReturnToFirestore,
+  updateReturnStatusInFirestore
 } from '../firebase/db';
 import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
 
@@ -871,6 +877,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Real-time synchronization of orders across all devices using Firestore
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToAllOrdersFromFirestore(
+      (cloudOrders) => {
+        if (!isSubscribed) return;
+        if (cloudOrders && cloudOrders.length > 0) {
+          setOrders(cloudOrders);
+          try {
+            localStorage.setItem('allkurma_orders', JSON.stringify(cloudOrders));
+          } catch (e) {
+            console.warn('Failed to cache orders to localStorage:', e);
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore orders listener warning:', err);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Real-time synchronization of returns and complaints across all devices
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToReturnsFromFirestore(
+      (cloudReturns) => {
+        if (!isSubscribed) return;
+        if (cloudReturns && cloudReturns.length > 0) {
+          setReturns(cloudReturns);
+          try {
+            localStorage.setItem('allkurma_returns', JSON.stringify(cloudReturns));
+          } catch (e) {
+            console.warn('Failed to cache returns to localStorage:', e);
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore returns listener warning:', err);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
   // Listen to Firebase Auth State changes for secure session persistence
   useEffect(() => {
     const unsubscribe = listenToAuthState(async (firebaseUser) => {
@@ -1539,12 +1599,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // ignore
     }
 
+    // Sync order to Firestore for real-time update across all devices
+    saveOrderToFirestore(newOrder).catch((err) => {
+      console.warn('Sync order to firestore warning:', err);
+    });
+
+    // Also sync deducted product stocks to Firestore so all devices see live inventory
+    newOrder.items.forEach((item) => {
+      const prod = products.find(p => p.id === item.productId);
+      if (prod) {
+        const updatedProd: Product = {
+          ...prod,
+          stock: Math.max(0, prod.stock - item.quantity),
+          soldCount: (prod.soldCount || 0) + item.quantity
+        };
+        saveProductToFirestore(updatedProd).catch(() => {});
+      }
+    });
+
     showToast(`Pesanan #${newOrder.orderNumber} berhasil dibuat!`, 'success');
     return newOrder;
   };
 
   const updateOrderStatus = (orderId: string, status: Order['status'], extraData?: Partial<Order>) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, ...(extraData || {}) } : o));
+    
+    // Sync status change to Firestore for instant real-time reflection across devices
+    updateOrderStatusInFirestore(orderId, { status, ...(extraData || {}) }).catch((err) => {
+      console.warn('Sync order status update to firestore warning:', err);
+    });
+
     showToast(`Status pesanan diperbarui menjadi: ${status}`);
   };
 
@@ -1683,17 +1767,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Tagihan invoice telah berhasil dibayarkan / diselesaikan!');
   };
 
-  // RMA Returns
+  // RMA Returns & Complaints Sync
   const createReturnRequest = (req: Omit<ReturnRequest, 'id' | 'returnCode' | 'createdAt' | 'status'>) => {
     const code = `RET-${Math.floor(1000 + Math.random() * 9000)}`;
     const newReturn: ReturnRequest = {
       ...req,
       id: `rma-${Date.now().toString(36)}`,
       returnCode: code,
-      createdAt: 'Hari Ini',
+      createdAt: new Date().toISOString(),
       status: 'Pending Review'
     };
     setReturns(prev => [newReturn, ...prev]);
+
+    // Sync to Firestore in real time
+    saveReturnToFirestore(newReturn).catch((err) => {
+      console.warn('Sync return to firestore warning:', err);
+    });
+
     showToast(`Pengajuan retur #${code} berhasil dikirim untuk diinspeksi`);
   };
 
@@ -1718,6 +1808,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return r;
       })
     );
+
+    // Sync status change to Firestore in real time
+    const updates: Partial<ReturnRequest> = {
+      status,
+      ...(notes !== undefined ? { inspectionNotes: notes } : {}),
+      ...(adjustedCredit !== undefined ? { creditAdjusted: adjustedCredit } : {}),
+      ...(resolution !== undefined ? { resolutionStatus: resolution } : {})
+    };
+    updateReturnStatusInFirestore(id, updates).catch((err) => {
+      console.warn('Sync return update to firestore warning:', err);
+    });
+
     showToast(`Status retur diperbarui: ${status}`);
   };
 

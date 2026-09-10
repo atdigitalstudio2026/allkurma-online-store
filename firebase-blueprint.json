@@ -129,6 +129,24 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "name"]
+    },
+    "ReturnRequest": {
+      "title": "ReturnRequest",
+      "description": "Customer return and complaint request for an order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "returnCode": { "type": "string" },
+        "reason": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "requestedResolution": { "type": "string" },
+        "resolutionStatus": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "orderId", "orderNumber", "status"]
     }
   },
   "firestore": {
@@ -147,6 +165,10 @@
     "orders": {
       "schema": "Order",
       "description": "Stores customer orders."
+    },
+    "returns": {
+      "schema": "ReturnRequest",
+      "description": "Stores return requests and complaints."
     },
     "products": {
       "schema": "Product",
