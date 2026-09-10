@@ -1104,7 +1104,7 @@ export const SellerDashboardScreen: React.FC = () => {
           </div>
 
           {/* Navigation Sub-Tabs */}
-          <div className="flex items-center space-x-1 sm:space-x-4 overflow-x-auto py-2 border-t border-stone-800 text-xs scrollbar-none">
+          <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-2 border-t border-stone-800 text-xs scrollbar-thin scrollbar-thumb-stone-700">
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
@@ -1118,45 +1118,27 @@ export const SellerDashboardScreen: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('home-features')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
-                activeTab === 'home-features' || activeTab === 'bundling'
-                  ? 'bg-amber-500 text-stone-950 shadow-xs'
-                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
-              }`}
-            >
-              <Boxes className="w-4 h-4 text-amber-400" />
-              <span>Hub 8 Fitur Beranda</span>
-              <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                8 AKTIF
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => setActiveTab('products')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
-                activeTab === 'settings'
+                activeTab === 'products'
                   ? 'bg-amber-500 text-stone-950 shadow-xs'
                   : 'text-stone-300 hover:bg-stone-800 hover:text-white'
               }`}
             >
-              <Settings className="w-4 h-4" />
-              Profil & Tampilan Toko
+              <Package className="w-4 h-4" />
+              Katalog & Stok SKU ({products.length})
             </button>
 
             <button
-              onClick={() => setActiveTab('banners')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
-                activeTab === 'banners'
+              onClick={() => setActiveTab('categories')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
+                activeTab === 'categories'
                   ? 'bg-amber-500 text-stone-950 shadow-xs'
                   : 'text-stone-300 hover:bg-stone-800 hover:text-white'
               }`}
             >
-              <ImageIcon className="w-4 h-4 text-amber-400" />
-              <span>Kelola Banner Beranda ({heroBanners.length})</span>
-              <span className="bg-amber-400 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                SLIDER
-              </span>
+              <Tags className="w-4 h-4 text-emerald-400" />
+              <span>Kelola Kategori ({categories.length})</span>
             </button>
 
             <button
@@ -1194,27 +1176,45 @@ export const SellerDashboardScreen: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('products')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
-                activeTab === 'products'
+              onClick={() => setActiveTab('home-features')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'home-features' || activeTab === 'bundling'
                   ? 'bg-amber-500 text-stone-950 shadow-xs'
                   : 'text-stone-300 hover:bg-stone-800 hover:text-white'
               }`}
             >
-              <Package className="w-4 h-4" />
-              Katalog & Stok SKU ({products.length})
+              <Boxes className="w-4 h-4 text-amber-400" />
+              <span>Hub 8 Fitur Beranda</span>
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                8 AKTIF
+              </span>
             </button>
 
             <button
-              onClick={() => setActiveTab('categories')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
-                activeTab === 'categories'
+              onClick={() => setActiveTab('banners')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'banners'
                   ? 'bg-amber-500 text-stone-950 shadow-xs'
                   : 'text-stone-300 hover:bg-stone-800 hover:text-white'
               }`}
             >
-              <Tags className="w-4 h-4 text-emerald-400" />
-              Kelola Kategori ({categories.length})
+              <ImageIcon className="w-4 h-4 text-amber-400" />
+              <span>Kelola Banner Beranda ({heroBanners.length})</span>
+              <span className="bg-amber-400 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                SLIDER
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap ${
+                activeTab === 'settings'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Profil & Tampilan Toko
             </button>
 
             <button
@@ -1588,6 +1588,14 @@ export const SellerDashboardScreen: React.FC = () => {
                   >
                     <Plus className="w-4 h-4" />
                     Tambah Produk Baru
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('categories')}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                    title="Kelola, Tambah, dan Hapus Kategori Produk"
+                  >
+                    <Tags className="w-4 h-4 text-emerald-200" />
+                    <span>Kelola Kategori ({categories.length})</span>
                   </button>
                   <button
                     onClick={() => setActiveTab('orders')}
@@ -3652,6 +3660,15 @@ export const SellerDashboardScreen: React.FC = () => {
                     <span>Hapus ({selectedProductIdsForBulk.length}) Produk Terpilih</span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('categories')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Kelola & Hapus Kategori Produk"
+                >
+                  <Tags className="w-4 h-4 text-emerald-200" />
+                  <span>Kelola Kategori ({categories.length})</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleExportInventoryExcel}
