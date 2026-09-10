@@ -139,6 +139,9 @@ export interface SellerStoreProfile {
   description: string;
   logo: string;
   banner: string;
+  headerBackground?: string; // Dedicated background image for Shopee Store Header Card
+  headerBackgroundBlur?: 'none' | 'subtle' | 'medium' | 'strong';
+  headerBackgroundOverlay?: 'light' | 'medium' | 'dark' | 'vibrant';
   city: string;
   fullAddress: string;
   postalCode: string;

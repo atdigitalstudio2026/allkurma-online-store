@@ -65,7 +65,11 @@ import {
   Link2,
   Gift,
   Heart,
-  Maximize2
+  Maximize2,
+  Paintbrush,
+  Sliders,
+  Palette,
+  MapPin
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem, ReturnRequest } from '../../types';
@@ -94,6 +98,39 @@ const BANNER_IMAGE_PRESETS = [
   { label: 'Paket Kombo Bundling (1200x600)', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&auto=format&fit=crop&q=80' },
   { label: 'Panen Perdana 2026 (1200x600)', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80' },
   { label: 'Gudang Grosir B2B (1200x600)', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&auto=format&fit=crop&q=80' }
+];
+
+const HEADER_BG_PRESETS = [
+  {
+    name: 'Golden Dates & Kurma Premium (Bawaan)',
+    url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80',
+    desc: 'Kurma keemasan hangat & elegan'
+  },
+  {
+    name: 'Kebun Kurma Madinah Al-Munawwarah',
+    url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&h=600&fit=crop&q=80',
+    desc: 'Lanskap pohon kurma khas Timur Tengah'
+  },
+  {
+    name: 'Panen Kurma Sukari Al-Qassim',
+    url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80',
+    desc: 'Kurma basah madu segar premium'
+  },
+  {
+    name: 'Kurma Ajwa Al-Aliya VIP Dark Luxury',
+    url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&fit=crop&q=80',
+    desc: 'Nuansa gelap hitam berwibawa & mewah'
+  },
+  {
+    name: 'Gudang Grosir & Distribusi B2B',
+    url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&fit=crop&q=80',
+    desc: 'Fasilitas modern pasokan kurma resmi'
+  },
+  {
+    name: 'Hampers & Parcel Ramadan Emas',
+    url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&h=600&fit=crop&q=80',
+    desc: 'Edisi hampers eksklusif Idul Fitri'
+  }
 ];
 
 export const SellerDashboardScreen: React.FC = () => {
@@ -222,6 +259,9 @@ export const SellerDashboardScreen: React.FC = () => {
     description: sellerStore.description || '',
     logo: sellerStore.logo || '',
     banner: sellerStore.banner || '',
+    headerBackground: sellerStore.headerBackground || sellerStore.banner || '',
+    headerBackgroundBlur: (sellerStore.headerBackgroundBlur || 'subtle') as 'none' | 'subtle' | 'medium' | 'strong',
+    headerBackgroundOverlay: (sellerStore.headerBackgroundOverlay || 'medium') as 'light' | 'medium' | 'dark' | 'vibrant',
     city: sellerStore.city || '',
     fullAddress: sellerStore.fullAddress || '',
     postalCode: sellerStore.postalCode || '',
@@ -249,6 +289,9 @@ export const SellerDashboardScreen: React.FC = () => {
       description: sellerStore.description || '',
       logo: sellerStore.logo || '',
       banner: sellerStore.banner || '',
+      headerBackground: sellerStore.headerBackground || sellerStore.banner || '',
+      headerBackgroundBlur: (sellerStore.headerBackgroundBlur || 'subtle') as 'none' | 'subtle' | 'medium' | 'strong',
+      headerBackgroundOverlay: (sellerStore.headerBackgroundOverlay || 'medium') as 'light' | 'medium' | 'dark' | 'vibrant',
       city: sellerStore.city || '',
       fullAddress: sellerStore.fullAddress || '',
       postalCode: sellerStore.postalCode || '',
@@ -271,6 +314,10 @@ export const SellerDashboardScreen: React.FC = () => {
   // File upload refs for store branding
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const headerBgFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Active sub-tab for visual store branding: 'shopee-header' | 'wide-banner' | 'logo'
+  const [visualBrandingTab, setVisualBrandingTab] = useState<'shopee-header' | 'wide-banner' | 'logo'>('shopee-header');
 
   // Fullscreen Preview Lightbox Modal for Banner or Logo
   const [fullscreenImageModal, setFullscreenImageModal] = useState<{
@@ -318,6 +365,26 @@ export const SellerDashboardScreen: React.FC = () => {
           setStoreForm(prev => ({ ...prev, logo: base64 }));
           updateSellerStore({ logo: base64 });
           showToast('Foto profil toko berhasil diunggah & diterapkan langsung ke toko!', 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeaderBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Ukuran file foto background terlalu besar (maksimal 5MB)', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        if (base64) {
+          setStoreForm(prev => ({ ...prev, headerBackground: base64 }));
+          updateSellerStore({ headerBackground: base64 });
+          showToast('Background Header Profil Toko berhasil diunggah & langsung diterapkan ke toko!', 'success');
         }
       };
       reader.readAsDataURL(file);
@@ -451,6 +518,7 @@ export const SellerDashboardScreen: React.FC = () => {
 
     const normalizedBanner = normalizeImageUrl(storeForm.banner.trim());
     const normalizedLogo = normalizeImageUrl(storeForm.logo.trim());
+    const normalizedHeaderBg = normalizeImageUrl(storeForm.headerBackground.trim()) || normalizedBanner;
 
     updateSellerStore({
       storeName: storeForm.storeName.trim(),
@@ -459,6 +527,9 @@ export const SellerDashboardScreen: React.FC = () => {
       description: storeForm.description.trim(),
       logo: normalizedLogo,
       banner: normalizedBanner,
+      headerBackground: normalizedHeaderBg,
+      headerBackgroundBlur: storeForm.headerBackgroundBlur,
+      headerBackgroundOverlay: storeForm.headerBackgroundOverlay,
       city: storeForm.city.trim(),
       fullAddress: storeForm.fullAddress.trim(),
       postalCode: storeForm.postalCode.trim(),
@@ -1708,19 +1779,502 @@ export const SellerDashboardScreen: React.FC = () => {
                 </button>
               </div>
 
-              {/* Visual Identitas Toko: Banner Header & Logo Profil */}
+              {/* Visual Identitas Toko: Multi-Tab Branding Center */}
               <div className="mb-6 p-5 bg-stone-50 rounded-2xl border border-stone-200 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80">
                   <div>
                     <h4 className="text-sm font-black text-stone-900 flex items-center gap-2">
-                      <Store className="w-4 h-4 text-amber-600" />
-                      Visual Background Banner & Foto Profil Toko Seller
+                      <Palette className="w-4 h-4 text-amber-600" />
+                      Visual & Background Toko Seller
                     </h4>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      Ubah foto background banner sampul toko dan foto profil/logo resmi yang ditampilkan ke seluruh pembeli.
+                      Kelola foto background header profil Shopee Mall, banner toko utama, dan logo resmi toko.
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
+
+                  {/* Tab Selector */}
+                  <div className="flex items-center bg-stone-200/80 p-1 rounded-xl gap-1 text-xs font-bold overflow-x-auto self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setVisualBrandingTab('shopee-header')}
+                      className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                        visualBrandingTab === 'shopee-header'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-stone-700 hover:text-stone-950 hover:bg-stone-300/60'
+                      }`}
+                    >
+                      <Paintbrush className="w-3.5 h-3.5" />
+                      <span>Background Header Profil Toko</span>
+                      <span className="bg-amber-300 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                        SHOPEE
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setVisualBrandingTab('wide-banner')}
+                      className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                        visualBrandingTab === 'wide-banner'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-stone-700 hover:text-stone-950 hover:bg-stone-300/60'
+                      }`}
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Banner Sampul Toko (1:2)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setVisualBrandingTab('logo')}
+                      className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                        visualBrandingTab === 'logo'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'text-stone-700 hover:text-stone-950 hover:bg-stone-300/60'
+                      }`}
+                    >
+                      <Store className="w-3.5 h-3.5" />
+                      <span>Foto Profil / Logo (1:1)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* TAB 1: BACKGROUND HEADER PROFIL TOKO (SHOPEE MALL CARD PREVIEW & EDITOR)  */}
+                {/* ========================================================================= */}
+                {visualBrandingTab === 'shopee-header' && (
+                  <div className="space-y-4">
+                    {/* Notice bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="font-semibold">
+                          Pratinjau Langsung (WYSIWYG): Di bawah ini adalah kartu profil toko Shopee Mall persis seperti yang dilihat pembeli di Beranda & Halaman Toko.
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSellerStore({
+                              headerBackground: normalizeImageUrl(storeForm.headerBackground.trim()) || normalizeImageUrl(storeForm.banner.trim()),
+                              headerBackgroundBlur: storeForm.headerBackgroundBlur,
+                              headerBackgroundOverlay: storeForm.headerBackgroundOverlay
+                            });
+                            showToast('Background Header Toko berhasil disimpan dan langsung aktif di storefront!', 'success');
+                          }}
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Terapkan Langsung ke Toko</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentView('home');
+                            showToast('Melihat hasil di Beranda Toko...', 'info');
+                          }}
+                          className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 font-bold text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Lihat di Beranda</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* LIVE SHOPEE STORE HEADER CARD PREVIEW (Exact match to User Screenshot) */}
+                    <div className="rounded-xl bg-white border border-stone-300 shadow-sm overflow-hidden">
+                      <div className="flex flex-col md:flex-row bg-white">
+                        
+                        {/* LEFT COLUMN: Frosted Shop Profile Box (~390px on desktop) */}
+                        <div className="relative w-full md:w-[390px] lg:w-[410px] min-h-[140px] md:h-[150px] overflow-hidden bg-stone-900 shrink-0 p-3.5 sm:p-4 flex items-center gap-3.5 text-white group">
+                          {/* Background image */}
+                          <img
+                            src={normalizeImageUrl(storeForm.headerBackground || storeForm.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80'}
+                            alt="Background Header Toko"
+                            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
+                          />
+                          {/* Frosted glass overlay & blur */}
+                          <div className={`absolute inset-0 ${
+                            storeForm.headerBackgroundOverlay === 'light' ? 'bg-black/40' :
+                            storeForm.headerBackgroundOverlay === 'dark' ? 'bg-black/80' :
+                            storeForm.headerBackgroundOverlay === 'vibrant' ? 'bg-stone-950/75' :
+                            'bg-black/65'
+                          } ${
+                            storeForm.headerBackgroundBlur === 'none' ? 'backdrop-blur-none' :
+                            storeForm.headerBackgroundBlur === 'medium' ? 'backdrop-blur-md' :
+                            storeForm.headerBackgroundBlur === 'strong' ? 'backdrop-blur-xl' :
+                            'backdrop-blur-xs'
+                          }`} />
+
+                          {/* Avatar with Shopee Mall Badge */}
+                          <div className="relative z-10 shrink-0">
+                            <img
+                              src={normalizeImageUrl(storeForm.logo) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80'}
+                              alt={storeForm.storeName}
+                              className="w-16 h-16 sm:w-18 sm:h-18 rounded-full object-cover border-2 border-white/90 shadow-md bg-white"
+                            />
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#d0011b] text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.2 rounded-[2px] tracking-wider uppercase whitespace-nowrap shadow-xs">
+                              Shopee Mall
+                            </div>
+                          </div>
+
+                          {/* Shop Details & Action Buttons Inside the Card */}
+                          <div className="relative z-10 min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <h2 className="font-bold text-white text-sm sm:text-base leading-snug truncate">
+                                {storeForm.storeName || 'AllKurma Official Store'}
+                              </h2>
+                              <span title="Terverifikasi Mall">
+                                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-white/80 text-[11px] mt-0.5 mb-2.5 flex-wrap">
+                              <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                                Aktif beberapa menit lalu
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-white/70">
+                                <MapPin className="w-3 h-3 text-white/60" />
+                                {storeForm.city || 'Jakarta Pusat'}
+                              </span>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex items-center gap-2">
+                              <div className="px-3.5 py-1.5 rounded-[2px] text-xs font-bold bg-[#ee4d2d] text-white flex items-center justify-center gap-1 uppercase shadow-xs flex-1 pointer-events-none">
+                                <UserPlus className="w-3.5 h-3.5" />
+                                <span>+ Ikuti</span>
+                              </div>
+                              <div className="px-3.5 py-1.5 rounded-[2px] text-xs font-semibold border border-white/60 text-white flex items-center justify-center gap-1 uppercase flex-1 pointer-events-none">
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Chat</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* RIGHT COLUMN: 6 Shopee Performance Indicators (Exact match to User Screenshot) */}
+                        <div className="flex-1 bg-white p-4 sm:p-5 flex items-center border-t md:border-t-0 md:border-l border-stone-200">
+                          <div className="w-full grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-xs sm:text-[13px]">
+                            <div className="space-y-2.5">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="text-stone-500">Produk:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">{Math.max(products?.length || 0, 148)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <UserCheck className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="text-stone-500">Mengikuti:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">12</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2.5">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="text-stone-500">Performa Chat:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">100%</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="text-stone-500">Waktu Balas:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">hitungan jam</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2.5 col-span-2 lg:col-span-1">
+                              <div className="flex items-center gap-2">
+                                <UserPlus className="w-4 h-4 text-stone-400 shrink-0" />
+                                <span className="text-stone-500">Pengikut:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">{(sellerStore.followerCount || 24850).toLocaleString('id-ID')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0" />
+                                <span className="text-stone-500">Penilaian:</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">4.9 (18.2RB Penilaian)</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Editor Form Controls for Header Background */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+                      {/* Left: Upload and Link Input */}
+                      <div className="p-4 bg-white rounded-xl border border-stone-200 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                            <Upload className="w-4 h-4 text-amber-600" />
+                            <span>Unggah Foto Background Baru</span>
+                          </label>
+                          <span className="text-[10px] bg-stone-100 text-stone-600 font-mono px-2 py-0.5 rounded-md">
+                            Maks 5MB
+                          </span>
+                        </div>
+
+                        {/* Hidden input file */}
+                        <input
+                          type="file"
+                          ref={headerBgFileInputRef}
+                          accept="image/png,image/jpeg,image/webp,image/jpg"
+                          onChange={handleHeaderBgFileUpload}
+                          className="hidden"
+                        />
+
+                        {/* Dropzone */}
+                        <div
+                          onClick={() => headerBgFileInputRef.current?.click()}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => {
+                            e.preventDefault();
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) {
+                              if (file.size > 5 * 1024 * 1024) {
+                                showToast('Ukuran file foto terlalu besar (maks 5MB)', 'error');
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = ev => {
+                                const b64 = ev.target?.result as string;
+                                if (b64) {
+                                  setStoreForm(prev => ({ ...prev, headerBackground: b64 }));
+                                  updateSellerStore({ headerBackground: b64 });
+                                  showToast('Background Header Profil Toko berhasil diunggah & langsung aktif!', 'success');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/40 hover:bg-amber-50/80 rounded-xl p-3 text-center cursor-pointer transition-all group"
+                        >
+                          <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-900">
+                            <Upload className="w-4 h-4 text-amber-700 group-hover:-translate-y-0.5 transition-transform" />
+                            <span>Pilih Foto dari Komputer / HP</span>
+                          </div>
+                          <p className="text-[10px] text-stone-500 mt-1">
+                            Klik atau seret file foto gambar latar belakang di sini (JPG, PNG, WEBP)
+                          </p>
+                        </div>
+
+                        {/* URL Input */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-semibold text-stone-700">
+                              Atau Tautan Gambar URL / Dropbox:
+                            </label>
+                            {storeForm.headerBackground && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const norm = normalizeImageUrl(storeForm.headerBackground.trim());
+                                  updateSellerStore({ headerBackground: norm });
+                                  showToast('Tautan background berhasil diterapkan ke toko!', 'success');
+                                }}
+                                className="text-[11px] font-bold text-amber-700 hover:text-amber-900 flex items-center gap-1 underline cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>Terapkan Tautan</span>
+                              </button>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={storeForm.headerBackground}
+                              onChange={e => setStoreForm({ ...storeForm, headerBackground: e.target.value })}
+                              placeholder="https://images.unsplash.com/... atau tautan Dropbox"
+                              className="w-full text-xs font-mono px-3 py-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 pr-8"
+                            />
+                            {storeForm.headerBackground && (
+                              <button
+                                type="button"
+                                onClick={() => setStoreForm({ ...storeForm, headerBackground: '' })}
+                                className="absolute right-2 top-2 text-stone-400 hover:text-stone-600 p-0.5 text-xs cursor-pointer"
+                                title="Hapus URL"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick action buttons */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStoreForm(prev => ({ ...prev, headerBackground: prev.banner }));
+                              updateSellerStore({ headerBackground: storeForm.banner });
+                              showToast('Background disamakan dengan Banner Sampul Toko!', 'info');
+                            }}
+                            className="text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg border border-amber-300/60 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <ImageIcon className="w-3 h-3 text-amber-700" />
+                            <span>Samakan dengan Banner Toko</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const defaultUrl = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80';
+                              setStoreForm(prev => ({ ...prev, headerBackground: defaultUrl }));
+                              updateSellerStore({ headerBackground: defaultUrl });
+                              showToast('Background dikembalikan ke bawaan AllKurma', 'info');
+                            }}
+                            className="text-[11px] font-medium text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer ml-auto"
+                          >
+                            <RotateCcw className="w-3 h-3 text-stone-500" />
+                            <span>Reset Bawaan</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Right: Efek Blur & Lapisan Keredupan (Overlay) */}
+                      <div className="p-4 bg-white rounded-xl border border-stone-200 shadow-2xs space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                            <Sliders className="w-4 h-4 text-amber-600" />
+                            <span>Efek Visual (Frosted Glass & Kecerahan)</span>
+                          </label>
+                          <span className="text-[10px] text-stone-500">
+                            Menyesuaikan kontras teks toko
+                          </span>
+                        </div>
+
+                        {/* Blur Setting */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-700 mb-1.5">
+                            Tingkat Efek Blur Kaca (Frosted Blur):
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {[
+                              { id: 'none', label: 'Tanpa Blur', desc: 'Jernih' },
+                              { id: 'subtle', label: 'Blur Halus', desc: 'Shopee Default' },
+                              { id: 'medium', label: 'Blur Sedang', desc: 'Kaca Seimbang' },
+                              { id: 'strong', label: 'Blur Pekat', desc: 'Frosted Kuat' }
+                            ].map(item => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setStoreForm(prev => ({ ...prev, headerBackgroundBlur: item.id as any }));
+                                  updateSellerStore({ headerBackgroundBlur: item.id as any });
+                                }}
+                                className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                                  storeForm.headerBackgroundBlur === item.id
+                                    ? 'bg-amber-100 border-amber-500 text-amber-950 font-bold ring-1 ring-amber-400'
+                                    : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                                }`}
+                              >
+                                <div className="text-[11px] font-bold">{item.label}</div>
+                                <div className="text-[9px] text-stone-500">{item.desc}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Overlay Darkness Setting */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-700 mb-1.5">
+                            Tingkat Keredupan / Lapisan Gelap:
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {[
+                              { id: 'light', label: 'Terang', desc: '40% Gelap' },
+                              { id: 'medium', label: 'Standar Shopee', desc: '65% Gelap' },
+                              { id: 'dark', label: 'Kontras Tinggi', desc: '80% Gelap' },
+                              { id: 'vibrant', label: 'Gelap Mewah', desc: '85% Hitam Pekat' }
+                            ].map(item => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setStoreForm(prev => ({ ...prev, headerBackgroundOverlay: item.id as any }));
+                                  updateSellerStore({ headerBackgroundOverlay: item.id as any });
+                                }}
+                                className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                                  storeForm.headerBackgroundOverlay === item.id
+                                    ? 'bg-amber-100 border-amber-500 text-amber-950 font-bold ring-1 ring-amber-400'
+                                    : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                                }`}
+                              >
+                                <div className="text-[11px] font-bold">{item.label}</div>
+                                <div className="text-[9px] text-stone-500">{item.desc}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Gallery Presets: Kurma & Store Backgrounds */}
+                    <div className="p-4 bg-white rounded-xl border border-stone-200 shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Pilihan Cepat Koleksi Gambar Background Kurma & Toko:</span>
+                        </span>
+                        <span className="text-[10px] text-stone-500">
+                          Klik untuk langsung mencoba gambar
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {HEADER_BG_PRESETS.map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setStoreForm(prev => ({ ...prev, headerBackground: preset.url }));
+                              updateSellerStore({ headerBackground: preset.url });
+                              showToast(`Background diganti: ${preset.name}`, 'info');
+                            }}
+                            className={`p-2 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer group ${
+                              storeForm.headerBackground === preset.url
+                                ? 'bg-amber-100/80 border-amber-400 ring-2 ring-amber-400/70 shadow-xs'
+                                : 'bg-stone-50 hover:bg-amber-50/50 border-stone-200 text-stone-700'
+                            }`}
+                          >
+                            <img
+                              src={preset.url}
+                              alt={preset.name}
+                              className="w-12 h-10 rounded-lg object-cover border border-stone-200 shrink-0 group-hover:scale-105 transition-transform"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] font-bold text-stone-900 truncate">
+                                {preset.name}
+                              </div>
+                              <div className="text-[9px] text-stone-500 line-clamp-1">
+                                {preset.desc}
+                              </div>
+                            </div>
+                            {storeForm.headerBackground === preset.url && (
+                              <CheckCircle2 className="w-4 h-4 text-amber-700 shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* TAB 2: BANNER SAMPUL TOKO UTAMA (LANDSCAPE 1:2)                           */}
+                {/* ========================================================================= */}
+                {visualBrandingTab === 'wide-banner' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2 pb-2">
+                      <div>
+                        <h5 className="text-xs font-bold text-stone-800">
+                          Banner Sampul Toko (Landscape 1:2 - 1200x600 px)
+                        </h5>
+                        <p className="text-[11px] text-stone-500">
+                          Banner lebar yang dapat ditampilkan sebagai latar sampul landscape toko.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
                     {/* View mode toggle */}
                     <div className="flex items-center bg-stone-100 p-0.5 rounded-xl border border-stone-200 text-[10px] font-bold">
                       <button
@@ -1905,8 +2459,8 @@ export const SellerDashboardScreen: React.FC = () => {
                   )}
                 </div>
 
-                {/* Form Controls for Background Banner and Profile Photo */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                {/* Form Controls for Background Banner */}
+                <div className="space-y-4 pt-2">
                   
                   {/* 1. KONTROL BACKGROUND BANNER (LANDSCAPE 1:2) */}
                   <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
@@ -2060,8 +2614,16 @@ export const SellerDashboardScreen: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
 
-                  {/* 2. KONTROL FOTO PROFIL / LOGO TOKO (1:1) */}
+            {/* ========================================================================= */}
+            {/* TAB 3: FOTO PROFIL / LOGO RESMI TOKO (1:1)                                */}
+            {/* ========================================================================= */}
+              {visualBrandingTab === 'logo' && (
+                <div className="space-y-4">
+                  {/* KONTROL FOTO PROFIL / LOGO TOKO (1:1) */}
                   <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -2196,9 +2758,9 @@ export const SellerDashboardScreen: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
                 </div>
-              </div>
+              )}
+            </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>

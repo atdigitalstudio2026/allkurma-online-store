@@ -17,7 +17,9 @@ import {
   Package, 
   Calendar,
   Clock,
-  Search
+  Search,
+  Settings,
+  Paintbrush
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { normalizeImageUrl } from '../../utils/imageUrlHelper';
@@ -41,7 +43,9 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
     showToast,
     setCurrentView,
     setSearchQuery,
-    products
+    products,
+    user,
+    isEmailAuthorizedSeller
   } = useApp();
 
   const [activeShopTab, setActiveShopTab] = useState<'home' | 'all-products' | 'bundling' | 'vouchers' | 'categories'>('home');
@@ -51,6 +55,8 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
 
   const followerCount = sellerStore.followerCount || 24850;
   const productCount = Math.max(products?.length || 0, 148);
+
+  const isSeller = Boolean((user?.email && isEmailAuthorizedSeller(user.email)) || user?.role === 'seller');
 
   const handleShareStore = () => {
     if (navigator.clipboard) {
@@ -72,7 +78,19 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
 
   const storeName = sellerStore.storeName || 'AllKurma Official Store';
   const logoUrl = normalizeImageUrl(sellerStore.logo) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80';
-  const bannerUrl = normalizeImageUrl(sellerStore.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80';
+  const bannerUrl = normalizeImageUrl(sellerStore.headerBackground || sellerStore.banner) || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80';
+
+  const blurClass = 
+    sellerStore.headerBackgroundBlur === 'none' ? 'backdrop-blur-none' :
+    sellerStore.headerBackgroundBlur === 'medium' ? 'backdrop-blur-md' :
+    sellerStore.headerBackgroundBlur === 'strong' ? 'backdrop-blur-xl' :
+    'backdrop-blur-xs';
+
+  const overlayClass = 
+    sellerStore.headerBackgroundOverlay === 'light' ? 'bg-black/40' :
+    sellerStore.headerBackgroundOverlay === 'dark' ? 'bg-black/80' :
+    sellerStore.headerBackgroundOverlay === 'vibrant' ? 'bg-stone-950/75' :
+    'bg-black/65';
 
   // -------------------------------------------------------------------------
   // VARIANT: COMPACT (e.g. Header dropdown or mini preview)
@@ -326,14 +344,31 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
       <div className="flex flex-col md:flex-row bg-white border-b border-stone-200">
         
         {/* LEFT COLUMN: Shopee Frosted Shop Profile Box (~390px on desktop) */}
-        <div className="relative w-full md:w-[390px] lg:w-[410px] min-h-[135px] md:h-[148px] overflow-hidden bg-stone-900 shrink-0 p-3.5 sm:p-4 flex items-center gap-3.5 text-white">
+        <div className="relative w-full md:w-[390px] lg:w-[410px] min-h-[135px] md:h-[148px] overflow-hidden bg-stone-900 shrink-0 p-3.5 sm:p-4 flex items-center gap-3.5 text-white group">
           {/* Cover image in background with dark blur vignette */}
           <img
             src={bannerUrl}
             alt={storeName}
-            className="absolute inset-0 w-full h-full object-cover opacity-75"
+            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
           />
-          <div className="absolute inset-0 bg-black/65 backdrop-blur-xs" />
+          <div className={`absolute inset-0 ${overlayClass} ${blurClass}`} />
+
+          {/* Quick Edit button for Seller / Admin */}
+          {isSeller && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentView('seller-settings');
+                showToast('Membuka Pengaturan Seller: Background Header Toko...', 'info');
+              }}
+              title="Ganti Background Header di Pengaturan Seller"
+              className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 bg-black/75 hover:bg-amber-600 text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/30 shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <Paintbrush className="w-3 h-3 text-amber-300" />
+              <span>Ganti Background</span>
+            </button>
+          )}
 
           {/* Avatar with Shopee Mall Badge */}
           <div 
