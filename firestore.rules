@@ -59,6 +59,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Live Chat Collection (Real-time sync between Customer, AI, and Seller)
+    match /chats/{chatId} {
+      allow read, write: if true;
+    }
+
     // Products Collection (Public Read & Write for multi-device sync)
     match /products/{productId} {
       allow read, write: if true;

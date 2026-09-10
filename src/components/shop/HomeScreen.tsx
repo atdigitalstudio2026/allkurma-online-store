@@ -611,81 +611,12 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Interactive SRA Stories Bar */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-3.5 shadow-2xs overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#009A44] inline-block animate-pulse" />
-              Sorotan Informasi & Cerita Kurma
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-              Klik cerita untuk info detail & promo
-            </span>
-          </div>
-          <div className="flex items-center gap-4 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-          {stories.map((story) => (
-            <button
-              key={story.id}
-              onClick={() => {
-                if (story.isBundling) {
-                  setIsBundlingModalOpen(true);
-                } else if (story.isNewArrival) {
-                  const el = document.getElementById('new-arrivals-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  else {
-                    setSelectedCategory('Semua');
-                    setCurrentView('catalog');
-                  }
-                } else {
-                  setActiveStory(story);
-                }
-              }}
-              className="flex flex-col items-center shrink-0 snap-start group cursor-pointer focus:outline-none"
-            >
-              <div className={`relative p-0.5 rounded-full ${
-                story.isBundling 
-                  ? 'bg-gradient-to-tr from-amber-500 via-orange-500 to-red-600' 
-                  : story.isNewArrival
-                  ? 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-[#009A44]'
-                  : 'bg-gradient-to-tr from-[#1E3A8A] via-emerald-500 to-[#009A44]'
-              }`}>
-                <div className="w-14 h-14 rounded-full p-0.5 bg-white overflow-hidden">
-                  <img 
-                    src={story.avatar} 
-                    alt={story.title} 
-                    className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-                {story.isBundling ? (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
-                    HEMAT
-                  </span>
-                ) : story.isNewArrival ? (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#009A44] text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
-                    NEW
-                  </span>
-                ) : (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#1E3A8A] text-white text-[7px] font-bold px-1 rounded-sm border border-white">
-                    SRA
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-medium text-slate-800 mt-1.5 text-center truncate max-w-[64px] group-hover:text-[#1E3A8A]">
-                {story.title}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-      </div>
-
-      {/* 2. Official Shopee Store Profile Header & Stats & Navigation */}
+      {/* 2. Official Shopee Store Profile Header & Stats & Navigation (STANDAR SHOPEE: DI ATAS BANNER) */}
       <div className="px-3 sm:px-4 py-2">
         <StoreFollowHeader variant="card" />
       </div>
 
-      {/* 3. Dynamic 5-Slide Banner Carousel (BERADA DI BAWAH PROFILE TOKO SESUAI STANDAR SHOPEE) */}
+      {/* 3. Dynamic 5-Slide Banner Carousel (TEPAT BERADA DI BAWAH PROFILE TOKO SESUAI STANDAR SHOPEE) */}
       <div 
         className="px-3 sm:px-4 py-2"
         onMouseEnter={() => setIsPaused(true)}
@@ -891,6 +822,75 @@ export const HomeScreen: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* 3b. Interactive SRA Stories Bar (Sorotan Cerita & Edukasi Kurma) */}
+      <div className="px-3 sm:px-4 py-1.5">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-3.5 shadow-2xs overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#009A44] inline-block animate-pulse" />
+              Sorotan Informasi & Cerita Kurma
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+              Klik cerita untuk info detail & promo
+            </span>
+          </div>
+          <div className="flex items-center gap-4 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+            {stories.map((story) => (
+              <button
+                key={story.id}
+                onClick={() => {
+                  if (story.isBundling) {
+                    setIsBundlingModalOpen(true);
+                  } else if (story.isNewArrival) {
+                    const el = document.getElementById('new-arrivals-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    else {
+                      setSelectedCategory('Semua');
+                      setCurrentView('catalog');
+                    }
+                  } else {
+                    setActiveStory(story);
+                  }
+                }}
+                className="flex flex-col items-center shrink-0 snap-start group cursor-pointer focus:outline-none"
+              >
+                <div className={`relative p-0.5 rounded-full ${
+                  story.isBundling 
+                    ? 'bg-gradient-to-tr from-amber-500 via-orange-500 to-red-600' 
+                    : story.isNewArrival
+                    ? 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-[#009A44]'
+                    : 'bg-gradient-to-tr from-[#1E3A8A] via-emerald-500 to-[#009A44]'
+                }`}>
+                  <div className="w-14 h-14 rounded-full p-0.5 bg-white overflow-hidden">
+                    <img 
+                      src={story.avatar} 
+                      alt={story.title} 
+                      className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  {story.isBundling ? (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
+                      HEMAT
+                    </span>
+                  ) : story.isNewArrival ? (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#009A44] text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
+                      NEW
+                    </span>
+                  ) : (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#1E3A8A] text-white text-[7px] font-bold px-1 rounded-sm border border-white">
+                      SRA
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium text-slate-800 mt-1.5 text-center truncate max-w-[64px] group-hover:text-[#1E3A8A]">
+                  {story.title}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 4. 8 Quick Action Icons Grid (DIPERBARUI: Promo Bundling & New Product) */}

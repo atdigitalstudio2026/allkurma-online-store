@@ -77,6 +77,7 @@ import { SellerHomeFeaturesHub } from './SellerHomeFeaturesHub';
 import { OrderFulfillModal } from './OrderFulfillModal';
 import { ShopeeThermalLabelModal } from './ShopeeThermalLabelModal';
 import { SellerReturnManagementModal } from './SellerReturnManagementModal';
+import { SellerChatManagementTab } from './SellerChatManagementTab';
 
 const BANNER_GRADIENT_PRESETS = [
   { name: 'Royal Blue & Emerald (Resmi)', value: 'from-[#1E3A8A] via-blue-700 to-[#009A44]', tag: 'bg-white/20 text-emerald-100 border-white/30' },
@@ -137,11 +138,13 @@ export const SellerDashboardScreen: React.FC = () => {
     bundlingDeals,
     wishlistProductIds,
     returns,
-    updateReturnStatus
+    updateReturnStatus,
+    chatMessages,
+    chatMode
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'home-features' | 'settings' | 'orders' | 'returns' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'bundling' | 'reviews' | 'followers' | 'banners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'home-features' | 'settings' | 'orders' | 'returns' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'bundling' | 'reviews' | 'followers' | 'banners' | 'chat'>('overview');
 
   // Shopee Fulfillment & Return Modals
   const [orderToFulfill, setOrderToFulfill] = useState<Order | null>(null);
@@ -1194,6 +1197,28 @@ export const SellerDashboardScreen: React.FC = () => {
             >
               <Users className="w-4 h-4 text-amber-400" />
               <span>Pengikut & Broadcast ({(sellerStore.followerCount || 24850).toLocaleString('id-ID')})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'chat'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-400" />
+              <span>Chat Pelanggan & AI</span>
+              {chatMessages.length > 0 && (
+                <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                  {chatMessages.length}
+                </span>
+              )}
+              {chatMode === 'live_seller' && (
+                <span className="bg-amber-400 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+                  CS LIVE
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -5316,6 +5341,11 @@ export const SellerDashboardScreen: React.FC = () => {
             onNavigateTab={(tab) => setActiveTab(tab)}
             initialSubTab={activeTab === 'bundling' ? 'bundling' : 'overview'}
           />
+        )}
+
+        {/* 12. TAB: CHAT PELANGGAN, AI AUTO-REPLY & CS PENJUAL */}
+        {activeTab === 'chat' && (
+          <SellerChatManagementTab />
         )}
 
       </div>

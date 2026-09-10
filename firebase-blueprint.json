@@ -147,6 +147,25 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "orderId", "orderNumber", "status"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Live chat message between Customer, AI Assistant, and Seller.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "time": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "source": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "chatMode": { "type": "string" }
+      },
+      "required": ["id", "sender", "text"]
     }
   },
   "firestore": {
@@ -169,6 +188,10 @@
     "returns": {
       "schema": "ReturnRequest",
       "description": "Stores return requests and complaints."
+    },
+    "chats": {
+      "schema": "ChatMessage",
+      "description": "Stores real-time live chat messages between customer, AI assistant, and seller."
     },
     "products": {
       "schema": "Product",

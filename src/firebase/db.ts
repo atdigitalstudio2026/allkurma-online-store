@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest } from '../types';
+import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest, ChatMessage } from '../types';
 
 // Recursively remove undefined values for Firestore serialization safety
 export function sanitizeForFirestore<T>(data: T): T {
@@ -312,6 +312,64 @@ export const updateReturnStatusInFirestore = async (
     });
   } catch (error) {
     console.warn('Firestore updateReturnStatus fallback:', error);
+  }
+};
+
+// ==========================================
+// Live Chat Real-time Synchronization
+// ==========================================
+
+export const listenToAllChatMessagesFromFirestore = (
+  onSuccess: (messages: ChatMessage[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const chatsColl = collection(db, 'chats');
+    const q = query(chatsColl, orderBy('timestamp', 'asc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items: ChatMessage[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<ChatMessage, 'id'>)
+          });
+        });
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToAllChatMessages snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach all chats listener:', err);
+    return () => {};
+  }
+};
+
+export const saveChatMessageToFirestore = async (chatMsg: ChatMessage): Promise<void> => {
+  try {
+    const sanitized = sanitizeForFirestore({
+      ...chatMsg,
+      timestamp: chatMsg.timestamp || new Date().toISOString()
+    });
+    await setDoc(doc(db, 'chats', chatMsg.id), sanitized, { merge: true });
+  } catch (error) {
+    console.warn('Firestore saveChatMessage fallback:', error);
+  }
+};
+
+export const markChatMessageReadInFirestore = async (messageId: string): Promise<void> => {
+  try {
+    const msgRef = doc(db, 'chats', messageId);
+    await updateDoc(msgRef, {
+      isRead: true
+    });
+  } catch (error) {
+    console.warn('Firestore markChatMessageRead fallback:', error);
   }
 };
 

@@ -68,8 +68,11 @@ import {
   listenToAllOrdersFromFirestore,
   listenToReturnsFromFirestore,
   saveReturnToFirestore,
-  updateReturnStatusInFirestore
+  updateReturnStatusInFirestore,
+  listenToAllChatMessagesFromFirestore,
+  saveChatMessageToFirestore
 } from '../firebase/db';
+import { generateAiChatResponse } from '../services/aiChatService';
 import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
 
 export type AppView =
@@ -249,6 +252,12 @@ interface AppContextType {
   
   chatMessages: ChatMessage[];
   sendChatMessage: (text: string, productCard?: Product) => void;
+  sendSellerChatMessage: (text: string, customerId?: string) => void;
+  chatMode: 'ai_assistant' | 'live_seller';
+  setChatMode: (mode: 'ai_assistant' | 'live_seller') => void;
+  handoverToSeller: () => void;
+  handoverToAi: () => void;
+  isAiTyping: boolean;
   isChatOpen: boolean;
   setIsChatOpen: (open: boolean) => void;
   unreadChatCount: number;
@@ -495,6 +504,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('allkurma_chat');
     return saved ? JSON.parse(saved) : INITIAL_CHAT_MESSAGES;
   });
+  const [chatMode, setChatMode] = useState<'ai_assistant' | 'live_seller'>(() => {
+    const saved = localStorage.getItem('allkurma_chat_mode');
+    return (saved as 'ai_assistant' | 'live_seller') || 'ai_assistant';
+  });
+  const [isAiTyping, setIsAiTyping] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Seller Store State
@@ -922,6 +936,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
       (err) => {
         console.warn('Firestore returns listener warning:', err);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Real-time synchronization of chat messages across all devices using Firestore
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToAllChatMessagesFromFirestore(
+      (cloudMessages) => {
+        if (!isSubscribed) return;
+        if (cloudMessages && cloudMessages.length > 0) {
+          setChatMessages(cloudMessages);
+          try {
+            localStorage.setItem('allkurma_chat', JSON.stringify(cloudMessages));
+          } catch (e) {
+            console.warn('Failed to cache chat to localStorage:', e);
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore chats listener warning:', err);
       }
     );
 
@@ -2147,36 +2188,165 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Terima kasih atas tanggapan Anda!', 'info');
   };
 
-  // Live Chat
+  // Live Chat Handover to Seller
+  const handoverToSeller = () => {
+    setChatMode('live_seller');
+    try {
+      localStorage.setItem('allkurma_chat_mode', 'live_seller');
+    } catch {}
+
+    const sysMsg: ChatMessage = {
+      id: `msg-sys-${Date.now().toString(36)}`,
+      sender: 'seller',
+      senderName: 'Sistem Shopee Chat',
+      text: 'Permintaan terhubung dengan Penjual diterima. Tim CS & Penjual Toko AllKurma telah menerima notifikasi dan akan segera melayani Kakak secara langsung. Silakan sampaikan pertanyaan atau kendala Kakak 🙏',
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      isRead: true,
+      source: 'system',
+      chatMode: 'live_seller',
+      customerId: user.id || 'cust-me',
+      customerName: user.name || 'Pelanggan'
+    };
+
+    setChatMessages(prev => [...prev, sysMsg]);
+    saveChatMessageToFirestore(sysMsg).catch(() => {});
+    showToast('Chat dialihkan langsung ke Penjual Toko', 'info');
+  };
+
+  // Switch back to AI Assistant
+  const handoverToAi = () => {
+    setChatMode('ai_assistant');
+    try {
+      localStorage.setItem('allkurma_chat_mode', 'ai_assistant');
+    } catch {}
+
+    const sysMsg: ChatMessage = {
+      id: `msg-sys-${Date.now().toString(36)}`,
+      sender: 'bot',
+      senderName: 'Asisten AI Shopee',
+      text: 'Asisten AI Toko kembali aktif! Saya siap menjawab pertanyaan seputar jenis kurma, stok, promo, dan pesanan secara otomatis 24 jam.',
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      isRead: true,
+      source: 'ai',
+      chatMode: 'ai_assistant',
+      customerId: user.id || 'cust-me',
+      customerName: user.name || 'Pelanggan'
+    };
+
+    setChatMessages(prev => [...prev, sysMsg]);
+    saveChatMessageToFirestore(sysMsg).catch(() => {});
+    showToast('Asisten AI Shopee kembali aktif', 'success');
+  };
+
+  // Live Chat send by customer
   const sendChatMessage = (text: string, productCard?: ChatMessage['productCard']) => {
     const userMsg: ChatMessage = {
-      id: `msg-${Date.now().toString(36)}`,
+      id: `msg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
       sender: 'user',
+      senderName: user.name || 'Pelanggan',
+      customerId: user.id || 'cust-me',
+      customerName: user.name || 'Pelanggan',
       text,
       time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      productCard
+      timestamp: new Date().toISOString(),
+      productCard,
+      isRead: false,
+      source: 'customer',
+      chatMode
     };
+
     setChatMessages(prev => [...prev, userMsg]);
+    saveChatMessageToFirestore(userMsg).catch((err) => {
+      console.warn('Sync user chat to firestore warning:', err);
+    });
 
-    // Simulated auto-reply from seller
-    setTimeout(() => {
-      let replyText = 'Halo Kak! Terima kasih sudah menghubungi Toko Official AllKurma. Pesanan siap diproses dan dikirim hari ini ya Kak! 😊';
-      if (text.toLowerCase().includes('stok') || text.toLowerCase().includes('ready')) {
-        replyText = 'Halo Kak! Stok produk kami selalu fresh import langsung dari Madinah dan Timur Tengah, siap kirim hari ini ya!';
-      } else if (text.toLowerCase().includes('diskon') || text.toLowerCase().includes('voucher') || text.toLowerCase().includes('ongkir')) {
-        replyText = 'Bisa klaim voucher Gratis Ongkir XTRA dan Diskon Toko di halaman promo atau langsung saat checkout ya Kak!';
-      } else if (text.toLowerCase().includes('kadaluarsa') || text.toLowerCase().includes('exp')) {
-        replyText = 'Semua kurma kami masa kadaluarsa (EXP Date) panjang hingga akhir 2027 dengan penyimpanan cold storage higienis kak.';
-      }
+    // Check if customer query manually triggers handover
+    const queryLower = text.toLowerCase();
+    const isRequestingSeller = queryLower.includes('bicara dengan penjual') || 
+      queryLower.includes('hubungi penjual') || 
+      queryLower.includes('cs penjual') || 
+      queryLower.includes('mau chat penjual') ||
+      queryLower.includes('orang asli');
 
-      const botMsg: ChatMessage = {
-        id: `msg-${Date.now().toString(36)}`,
-        sender: 'seller',
-        text: replyText,
-        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      };
-      setChatMessages(prev => [...prev, botMsg]);
-    }, 1200);
+    if (isRequestingSeller) {
+      handoverToSeller();
+      return;
+    }
+
+    // If currently in AI mode, trigger AI auto-response
+    if (chatMode === 'ai_assistant') {
+      setIsAiTyping(true);
+
+      setTimeout(() => {
+        const activeProduct = products.find(p => p.id === selectedProductId);
+        const aiResult = generateAiChatResponse(text, {
+          products,
+          orders,
+          customerName: user.name,
+          activeProduct: activeProduct || null
+        });
+
+        const botMsg: ChatMessage = {
+          id: `msg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
+          sender: 'bot',
+          senderName: 'Asisten AI Shopee',
+          customerId: user.id || 'cust-me',
+          customerName: user.name || 'Pelanggan',
+          text: aiResult.replyText,
+          time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toISOString(),
+          productCard: aiResult.recommendedProduct ? {
+            id: aiResult.recommendedProduct.id,
+            name: aiResult.recommendedProduct.name,
+            price: aiResult.recommendedProduct.discountPrice || aiResult.recommendedProduct.regularPrice,
+            image: aiResult.recommendedProduct.images?.[0]
+          } : undefined,
+          isRead: true,
+          source: 'ai',
+          showHandoverAction: true,
+          chatMode: aiResult.shouldHandoverToSeller ? 'live_seller' : 'ai_assistant'
+        };
+
+        if (aiResult.shouldHandoverToSeller) {
+          setChatMode('live_seller');
+          try {
+            localStorage.setItem('allkurma_chat_mode', 'live_seller');
+          } catch {}
+        }
+
+        setChatMessages(prev => [...prev, botMsg]);
+        saveChatMessageToFirestore(botMsg).catch(() => {});
+        setIsAiTyping(false);
+      }, 900);
+    } else {
+      // In Live Seller mode, alert that seller has been notified
+      showToast('Pesan terkirim ke Penjual. Menunggu balasan CS...', 'info');
+    }
+  };
+
+  // Seller directly replies from Seller Center
+  const sendSellerChatMessage = (text: string, targetCustomerId?: string) => {
+    const sellerMsg: ChatMessage = {
+      id: `msg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
+      sender: 'seller',
+      senderName: 'Penjual (AllKurma Official)',
+      customerId: targetCustomerId || user.id || 'cust-me',
+      customerName: 'Pelanggan',
+      text,
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      source: 'human_seller',
+      chatMode: 'live_seller'
+    };
+
+    setChatMessages(prev => [...prev, sellerMsg]);
+    saveChatMessageToFirestore(sellerMsg).catch((err) => {
+      console.warn('Sync seller chat to firestore warning:', err);
+    });
+    showToast('Pesan balasan toko berhasil dikirim', 'success');
   };
 
   // Notifications
@@ -2388,9 +2558,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markReviewHelpful,
         chatMessages,
         sendChatMessage,
+        sendSellerChatMessage,
+        chatMode,
+        setChatMode,
+        handoverToSeller,
+        handoverToAi,
+        isAiTyping,
         isChatOpen,
         setIsChatOpen,
-        unreadChatCount: 0,
+        unreadChatCount: chatMessages.filter(m => (m.sender === 'seller' || m.sender === 'bot') && !m.isRead).length,
         notifications,
         isNotifOpen,
         setIsNotifOpen,

@@ -77,11 +77,30 @@ export interface CustomerReview {
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'seller' | 'bot';
+  senderName?: string;
   text: string;
   time?: string;
   timestamp?: string;
   productCard?: any;
   isRead?: boolean;
+  source?: 'ai' | 'human_seller' | 'customer' | 'system';
+  showHandoverAction?: boolean;
+  customerId?: string;
+  customerName?: string;
+  chatMode?: 'ai_assistant' | 'live_seller';
+}
+
+export interface ChatConversation {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerAvatar?: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadBySeller: number;
+  unreadByCustomer: number;
+  chatMode: 'ai_assistant' | 'live_seller';
+  updatedAt: string;
 }
 
 // Backward compatibility alias
