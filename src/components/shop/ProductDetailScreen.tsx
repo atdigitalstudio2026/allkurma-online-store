@@ -586,8 +586,8 @@ export const ProductDetailScreen: React.FC = () => {
 
       </div>
 
-      {/* 4. Shopee/Tokopedia/TikTok Store Profile Card with Follow button */}
-      <StoreFollowHeader variant="card" className="mt-3" />
+      {/* 4. Shopee Official Store Profile Card with Follow button */}
+      <StoreFollowHeader variant="product-detail" className="mt-3" />
 
       {/* 5. Product Description & Specifications */}
       <div className="mt-3 p-4 bg-white border-y border-stone-200 space-y-4 text-xs">

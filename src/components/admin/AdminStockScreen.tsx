@@ -6,7 +6,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export const AdminStockScreen: React.FC = () => {
-  const { products, setProducts, addStockMovement, setCurrentView, showToast } = useApp();
+  const { products, updateProduct, addStockMovement, setCurrentView, showToast } = useApp();
   const [search, setSearch] = useState('');
   const [selectedCategory] = useState<string>('all');
 
@@ -23,13 +23,8 @@ export const AdminStockScreen: React.FC = () => {
     const targetProd = products.find(p => p.id === productId);
     if (!targetProd) return;
 
-    setProducts(prev => prev.map(p => {
-      if (p.id === productId) {
-        const nextStock = Math.max(0, p.stock + delta);
-        return { ...p, stock: nextStock };
-      }
-      return p;
-    }));
+    const nextStock = Math.max(0, targetProd.stock + delta);
+    updateProduct(productId, { stock: nextStock });
 
     addStockMovement({
       productName: targetProd.name,

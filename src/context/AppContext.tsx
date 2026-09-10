@@ -187,7 +187,7 @@ interface AppContextType {
   // Orders
   orders: Order[];
   createOrder: (orderData: Partial<Order>) => Order;
-  updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  updateOrderStatus: (orderId: string, status: Order['status'], extraData?: Partial<Order>) => void;
   selectedOrderId: string | null;
   setSelectedOrderId: (id: string | null) => void;
   
@@ -494,7 +494,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Seller Store State
   const [sellerStore, setSellerStore] = useState<SellerStoreProfile>(() => {
     const saved = localStorage.getItem('allkurma_seller_store');
-    return saved ? JSON.parse(saved) : INITIAL_SELLER_STORE;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // If banner was the old pitch-black unsplash photo, update to bright golden harvest banner
+        if (parsed.banner && parsed.banner.includes('photo-1509358271058-acd22cc93898')) {
+          parsed.banner = 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80';
+        }
+        return parsed;
+      } catch (e) {
+        return INITIAL_SELLER_STORE;
+      }
+    }
+    return INITIAL_SELLER_STORE;
   });
 
   // Notifications
@@ -1531,8 +1543,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newOrder;
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+  const updateOrderStatus = (orderId: string, status: Order['status'], extraData?: Partial<Order>) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, ...(extraData || {}) } : o));
     showToast(`Status pesanan diperbarui menjadi: ${status}`);
   };
 

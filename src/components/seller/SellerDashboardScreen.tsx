@@ -68,12 +68,15 @@ import {
   Maximize2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem } from '../../types';
+import { Product, Order, PromotionVoucher, ProductVariation, AppHeroBanner, CategoryItem, ReturnRequest } from '../../types';
 import { exportSalesReportToExcel, exportInventoryReportToExcel } from '../../utils/exportReport';
 import { normalizeImageUrl, isDropboxUrl } from '../../utils/imageUrlHelper';
 import { SkuBarcodePrintModal } from './SkuBarcodePrintModal';
 import { SkuStockAdjustmentModal } from './SkuStockAdjustmentModal';
 import { SellerHomeFeaturesHub } from './SellerHomeFeaturesHub';
+import { OrderFulfillModal } from './OrderFulfillModal';
+import { ShopeeThermalLabelModal } from './ShopeeThermalLabelModal';
+import { SellerReturnManagementModal } from './SellerReturnManagementModal';
 
 const BANNER_GRADIENT_PRESETS = [
   { name: 'Royal Blue & Emerald (Resmi)', value: 'from-[#1E3A8A] via-blue-700 to-[#009A44]', tag: 'bg-white/20 text-emerald-100 border-white/30' },
@@ -132,11 +135,19 @@ export const SellerDashboardScreen: React.FC = () => {
     updateCategory,
     deleteCategory,
     bundlingDeals,
-    wishlistProductIds
+    wishlistProductIds,
+    returns,
+    updateReturnStatus
   } = useApp();
 
   // Active Tab in Seller Center
-  const [activeTab, setActiveTab] = useState<'overview' | 'home-features' | 'settings' | 'orders' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'bundling' | 'reviews' | 'followers' | 'banners'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'home-features' | 'settings' | 'orders' | 'returns' | 'products' | 'categories' | 'flashsale' | 'vouchers' | 'bundling' | 'reviews' | 'followers' | 'banners'>('overview');
+
+  // Shopee Fulfillment & Return Modals
+  const [orderToFulfill, setOrderToFulfill] = useState<Order | null>(null);
+  const [orderForThermalLabel, setOrderForThermalLabel] = useState<Order | null>(null);
+  const [selectedReturnForInspection, setSelectedReturnForInspection] = useState<ReturnRequest | null>(null);
+  const [returnStatusFilter, setReturnStatusFilter] = useState<'All' | 'Pending Review' | 'Under Inspection' | 'Approved' | 'Rejected'>('All');
 
   // Dynamic Category Management State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -282,7 +293,8 @@ export const SellerDashboardScreen: React.FC = () => {
         const base64 = event.target?.result as string;
         if (base64) {
           setStoreForm(prev => ({ ...prev, banner: base64 }));
-          showToast('Background banner berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan ke toko.', 'info');
+          updateSellerStore({ banner: base64 });
+          showToast('Background banner berhasil diunggah & diterapkan langsung ke toko!', 'success');
         }
       };
       reader.readAsDataURL(file);
@@ -301,7 +313,8 @@ export const SellerDashboardScreen: React.FC = () => {
         const base64 = event.target?.result as string;
         if (base64) {
           setStoreForm(prev => ({ ...prev, logo: base64 }));
-          showToast('Foto profil toko berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan ke toko.', 'info');
+          updateSellerStore({ logo: base64 });
+          showToast('Foto profil toko berhasil diunggah & diterapkan langsung ke toko!', 'success');
         }
       };
       reader.readAsDataURL(file);
@@ -591,11 +604,7 @@ export const SellerDashboardScreen: React.FC = () => {
 
   // Handle Send Order / Update Tracking
   const handleProcessOrder = (order: Order) => {
-    if (order.status === 'Belum Bayar' || order.status === 'Diproses') {
-      const generatedResi = `AK-EXP-${Date.now().toString().slice(-6)}`;
-      updateOrderStatus(order.id, 'Dikirim');
-      showToast(`Pesanan #${order.orderNumber} berhasil diproses! Resi kurir: ${generatedResi}`, 'success');
-    }
+    setOrderToFulfill(order);
   };
 
   // Handle Export Sales Report to Excel
@@ -1089,6 +1098,23 @@ export const SellerDashboardScreen: React.FC = () => {
               {pendingOrdersCount > 0 && (
                 <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
                   {pendingOrdersCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('returns')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'returns'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <RotateCcw className="w-4 h-4 text-orange-400" />
+              Komplain & Retur
+              {returns.filter(r => r.status === 'Pending Review' || r.status === 'Under Inspection').length > 0 && (
+                <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                  {returns.filter(r => r.status === 'Pending Review' || r.status === 'Under Inspection').length}
                 </span>
               )}
             </button>
@@ -1920,7 +1946,8 @@ export const SellerDashboardScreen: React.FC = () => {
                             const b64 = ev.target?.result as string;
                             if (b64) {
                               setStoreForm(prev => ({ ...prev, banner: b64 }));
-                              showToast('Banner berhasil diunggah! Klik "Simpan Semua Perubahan" untuk menerapkan.', 'info');
+                              updateSellerStore({ banner: b64 });
+                              showToast('Banner berhasil diunggah & diterapkan langsung ke toko!', 'success');
                             }
                           };
                           reader.readAsDataURL(file);
@@ -1939,9 +1966,25 @@ export const SellerDashboardScreen: React.FC = () => {
 
                     {/* Or URL Input */}
                     <div>
-                      <label className="block text-[11px] font-semibold text-stone-700 mb-1">
-                        Atau Gunakan Tautan URL / Dropbox:
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-stone-700">
+                          Atau Gunakan Tautan URL / Dropbox:
+                        </label>
+                        {storeForm.banner && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const norm = normalizeImageUrl(storeForm.banner.trim());
+                              updateSellerStore({ banner: norm });
+                              showToast('Banner berhasil diterapkan langsung ke toko!', 'success');
+                            }}
+                            className="text-[11px] font-bold text-amber-700 hover:text-amber-900 flex items-center gap-1 underline"
+                          >
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Terapkan Tautan ke Toko</span>
+                          </button>
+                        )}
+                      </div>
                       <div className="relative">
                         <input
                           type="text"
@@ -1970,7 +2013,6 @@ export const SellerDashboardScreen: React.FC = () => {
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                         {[
-                          { name: 'Kebun Madinah', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80' },
                           { name: 'Panen Sukari', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80' },
                           { name: 'Gudang Grosir', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&fit=crop&q=80' },
                           { name: 'Ajwa Al-Aliya VIP', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&fit=crop&q=80' },
@@ -1983,10 +2025,10 @@ export const SellerDashboardScreen: React.FC = () => {
                             className={`text-left p-1.5 rounded-xl border text-[10px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                               storeForm.banner === preset.url
                                 ? 'bg-amber-100 border-amber-400 text-amber-950 font-bold ring-1 ring-amber-400'
-                                : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                                : 'bg-stone-50 hover:bg-amber-50/60 border-stone-200 text-stone-700'
                             }`}
                           >
-                            <img src={preset.url} alt={preset.name} className="w-5 h-5 rounded-md object-cover shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                             <span className="truncate">{preset.name}</span>
                           </button>
                         ))}
@@ -2779,22 +2821,34 @@ export const SellerDashboardScreen: React.FC = () => {
 
                       {order.status === 'Belum Bayar' || order.status === 'Diproses' ? (
                         <button
-                          onClick={() => handleProcessOrder(order)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-2xs transition-colors flex items-center gap-1.5"
+                          onClick={() => setOrderToFulfill(order)}
+                          className="bg-[#009A44] hover:bg-[#047857] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Send className="w-3.5 h-3.5" />
-                          Kirim / Pickup Kurir
+                          <Truck className="w-3.5 h-3.5" />
+                          Atur Pengiriman (Shopee Standar)
+                        </button>
+                      ) : order.status === 'Retur' ? (
+                        <button
+                          onClick={() => {
+                            const foundReturn = returns.find(r => r.orderNumber === order.orderNumber || r.orderId === order.id);
+                            if (foundReturn) {
+                              setSelectedReturnForInspection(foundReturn);
+                            } else {
+                              showToast('Data rincian retur pesanan ini belum terdaftar', 'info');
+                            }
+                          }}
+                          className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Periksa Retur / Komplain
                         </button>
                       ) : (
                         <button
-                          onClick={() => {
-                            setSelectedOrderForLabel(order);
-                            setTrackingInput(order.trackingNumber || `AK-EXP-${Date.now().toString().slice(-6)}`);
-                          }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5"
+                          onClick={() => setOrderForThermalLabel(order)}
+                          className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Printer className="w-3.5 h-3.5" />
-                          Cetak Resi Thermal
+                          <Printer className="w-3.5 h-3.5 text-amber-400" />
+                          Cetak Label Thermal Shopee
                         </button>
                       )}
                     </div>
@@ -2802,6 +2856,168 @@ export const SellerDashboardScreen: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* TAB: KOMPLAIN & RETUR (SHOPEE RETURN RESOLUTION CENTER) */}
+        {activeTab === 'returns' && (
+          <div className="space-y-4">
+            {/* Resolution Center Overview Card */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-orange-100 text-orange-700 rounded-xl">
+                      <RotateCcw className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-black text-stone-900">
+                        Pusat Resolusi Komplain & Retur Toko
+                      </h2>
+                      <p className="text-xs text-stone-500">
+                        Kelola permintaan retur barang, inspeksi bukti foto/video pembeli, dan setujui pengembalian dana / penggantian produk.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-amber-50 text-amber-900 font-bold px-3 py-1.5 rounded-xl border border-amber-200">
+                    Garansi Penjual 100% Sesuai Shopee
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-2 mt-5 pt-4 border-t border-stone-100 overflow-x-auto">
+                {(['All', 'Pending Review', 'Under Inspection', 'Approved', 'Rejected'] as const).map(st => {
+                  const count = st === 'All' ? returns.length : returns.filter(r => r.status === st).length;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setReturnStatusFilter(st)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                        returnStatusFilter === st
+                          ? 'bg-stone-900 text-white shadow-xs'
+                          : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                      }`}
+                    >
+                      {st === 'All' ? 'Semua Komplain' : st === 'Pending Review' ? 'Menunggu Review' : st === 'Under Inspection' ? 'Sedang Diperiksa' : st === 'Approved' ? 'Disetujui' : 'Ditolak'} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Return Requests List */}
+            {returns.filter(r => returnStatusFilter === 'All' ? true : r.status === returnStatusFilter).length === 0 ? (
+              <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center shadow-2xs">
+                <div className="w-16 h-16 bg-stone-100 text-stone-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <RotateCcw className="w-8 h-8" />
+                </div>
+                <h3 className="font-bold text-stone-800 text-sm">Tidak ada permintaan komplain / retur</h3>
+                <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
+                  Semua transaksi pelanggan Anda berjalan lancar tanpa ada sengketa barang atau pengembalian dana saat ini.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {returns
+                  .filter(r => returnStatusFilter === 'All' ? true : returnStatusFilter === 'Approved' ? (r.status === 'Approved' || r.status === 'Completed') : r.status === returnStatusFilter)
+                  .map(ret => {
+                    const matchedOrder = orders.find(o => o.orderNumber === ret.orderNumber || (ret.orderId && o.id === ret.orderId));
+                    const evidenceList = ret.proofImages || ret.evidenceImages || [];
+                    const returnNotes = ret.description || ret.comments || 'Komplain produk dari pembeli';
+                    const refundEstimate = ret.refundAmount ?? ret.estimatedCredit ?? (matchedOrder?.total || 0);
+                    const solutionText = ret.requestedSolution || 'Pengembalian Dana & Barang';
+
+                    return (
+                      <div key={ret.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-2xs space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-stone-100 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-stone-900 text-sm">{ret.id}</span>
+                            <span className="text-stone-400">•</span>
+                            <span className="font-semibold text-stone-700">Order #{ret.orderNumber}</span>
+                            <span className="text-stone-400">•</span>
+                            <span className="text-stone-500">{ret.customerName}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                              ret.status === 'Approved' || ret.status === 'Completed'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : ret.status === 'Rejected'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : ret.status === 'Under Inspection'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {ret.status === 'Pending Review' ? 'Menunggu Tanggapan Penjual' : ret.status === 'Under Inspection' ? 'Pemeriksaan Barang' : ret.status === 'Approved' || ret.status === 'Completed' ? 'Retur Disetujui' : 'Retur Ditolak'}
+                            </span>
+                            <span className="text-stone-400 text-[11px]">{new Date(ret.createdAt).toLocaleDateString('id-ID')}</span>
+                          </div>
+                        </div>
+
+                        {/* Return Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                          <div className="md:col-span-2 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <span className="font-bold text-stone-800 shrink-0">Alasan Komplain:</span>
+                              <span className="text-stone-700 bg-stone-50 px-2 py-0.5 rounded font-medium">{ret.reason}</span>
+                            </div>
+
+                            <div className="text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-100">
+                              <strong className="text-stone-800 block mb-0.5 text-[11px]">Keterangan Pembeli:</strong>
+                              "{returnNotes}"
+                            </div>
+
+                            <div className="flex items-center gap-4 text-[11px] text-stone-600 pt-1">
+                              <div>
+                                Solusi Diajukan: <strong className="text-stone-900">{solutionText}</strong>
+                              </div>
+                              <div>
+                                Estimasi Refund: <strong className="text-amber-700">Rp {refundEstimate.toLocaleString('id-ID')}</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Photos Evidence */}
+                          <div>
+                            <span className="font-bold text-stone-800 block mb-1 text-[11px]">
+                              Bukti Foto ({evidenceList.length}):
+                            </span>
+                            <div className="flex items-center gap-2 overflow-x-auto">
+                              {evidenceList.map((img, idx) => (
+                                <img
+                                  key={idx}
+                                  src={img}
+                                  alt="Bukti komplain"
+                                  className="w-16 h-16 rounded-xl object-cover border border-stone-200 shrink-0"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Footer */}
+                        <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                          <div className="text-[11px] text-stone-500">
+                            ID Sengketa: <span className="font-mono">{ret.id}</span>
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedReturnForInspection(ret)}
+                            className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Periksa & Tindaklanjuti Komplain</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         )}
 
@@ -7475,6 +7691,40 @@ export const SellerDashboardScreen: React.FC = () => {
             <span>✓ Tampilan 100% Layar Penuh (Fullscreen) tanpa gradasi hitam sesuai gambar asli</span>
           </p>
         </div>
+      )}
+
+      {/* Shopee Order Fulfillment Modal */}
+      {orderToFulfill && (
+        <OrderFulfillModal
+          order={orderToFulfill}
+          isOpen={!!orderToFulfill}
+          onClose={() => setOrderToFulfill(null)}
+          onSuccess={(awb) => {
+            const currentOrderId = orderToFulfill.id;
+            setOrderToFulfill(null);
+            const found = orders.find(o => o.id === currentOrderId) || orderToFulfill;
+            setOrderForThermalLabel({ ...found, trackingNumber: awb, status: 'Dikirim' });
+          }}
+        />
+      )}
+
+      {/* Shopee Thermal Shipping Label (Resi) Modal */}
+      {orderForThermalLabel && (
+        <ShopeeThermalLabelModal
+          order={orderForThermalLabel}
+          isOpen={!!orderForThermalLabel}
+          onClose={() => setOrderForThermalLabel(null)}
+        />
+      )}
+
+      {/* Seller Return Management & Inspection Modal */}
+      {selectedReturnForInspection && (
+        <SellerReturnManagementModal
+          returnRequest={selectedReturnForInspection}
+          isOpen={!!selectedReturnForInspection}
+          onClose={() => setSelectedReturnForInspection(null)}
+          onSuccess={() => setSelectedReturnForInspection(null)}
+        />
       )}
     </div>
   );

@@ -20,6 +20,8 @@ import { useApp } from '../../context/AppContext';
 import { Order, OrderStatus } from '../../types';
 import { shippingService } from '../../services/shippingService';
 import { WriteReviewModal } from '../shop/WriteReviewModal';
+import { ReturnRequestModal } from '../shop/ReturnRequestModal';
+import { OrderTrackingModal } from '../shop/OrderTrackingModal';
 
 export const MyOrdersScreen: React.FC = () => {
   const { orders, updateOrderStatus, products, setCurrentView, addToCart, showToast, reviews } = useApp();
@@ -27,6 +29,9 @@ export const MyOrdersScreen: React.FC = () => {
   
   // Tracking Modal State
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
+
+  // Return Modal State
+  const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
 
   // Cancellation Modal State
   const [cancelModalOrder, setCancelModalOrder] = useState<Order | null>(null);
@@ -52,6 +57,7 @@ export const MyOrdersScreen: React.FC = () => {
     { id: 'Diproses', label: 'Dikemas' },
     { id: 'Dikirim', label: 'Dikirim' },
     { id: 'Selesai', label: 'Selesai' },
+    { id: 'Komplain/Retur', label: 'Komplain / Retur' },
     { id: 'Dibatalkan', label: 'Dibatalkan' },
   ];
 
@@ -68,6 +74,9 @@ export const MyOrdersScreen: React.FC = () => {
     }
     if (selectedStatusTab === 'Selesai') {
       return o.status === 'Selesai' || o.status === 'COMPLETED';
+    }
+    if (selectedStatusTab === 'Komplain/Retur') {
+      return o.status === 'Komplain/Retur' || o.status === 'Retur' || (o.status as string) === 'REFUNDED';
     }
     if (selectedStatusTab === 'Dibatalkan') {
       return o.status === 'Dibatalkan' || o.status === 'CANCELLED';
@@ -94,6 +103,10 @@ export const MyOrdersScreen: React.FC = () => {
       case 'Selesai':
       case 'COMPLETED':
         return <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-[10px] font-extrabold rounded-full">Selesai</span>;
+      case 'Komplain/Retur':
+      case 'Retur':
+      case 'REFUNDED':
+        return <span className="px-2.5 py-0.5 bg-orange-100 text-orange-950 text-[10px] font-extrabold rounded-full">Komplain / Retur</span>;
       case 'Dibatalkan':
       case 'CANCELLED':
         return <span className="px-2.5 py-0.5 bg-red-100 text-red-900 text-[10px] font-extrabold rounded-full">Dibatalkan</span>;
@@ -334,6 +347,17 @@ export const MyOrdersScreen: React.FC = () => {
                     </button>
                   )}
 
+                  {/* Return / Refund Button */}
+                  {(isShipped || isCompleted) && (
+                    <button
+                      onClick={() => setReturnModalOrder(order)}
+                      className="px-2.5 py-1.5 border border-stone-200 hover:bg-orange-50 hover:text-orange-950 text-stone-600 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3 text-amber-800" />
+                      <span>Ajukan Retur</span>
+                    </button>
+                  )}
+
                   {/* Confirm Received */}
                   {isShipped && (
                     <button
@@ -387,86 +411,23 @@ export const MyOrdersScreen: React.FC = () => {
 
       {/* TRACKING TIMELINE MODAL */}
       {trackingOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-amber-800" />
-                <h3 className="font-bold text-stone-900 text-sm font-['Playfair_Display',serif]">
-                  Lacak Paket Pengiriman
-                </h3>
-              </div>
-              <button 
-                onClick={() => setTrackingOrder(null)} 
-                className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <OrderTrackingModal
+          order={trackingOrder}
+          isOpen={!!trackingOrder}
+          onClose={() => setTrackingOrder(null)}
+        />
+      )}
 
-            {/* Tracking Summary Info */}
-            {(() => {
-              const trk = shippingService.getTracking(
-                trackingOrder.courierCode || 'jne',
-                trackingOrder.trackingNumber || `TRK${Date.now()}`,
-                trackingOrder
-              );
-
-              return (
-                <div className="space-y-4 text-xs">
-                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-amber-950 text-sm">{trk.courierName}</span>
-                      <span className="font-mono font-bold text-stone-800 bg-white px-2 py-0.5 rounded border border-amber-200 text-[11px]">
-                        {trk.trackingNumber}
-                      </span>
-                    </div>
-                    <p className="text-stone-600 text-[11px]">
-                      Penerima: <strong>{trk.recipient}</strong>
-                    </p>
-                    <p className="text-stone-600 text-[11px]">
-                      Tujuan: <strong>{trk.destinationAddress}</strong>
-                    </p>
-                  </div>
-
-                  {/* Stepper Timeline */}
-                  <div className="space-y-3 pl-2">
-                    <h4 className="font-bold text-stone-900 text-xs">Status Perjalanan Paket:</h4>
-                    <div className="space-y-3 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
-                      {trk.milestones.map((m, idx) => (
-                        <div key={m.id} className="relative flex items-start gap-3.5">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                            m.isCompleted ? 'bg-amber-800 text-white' : 'bg-stone-200 text-stone-400'
-                          }`}>
-                            <div className="w-2 h-2 bg-current rounded-full" />
-                          </div>
-
-                          <div className="space-y-0.5 flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <h5 className={`font-bold text-xs ${m.isCompleted ? 'text-stone-900' : 'text-stone-400'}`}>
-                                {m.title}
-                              </h5>
-                              <span className="text-[10px] text-stone-400 font-mono">{m.timestamp}</span>
-                            </div>
-                            <p className="text-[11px] text-stone-600 leading-relaxed">{m.description}</p>
-                            <span className="text-[10px] text-stone-400 block">{m.location}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setTrackingOrder(null)}
-                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs"
-                  >
-                    Tutup Pelacakan
-                  </button>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
+      {/* RMA RETURN REQUEST MODAL */}
+      {returnModalOrder && (
+        <ReturnRequestModal
+          order={returnModalOrder}
+          isOpen={!!returnModalOrder}
+          onClose={() => setReturnModalOrder(null)}
+          onSuccess={() => {
+            setSelectedStatusTab('Komplain/Retur');
+          }}
+        />
       )}
 
       {/* CANCELLATION MODAL */}

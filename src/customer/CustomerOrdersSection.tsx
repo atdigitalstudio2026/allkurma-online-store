@@ -11,11 +11,15 @@ import {
   ShoppingBag,
   CreditCard,
   Star,
-  MessageSquarePlus
+  MessageSquarePlus,
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Order } from '../types';
 import { WriteReviewModal } from '../components/shop/WriteReviewModal';
+import { OrderTrackingModal } from '../components/shop/OrderTrackingModal';
+import { ReturnRequestModal } from '../components/shop/ReturnRequestModal';
 
 interface CustomerOrdersSectionProps {
   initialStatusFilter?: string;
@@ -24,10 +28,16 @@ interface CustomerOrdersSectionProps {
 export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({ 
   initialStatusFilter = 'Semua' 
 }) => {
-  const { orders, setCurrentView, addToCart, showToast, products, updateOrderStatus, reviews } = useApp();
+  const { orders, setCurrentView, addToCart, addToCartWithVariation, showToast, products, updateOrderStatus, reviews } = useApp();
   const [activeFilter, setActiveFilter] = useState<string>(initialStatusFilter);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
+  // Tracking Modal State
+  const [trackingTargetOrder, setTrackingTargetOrder] = useState<Order | null>(null);
+
+  // Return Modal State
+  const [returnTargetOrder, setReturnTargetOrder] = useState<Order | null>(null);
+
   // Review Modal State
   const [reviewingTarget, setReviewingTarget] = useState<{
     product: {
@@ -45,6 +55,7 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
     { label: 'Diproses', count: orders.filter(o => o.status === 'Diproses').length },
     { label: 'Dikirim', count: orders.filter(o => o.status === 'Dikirim').length },
     { label: 'Selesai', count: orders.filter(o => o.status === 'Selesai').length },
+    { label: 'Komplain / Retur', count: orders.filter(o => o.status === 'Komplain/Retur' || o.status === 'Retur').length },
     { label: 'Dibatalkan', count: orders.filter(o => o.status === 'Dibatalkan').length },
   ];
 
@@ -54,6 +65,9 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
         if (activeFilter === 'Belum Bayar') {
           return o.status === 'Belum Bayar' || (o.status as string) === 'Belum Dibayar';
         }
+        if (activeFilter === 'Komplain / Retur') {
+          return o.status === 'Komplain/Retur' || o.status === 'Retur';
+        }
         return o.status === activeFilter;
       });
 
@@ -61,33 +75,79 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
     switch (status) {
       case 'Belum Bayar':
       case 'Belum Dibayar':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1"><Clock className="w-3 h-3 text-amber-700" /> Belum Dibayar</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Menunggu Pembayaran</span>
+          </span>
+        );
       case 'Diproses':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-300 flex items-center gap-1"><Package className="w-3 h-3 text-blue-700" /> Diproses</span>;
+      case 'Dikemas':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
+            <Package className="w-3.5 h-3.5" />
+            <span>Sedang Dikemas</span>
+          </span>
+        );
       case 'Dikirim':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 flex items-center gap-1"><Truck className="w-3 h-3 text-indigo-700" /> Dikirim</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+            <Truck className="w-3.5 h-3.5" />
+            <span>Sedang Dikirim</span>
+          </span>
+        );
       case 'Selesai':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-700" /> Selesai</span>;
-      case 'Dibatalkan':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-stone-100 text-stone-700 border border-stone-300 flex items-center gap-1"><XCircle className="w-3 h-3 text-stone-500" /> Dibatalkan</span>;
-      case 'Retur':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Pesanan Selesai</span>
+          </span>
+        );
       case 'Komplain/Retur':
+      case 'Retur':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-950 border border-orange-300">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Proses Retur / Garansi</span>
+          </span>
+        );
+      case 'Dibatalkan':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-stone-600 border border-stone-300">
+            <XCircle className="w-3.5 h-3.5" />
+            <span>Dibatalkan</span>
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-900 border border-red-300 flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-red-700" /> Retur</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-stone-700">
+            {status}
+          </span>
+        );
     }
   };
 
   const handleBuyAgain = (order: Order) => {
-    order.items.forEach(item => {
-      const prod = item.product || products.find(p => p.id === item.productId);
-      if (prod) {
-        addToCart(prod, item.quantity);
+    let addedCount = 0;
+    order.items.forEach(it => {
+      const liveProduct = products.find(p => p.id === it.productId || p.sku === it.sku);
+      if (liveProduct) {
+        if (it.selectedVariation) {
+          addToCartWithVariation(liveProduct, it.selectedVariation, it.quantity);
+        } else {
+          addToCart(liveProduct, it.quantity);
+        }
+        addedCount++;
       }
     });
-    showToast('Produk berhasil ditambahkan kembali ke keranjang belanja!', 'success');
-    setCurrentView('cart');
-  };
 
+    if (addedCount > 0) {
+      showToast(`${addedCount} produk dari pesanan berhasil ditambahkan ke keranjang!`, 'success');
+      setCurrentView('cart');
+    } else {
+      showToast('Produk dalam pesanan ini sedang tidak tersedia', 'error');
+    }
+  };
   return (
     <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-xs space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
       
@@ -251,6 +311,18 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                       </button>
                     )}
 
+                    {/* Live Courier Tracking Action */}
+                    {(order.status === 'Dikirim' || order.status === 'Diproses' || order.status === 'Selesai') && (
+                      <button
+                        type="button"
+                        onClick={() => setTrackingTargetOrder(order)}
+                        className="py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold rounded-xl text-xs border border-amber-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Truck className="w-3.5 h-3.5 text-amber-800" />
+                        <span>Lacak Pengiriman</span>
+                      </button>
+                    )}
+
                     {order.status === 'Dikirim' && (
                       <button
                         onClick={() => {
@@ -273,6 +345,18 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Konfirmasi Terima Paket</span>
+                      </button>
+                    )}
+
+                    {/* Return / Warranty Action */}
+                    {(order.status === 'Dikirim' || order.status === 'Selesai') && (
+                      <button
+                        type="button"
+                        onClick={() => setReturnTargetOrder(order)}
+                        className="py-2 px-3 text-stone-600 hover:text-red-700 hover:bg-red-50 font-bold rounded-xl text-xs border border-stone-200 hover:border-red-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Ajukan Pengembalian</span>
                       </button>
                     )}
 
@@ -351,6 +435,27 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
           orderId={reviewingTarget.orderId}
           onReviewSubmitted={() => {
             showToast('Ulasan dan foto produk Anda berhasil dipublikasikan!', 'success');
+          }}
+        />
+      )}
+
+      {/* COURIER TRACKING MODAL */}
+      {trackingTargetOrder && (
+        <OrderTrackingModal
+          order={trackingTargetOrder}
+          isOpen={!!trackingTargetOrder}
+          onClose={() => setTrackingTargetOrder(null)}
+        />
+      )}
+
+      {/* RMA RETURN REQUEST MODAL */}
+      {returnTargetOrder && (
+        <ReturnRequestModal
+          order={returnTargetOrder}
+          isOpen={!!returnTargetOrder}
+          onClose={() => setReturnTargetOrder(null)}
+          onSuccess={() => {
+            setActiveFilter('Komplain / Retur');
           }}
         />
       )}

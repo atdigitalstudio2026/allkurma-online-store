@@ -61,12 +61,7 @@ export const ShopeeChatDrawer: React.FC = () => {
     if (!activeProduct) return;
     sendChatMessage(
       `Halo kak, saya ingin tanya produk ini: ${activeProduct.name}`,
-      {
-        id: activeProduct.id,
-        name: activeProduct.name,
-        image: activeProduct.images?.[0] || '',
-        price: activeProduct.discountPrice || activeProduct.regularPrice
-      }
+      activeProduct
     );
   };
 

@@ -1,4 +1,4 @@
-export type UserRoleType = 'customer' | 'seller' | 'wholesale_partner' | 'super_admin' | 'warehouse_manager' | 'sales_rep' | 'marketing_admin';
+export type UserRoleType = 'customer' | 'retail_customer' | 'seller' | 'wholesale_partner' | 'super_admin' | 'warehouse_manager' | 'sales_rep' | 'marketing_admin';
 
 export interface UserProfile {
   id: string;
@@ -12,6 +12,7 @@ export interface UserProfile {
   totalOrders: number;
   savedLists: number;
   annualSpend: number;
+  taxId?: string;
   companyName?: string;
   defaultAddressId?: string;
 }
@@ -21,9 +22,12 @@ export interface WholesaleTier {
   name: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   discountPercent: number;
   minAnnualSpend: number;
+  minSpendAnnual?: number;
   minOrderValue: number;
   minVolumeKg: number;
   perks: string[];
+  benefits?: string[];
+  paymentTermsDays?: number;
   isCurrent?: boolean;
 }
 
@@ -76,7 +80,7 @@ export interface ChatMessage {
   text: string;
   time?: string;
   timestamp?: string;
-  productCard?: Product;
+  productCard?: any;
   isRead?: boolean;
 }
 
@@ -89,7 +93,7 @@ export interface AppNotification {
   message: string;
   date?: string;
   time?: string;
-  type: 'order' | 'promo' | 'coin' | 'points' | 'general' | 'seller' | 'system';
+  type: 'order' | 'promo' | 'coin' | 'points' | 'general' | 'seller' | 'system' | 'finance';
   read?: boolean;
   isRead?: boolean;
   icon?: string;
@@ -167,6 +171,7 @@ export interface Product {
   category: string; // Flexible category, matches CategoryItem.id or CategoryItem.name
   description: string;
   images: string[];
+  image?: string; // Single image compatibility alias
   regularPrice: number;
   discountPrice?: number;
   costPrice?: number; // HPP (Harga Pokok Penjualan)
@@ -244,12 +249,16 @@ export type OrderStatus =
   | 'Belum Bayar' 
   | 'Belum Dibayar' 
   | 'Diproses' 
-  | 'Dikemas'
+  | 'Dikemas' 
   | 'Dikirim' 
   | 'Selesai' 
   | 'Dibatalkan' 
   | 'Retur' 
   | 'Komplain/Retur'
+  | 'pending'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
   | DetailedOrderStatus;
 
 export interface OrderItem {
@@ -389,7 +398,7 @@ export interface WholesaleInvoice {
   itemsSummary: string;
 }
 
-export type ReturnStatus = 'Pending Review' | 'Awaiting Shipment' | 'Under Inspection' | 'Completed' | 'Rejected';
+export type ReturnStatus = 'Pending Review' | 'Awaiting Shipment' | 'Under Inspection' | 'Completed' | 'Rejected' | 'Approved';
 
 export interface ReturnItem {
   productId: string;
@@ -406,6 +415,7 @@ export interface ReturnRequest {
   id: string;
   returnCode: string;
   orderNumber: string;
+  orderId?: string;
   createdAt: string;
   customerId: string;
   customerName: string;
@@ -413,7 +423,11 @@ export interface ReturnRequest {
   items: ReturnItem[];
   reason: string;
   comments?: string;
+  description?: string;
+  requestedSolution?: string;
+  refundAmount?: number;
   proofImages: string[];
+  evidenceImages?: string[];
   estimatedCredit: number;
   status: ReturnStatus;
   inspectionNotes?: string;

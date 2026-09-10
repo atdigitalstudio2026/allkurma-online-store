@@ -66,6 +66,7 @@ export const Navbar: React.FC = () => {
 
   const roleLabels: Record<UserRoleType, { label: string; badge: string; color: string }> = {
     customer: { label: 'Pelanggan (Customer)', badge: 'Pembeli', color: 'bg-[#009A44] text-white' },
+    retail_customer: { label: 'Pelanggan Retail', badge: 'Retail', color: 'bg-[#009A44] text-white' },
     seller: { label: 'Toko Seller Official', badge: 'Seller', color: 'bg-[#1E3A8A] text-blue-200' },
     wholesale_partner: { label: 'Mitra Grosir Gold', badge: 'B2B', color: 'bg-[#1E3A8A] text-white' },
     super_admin: { label: 'Super Admin', badge: 'Admin', color: 'bg-indigo-600 text-white' },

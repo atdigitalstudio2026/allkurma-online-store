@@ -486,79 +486,144 @@ export const HomeScreen: React.FC = () => {
   const activeQuiz = quizRecommendations[selectedQuizTag];
 
   return (
-    <div className="pb-28 max-w-lg mx-auto bg-slate-50 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="pb-28 w-full max-w-5xl lg:max-w-6xl mx-auto bg-slate-50 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
       
-      {/* 1. Mobile Search Bar & Poin Bar */}
-      <div className="p-3.5 bg-white border-b border-slate-100 sticky top-0 z-20 shadow-2xs space-y-2">
-        <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Cari kurma Ajwa, Sukari, Medjool, grosir..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') setCurrentView('catalog');
-            }}
-            className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#009A44]/30 focus:border-[#009A44] focus:bg-white transition-all placeholder:text-slate-400"
-          />
-        </div>
-
-        {/* Quick Points & Wallet Summary Bar */}
-        <div className="flex items-center justify-between bg-gradient-to-r from-blue-50/80 via-emerald-50/80 to-blue-50/80 border border-blue-100 rounded-xl px-3 py-1.5 text-[11px]">
-          <div 
-            onClick={() => setCurrentView('allkurma-games')}
-            className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <div className="w-5 h-5 rounded-full bg-amber-500 text-stone-900 flex items-center justify-center font-bold text-[9px] shadow-2xs">
-              🪙
+      {/* 1. Customer Member Dock, Wallet & Quick Search Bar */}
+      <div className="px-3 sm:px-4 pt-3 pb-1">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3 sm:p-3.5 space-y-2.5">
+          
+          {/* Mobile Search Bar with Quick Filter Tags (Visible on Mobile, Unified on Desktop) */}
+          <div className="sm:hidden space-y-2">
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Cari kurma Ajwa, Sukari, Medjool, grosir..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setCurrentView('catalog');
+                }}
+                className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-hidden focus:ring-2 focus:ring-[#009A44]/30 focus:border-[#009A44] focus:bg-white transition-all placeholder:text-slate-400"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <div>
-              <span className="text-[10px] text-slate-500 block leading-none">Poin Belanja</span>
-              <span className="font-extrabold text-amber-900 leading-none">
-                {kurmaPoints.toLocaleString('id-ID')} Poin
-              </span>
+
+            {/* Quick Search Tag Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-[10px]">
+              <span className="text-slate-400 font-medium shrink-0">Populer:</span>
+              {['Ajwa Madinah', 'Sukari Basah', 'Promo Bundling', 'Grosir B2B'].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => {
+                    if (tag === 'Promo Bundling') {
+                      setIsBundlingModalOpen(true);
+                    } else if (tag === 'Grosir B2B') {
+                      setCurrentView('b2b-portal');
+                    } else {
+                      setSearchQuery(tag);
+                      setCurrentView('catalog');
+                    }
+                  }}
+                  className="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-[#009A44] text-slate-600 font-medium shrink-0 transition-colors cursor-pointer"
+                >
+                  {tag}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="h-5 w-px bg-slate-200" />
+          {/* Quick Points & Wallet Summary Bar (Responsive Grid) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-gradient-to-r from-blue-50/90 via-emerald-50/70 to-amber-50/70 border border-blue-100/80 rounded-xl p-2.5 sm:px-4 sm:py-2 text-[11px]">
+            <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6 flex-wrap">
+              
+              {/* KurmaPay Balance */}
+              <div 
+                onClick={() => setCurrentView('customer-dashboard')}
+                className="flex items-center gap-2 cursor-pointer group"
+                title="Buka Saldo & Dompet KurmaPay"
+              >
+                <div className="w-7 h-7 rounded-lg bg-[#1E3A8A] text-white flex items-center justify-center font-bold text-xs shadow-2xs group-hover:scale-105 transition-transform">
+                  <span className="text-[10px]">Rp</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block leading-tight">Saldo KurmaPay</span>
+                  <span className="font-extrabold text-[#1E3A8A] text-xs leading-none group-hover:underline">
+                    Rp {kurmaPayBalance.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </div>
 
-          <div 
-            onClick={() => setCurrentView('customer-dashboard')}
-            className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <span className="text-[10px] text-slate-500 block leading-none">Saldo KurmaPay</span>
-            <span className="font-extrabold text-[#1E3A8A] leading-none">
-              Rp {kurmaPayBalance.toLocaleString('id-ID')}
-            </span>
+              <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+
+              {/* KurmaPoints */}
+              <div 
+                onClick={() => setCurrentView('allkurma-games')}
+                className="flex items-center gap-2 cursor-pointer group"
+                title="Buka Poin Belanja & Mini Games"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-stone-900 flex items-center justify-center font-bold text-xs shadow-2xs group-hover:scale-105 transition-transform">
+                  🪙
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block leading-tight">Poin Belanja SRA</span>
+                  <span className="font-extrabold text-amber-900 text-xs leading-none group-hover:underline">
+                    {kurmaPoints.toLocaleString('id-ID')} Poin
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Daily Check-In & Bonus Claim Button */}
+            <div className="flex items-center justify-end gap-2 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-slate-200/60">
+              <button
+                onClick={handleDailyCheckIn}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                  isCheckedInToday 
+                    ? 'bg-emerald-100 text-[#009A44] border border-emerald-200 cursor-default' 
+                    : 'bg-gradient-to-r from-[#009A44] to-[#1E3A8A] hover:from-[#047857] hover:to-blue-900 text-white active:scale-95'
+                }`}
+              >
+                {isCheckedInToday ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-[#009A44]" />
+                    <span>Sudah Check-In Hari Ini ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                    <span>Check-In Harian (+10 Poin)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
           </div>
 
-          <button
-            onClick={handleDailyCheckIn}
-            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-              isCheckedInToday 
-                ? 'bg-emerald-100 text-[#009A44] border border-emerald-200 cursor-default' 
-                : 'bg-gradient-to-r from-[#009A44] to-[#1E3A8A] text-white shadow-2xs active:scale-95'
-            }`}
-          >
-            {isCheckedInToday ? (
-              <>
-                <Check className="w-3 h-3" />
-                <span>Check-in ✓</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3 h-3" />
-                <span>Klaim +10</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
       {/* 2. Interactive SRA Stories Bar */}
-      <div className="px-4 py-2.5 bg-white border-b border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-3.5 overflow-x-auto pb-1 scrollbar-none snap-x">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-3.5 shadow-2xs overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#009A44] inline-block animate-pulse" />
+              Sorotan Informasi & Cerita Kurma
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+              Klik cerita untuk info detail & promo
+            </span>
+          </div>
+          <div className="flex items-center gap-4 overflow-x-auto pb-1.5 scrollbar-none snap-x">
           {stories.map((story) => (
             <button
               key={story.id}
@@ -613,10 +678,16 @@ export const HomeScreen: React.FC = () => {
           ))}
         </div>
       </div>
+      </div>
 
-      {/* 3. Dynamic 5-Slide Banner Carousel (Landscape 1:2 / 2:1 Aspect Ratio) */}
+      {/* 2. Official Shopee Store Profile Header & Stats & Navigation */}
+      <div className="px-3 sm:px-4 py-2">
+        <StoreFollowHeader variant="card" />
+      </div>
+
+      {/* 3. Dynamic 5-Slide Banner Carousel (BERADA DI BAWAH PROFILE TOKO SESUAI STANDAR SHOPEE) */}
       <div 
-        className="p-4"
+        className="px-3 sm:px-4 py-2"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
@@ -634,7 +705,7 @@ export const HomeScreen: React.FC = () => {
                 setCurrentView('catalog');
               }
             }}
-            className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-stone-950 text-white shadow-lg border border-stone-200/80 transition-all duration-500 flex flex-col justify-between cursor-pointer group"
+            className="relative w-full aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[2.9/1] lg:aspect-[3.2/1] rounded-2xl overflow-hidden bg-stone-950 text-white shadow-md border border-stone-200/80 transition-all duration-500 flex flex-col justify-between cursor-pointer group"
           >
             {/* 100% Full Image without gradient color tint or wash */}
             <img 
@@ -732,7 +803,7 @@ export const HomeScreen: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-3.5 sm:p-5 shadow-lg border border-white/20 transition-all duration-500 flex flex-col justify-between`}>
+          <div className={`relative w-full aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[2.9/1] lg:aspect-[3.2/1] rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-3.5 sm:p-5 md:p-6 shadow-md border border-white/20 transition-all duration-500 flex flex-col justify-between`}>
             {/* Seller Shortcut to Banner Management */}
             {user?.role === 'seller' && (
               <button
@@ -822,14 +893,9 @@ export const HomeScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Official Store Card with Follow Button & Followers Perk */}
-      <div className="px-4 pb-2">
-        <StoreFollowHeader variant="card" />
-      </div>
-
       {/* 4. 8 Quick Action Icons Grid (DIPERBARUI: Promo Bundling & New Product) */}
-      <div className="px-4 py-1">
-        <div className="grid grid-cols-4 gap-2.5">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 sm:gap-3">
           
           {/* 1. Katalog Kurma */}
           <button
@@ -960,15 +1026,15 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 5. Interactive Promo Bundling Showcase Section */}
-      <div className="px-4 py-2">
-        <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border border-amber-200/80 rounded-2xl p-4 text-slate-800 shadow-sm space-y-3">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs">
-                <Boxes className="w-4 h-4" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                <Boxes className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
                   <span>Paket Promo Bundling SRA</span>
                   <span className="text-[8px] bg-red-600 text-white font-extrabold px-1.5 py-0.2 rounded-full shadow-2xs">
                     HEMAT S/D 40%
@@ -982,7 +1048,7 @@ export const HomeScreen: React.FC = () => {
 
             <button
               onClick={() => setIsBundlingModalOpen(true)}
-              className="text-[11px] font-bold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 transition-colors cursor-pointer"
+              className="text-[11px] font-bold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 transition-colors cursor-pointer shrink-0"
             >
               <span>Lihat Semua</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -990,11 +1056,11 @@ export const HomeScreen: React.FC = () => {
           </div>
 
           {/* Bundling Cards Horizontal Scroll */}
-          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none snap-x">
+          <div className="flex gap-3 overflow-x-auto pb-1.5 scrollbar-none snap-x">
             {activeBundlingDeals.slice(0, 4).map((bundle) => (
               <div
                 key={bundle.id}
-                className="min-w-[210px] max-w-[210px] bg-white rounded-xl p-3 border border-amber-200/80 shrink-0 snap-start flex flex-col justify-between space-y-2 hover:border-amber-400 hover:shadow-xs transition-all shadow-2xs"
+                className="min-w-[210px] sm:min-w-[240px] max-w-[210px] sm:max-w-[240px] bg-white rounded-xl p-3 sm:p-3.5 border border-amber-200/90 shrink-0 snap-start flex flex-col justify-between space-y-2.5 hover:border-amber-400 hover:shadow-xs transition-all shadow-2xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1015,7 +1081,7 @@ export const HomeScreen: React.FC = () => {
                   </p>
 
                   <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xs font-black text-[#1E3A8A]">
+                    <span className="text-xs sm:text-sm font-black text-[#1E3A8A]">
                       Rp {bundle.bundlePrice.toLocaleString('id-ID')}
                     </span>
                     <span className="text-[9px] text-slate-400 line-through">
@@ -1038,120 +1104,122 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 6. Flash Sale Section with Stock Bar */}
-      <div className="mt-2 px-4 py-3 bg-gradient-to-b from-blue-50/50 to-transparent">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-[#009A44] font-bold text-xs tracking-tight">
-              <Flame className="w-4 h-4 fill-[#009A44] text-[#009A44] animate-pulse" />
-              <span>Flash Sale</span>
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-gradient-to-b from-red-50/50 via-amber-50/20 to-white rounded-2xl border border-red-100 p-3.5 sm:p-4 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 text-red-600 font-bold text-xs sm:text-sm tracking-tight">
+                <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-red-600 text-red-600 animate-pulse" />
+                <span>Flash Sale Kilat</span>
+              </div>
+              {/* Countdown timer pill */}
+              <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-white">
+                <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm shadow-2xs">
+                  {timeLeft.hours.toString().padStart(2, '0')}
+                </span>
+                <span className="text-[#1E3A8A] font-bold">:</span>
+                <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm shadow-2xs">
+                  {timeLeft.minutes.toString().padStart(2, '0')}
+                </span>
+                <span className="text-[#1E3A8A] font-bold">:</span>
+                <span className="bg-red-600 px-1.5 py-0.5 rounded-sm animate-pulse shadow-2xs">
+                  {timeLeft.seconds.toString().padStart(2, '0')}
+                </span>
+              </div>
             </div>
-            {/* Countdown timer pill */}
-            <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-white">
-              <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm">
-                {timeLeft.hours.toString().padStart(2, '0')}
-              </span>
-              <span className="text-[#1E3A8A]">:</span>
-              <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm">
-                {timeLeft.minutes.toString().padStart(2, '0')}
-              </span>
-              <span className="text-[#1E3A8A]">:</span>
-              <span className="bg-[#009A44] px-1.5 py-0.5 rounded-sm animate-pulse">
-                {timeLeft.seconds.toString().padStart(2, '0')}
-              </span>
-            </div>
+
+            <button
+              onClick={() => setCurrentView('catalog')}
+              className="text-[11px] font-semibold text-[#1E3A8A] hover:text-[#009A44] flex items-center gap-0.5 transition-colors cursor-pointer"
+            >
+              <span>Lihat Semua</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <button
-            onClick={() => setCurrentView('catalog')}
-            className="text-[11px] font-semibold text-[#1E3A8A] hover:text-[#009A44] flex items-center gap-0.5 transition-colors cursor-pointer"
-          >
-            <span>Lihat Semua</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Flash Sale Cards Horizontal Scroll */}
-        {flashSaleProducts.length === 0 ? (
-          <div className="bg-white/80 rounded-xl p-4 text-center border border-dashed border-stone-200 text-xs text-stone-500">
-            <Flame className="w-5 h-5 text-amber-500/70 mx-auto mb-1" />
-            <p className="font-semibold text-stone-700">Sesi Flash Sale Berikutnya Segera Hadir!</p>
-            <p className="text-[10px] text-stone-400 mt-0.5">Seller sedang menyiapkan kurma pilihan dengan diskon promo kilat.</p>
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
-            {flashSaleProducts.map((prod) => (
-              <div
-                key={prod.id}
-                className="min-w-[145px] max-w-[145px] bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs shrink-0 snap-start flex flex-col justify-between"
-              >
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => handleProductClick(prod.id)}
+          {/* Flash Sale Cards Horizontal Scroll */}
+          {flashSaleProducts.length === 0 ? (
+            <div className="bg-white/90 rounded-xl p-4 text-center border border-dashed border-stone-200 text-xs text-stone-500">
+              <Flame className="w-5 h-5 text-amber-500/70 mx-auto mb-1" />
+              <p className="font-semibold text-stone-700">Sesi Flash Sale Berikutnya Segera Hadir!</p>
+              <p className="text-[10px] text-stone-400 mt-0.5">Seller sedang menyiapkan kurma pilihan dengan diskon promo kilat.</p>
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+              {flashSaleProducts.map((prod) => (
+                <div
+                  key={prod.id}
+                  className="min-w-[150px] sm:min-w-[175px] max-w-[150px] sm:max-w-[175px] bg-white rounded-xl border border-stone-200/90 overflow-hidden shadow-2xs shrink-0 snap-start flex flex-col justify-between hover:border-red-300 transition-colors"
                 >
-                  <div className="relative aspect-square bg-stone-100">
-                    <img
-                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
-                      alt={prod.name}
-                      className="w-full h-full object-cover"
-                    />
-                  {prod.flashSaleDiscountPercent && (
-                    <div className="absolute top-1.5 left-1.5 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
-                      -{prod.flashSaleDiscountPercent}%
-                    </div>
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="text-[11px] font-medium text-stone-800 line-clamp-2 leading-tight">
-                    {prod.name}
-                  </p>
-                  <p className="text-xs font-bold text-[#1E3A8A] mt-1">
-                    Rp {prod.discountPrice?.toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-[9px] text-stone-400 line-through">
-                    Rp {prod.regularPrice.toLocaleString('id-ID')}
-                  </p>
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => handleProductClick(prod.id)}
+                  >
+                    <div className="relative aspect-square bg-stone-100">
+                      <img
+                        src={prod.images?.[0] || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'}
+                        alt={prod.name}
+                        className="w-full h-full object-cover"
+                      />
+                    {prod.flashSaleDiscountPercent && (
+                      <div className="absolute top-1.5 left-1.5 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-xs">
+                        -{prod.flashSaleDiscountPercent}%
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2 sm:p-2.5">
+                    <p className="text-[11px] font-medium text-stone-800 line-clamp-2 leading-tight">
+                      {prod.name}
+                    </p>
+                    <p className="text-xs sm:text-sm font-bold text-[#1E3A8A] mt-1">
+                      Rp {prod.discountPrice?.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-[9px] text-stone-400 line-through">
+                      Rp {prod.regularPrice.toLocaleString('id-ID')}
+                    </p>
 
-                  {/* Flash sale progress bar */}
-                  <div className="mt-1.5">
-                    <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-500 to-red-600 h-full rounded-full w-[82%]" />
+                    {/* Flash sale progress bar */}
+                    <div className="mt-1.5">
+                      <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-gradient-to-r from-amber-500 to-red-600 h-full rounded-full w-[82%]" />
+                      </div>
+                      <span className="text-[8px] text-stone-500 font-medium block mt-0.5">
+                        🔥 Terjual 82%
+                      </span>
                     </div>
-                    <span className="text-[8px] text-stone-500 font-medium block mt-0.5">
-                      🔥 Terjual 82%
-                    </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="p-2 pt-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(prod, 1);
-                  }}
-                  className="w-full py-1 bg-[#009A44] hover:bg-[#047857] active:scale-95 text-white text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Tambah</span>
-                </button>
+                <div className="p-2 sm:p-2.5 pt-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart(prod, 1);
+                    }}
+                    className="w-full py-1 bg-[#009A44] hover:bg-[#047857] active:scale-95 text-white text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Tambah</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          )}
         </div>
-        )}
       </div>
 
       {/* 7. DEDICATED SECTION: New Product / Panen Raya 2026 */}
-      <div id="new-arrivals-section" className="px-4 py-3 scroll-mt-20">
-        <div className="bg-white rounded-2xl border border-emerald-100 p-4 shadow-xs space-y-3.5 bg-gradient-to-b from-emerald-50/30 to-white">
+      <div id="new-arrivals-section" className="px-3 sm:px-4 py-2 scroll-mt-20">
+        <div className="bg-white rounded-2xl border border-emerald-100 p-3.5 sm:p-4 shadow-2xs space-y-3.5 bg-gradient-to-b from-emerald-50/30 to-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-[#009A44] text-white flex items-center justify-center shadow-xs">
-                <Sparkles className="w-4 h-4" />
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-[#009A44] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 uppercase tracking-wider">
                     New Product 2026
                   </h3>
                   <span className="text-[8px] bg-[#009A44] text-white font-extrabold px-1.5 py-0.2 rounded-full">
@@ -1166,7 +1234,7 @@ export const HomeScreen: React.FC = () => {
 
             <button
               onClick={() => { setSelectedCategory(null); setCurrentView('catalog'); }}
-              className="text-[11px] font-semibold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 cursor-pointer"
+              className="text-[11px] font-semibold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 cursor-pointer shrink-0"
             >
               <span>Semua</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -1202,7 +1270,7 @@ export const HomeScreen: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
               {newProducts.map((prod) => {
                 const hasImage = Boolean(prod.images && prod.images.length > 0 && prod.images[0]);
                 const displayPrice = prod.discountPrice || prod.regularPrice;
@@ -1284,16 +1352,16 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 8. Interactive Kurma Finder / "Rekomendasi Pintar Sesuai Kebutuhan" */}
-      <div className="px-4 py-3">
-        <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-3">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-white rounded-2xl border border-stone-200 p-3.5 sm:p-4 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-[#1E3A8A]">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-stone-900">
                 Rekomendasi Kurma Pintar
               </h3>
             </div>
-            <span className="text-[10px] bg-blue-50 text-[#1E3A8A] font-bold px-2 py-0.5 rounded-full">
+            <span className="text-[10px] bg-blue-50 text-[#1E3A8A] font-bold px-2 py-0.5 rounded-full border border-blue-100">
               Pilihan Dokter & Ahli Gizi
             </span>
           </div>
@@ -1337,11 +1405,11 @@ export const HomeScreen: React.FC = () => {
                 <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-sm">
                   {activeQuiz.origin}
                 </span>
-                <h4 className="text-xs font-bold text-stone-900 mt-1 leading-snug truncate">
+                <h4 className="text-xs sm:text-sm font-bold text-stone-900 mt-1 leading-snug truncate">
                   {activeQuiz.productTitle}
                 </h4>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-xs font-bold text-[#1E3A8A]">
+                  <span className="text-xs sm:text-sm font-bold text-[#1E3A8A]">
                     Rp {activeQuiz.price.toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-stone-400 line-through">
@@ -1391,9 +1459,9 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 9. Kategori Varietas Kurma Circular Avatars */}
-      <div className="px-4 py-2">
+      <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold text-stone-900 tracking-tight">
+          <h3 className="text-xs sm:text-sm font-bold text-stone-900 tracking-tight">
             Kategori Varietas Kurma
           </h3>
           <button
@@ -1405,14 +1473,14 @@ export const HomeScreen: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 text-center">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 sm:gap-4 text-center">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => handleCategoryClick(cat.name || cat.id)}
               className="flex flex-col items-center group cursor-pointer focus:outline-none"
             >
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#009A44] group-active:scale-95 transition-all shadow-xs bg-stone-100 flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#009A44] group-active:scale-95 transition-all shadow-xs bg-stone-100 flex items-center justify-center">
                 <img 
                   src={cat.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'} 
                   alt={cat.name} 
@@ -1428,15 +1496,15 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 10. Kalkulator Untung Reseller & Grosir B2B Interaktif */}
-      <div className="px-4 py-3">
-        <div className="bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/40 rounded-2xl p-4 text-slate-800 shadow-sm space-y-3.5 border border-blue-200">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/40 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3.5 border border-blue-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-xs">
-                <Calculator className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
                   Simulasi Untung Reseller & Grosir
                 </h4>
                 <p className="text-[10px] text-slate-500">
@@ -1444,7 +1512,7 @@ export const HomeScreen: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-bold bg-blue-100 text-[#1E3A8A] border border-blue-200 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-blue-100 text-[#1E3A8A] border border-blue-200 px-2.5 py-0.5 rounded-full shrink-0">
               Tier: {wholesaleCalc.tierName}
             </span>
           </div>
@@ -1455,7 +1523,7 @@ export const HomeScreen: React.FC = () => {
               <span>Volume Pengambilan:</span>
               <span className="font-bold text-[#1E3A8A]">{cartonCount} Karton ({wholesaleCalc.totalBoxes} Box)</span>
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {[5, 20, 50, 100].map((num) => (
                 <button
                   key={num}
@@ -1476,7 +1544,7 @@ export const HomeScreen: React.FC = () => {
           <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-blue-100 text-xs shadow-2xs">
             <div>
               <span className="text-[10px] text-slate-500 block">Harga Modal Reseller</span>
-              <span className="text-sm font-extrabold text-slate-900">
+              <span className="text-xs sm:text-sm font-extrabold text-slate-900">
                 Rp {wholesaleCalc.pricePerBox.toLocaleString('id-ID')}/box
               </span>
               <span className="text-[9px] text-[#009A44] block font-bold">
@@ -1486,7 +1554,7 @@ export const HomeScreen: React.FC = () => {
 
             <div>
               <span className="text-[10px] text-slate-500 block">Estimasi Profit Laba</span>
-              <span className="text-sm font-extrabold text-[#009A44]">
+              <span className="text-xs sm:text-sm font-extrabold text-[#009A44]">
                 +Rp {wholesaleCalc.estimatedProfit.toLocaleString('id-ID')}
               </span>
               <span className="text-[9px] text-emerald-700 block">
@@ -1516,10 +1584,10 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 11. Koleksi Kurma Terlaris Grid */}
-      <div className="px-4 py-2">
+      <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-xs font-bold text-stone-900 tracking-tight">
+            <h3 className="text-xs sm:text-sm font-bold text-stone-900 tracking-tight">
               Koleksi Kurma Terlaris
             </h3>
             <p className="text-[10px] text-stone-500">Pilihan kurma grade premium standar ekspor</p>
@@ -1533,11 +1601,11 @@ export const HomeScreen: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {bestSellers.map((prod) => (
             <div
               key={prod.id}
-              className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs flex flex-col justify-between group"
+              className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-xs flex flex-col justify-between group hover:border-emerald-400 hover:shadow-xs transition-all"
             >
               <div 
                 className="cursor-pointer"
@@ -1561,11 +1629,11 @@ export const HomeScreen: React.FC = () => {
                 </div>
 
                 <div className="p-2.5">
-                  <p className="text-[11px] font-medium text-stone-900 line-clamp-2 leading-tight">
+                  <p className="text-[11px] font-medium text-stone-900 line-clamp-2 leading-tight group-hover:text-[#009A44] transition-colors">
                     {prod.name}
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="text-xs font-bold text-[#1E3A8A]">
+                    <span className="text-xs sm:text-sm font-bold text-[#1E3A8A]">
                       Rp {(prod.discountPrice || prod.regularPrice).toLocaleString('id-ID')}
                     </span>
                     {prod.discountPrice && (
@@ -1598,47 +1666,47 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 12. 4 Pilar Jaminan Mutu SRA ALLKURMA */}
-      <div className="px-4 py-3">
-        <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs space-y-3">
-          <h4 className="text-xs font-bold text-stone-900 text-center uppercase tracking-wider">
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-white rounded-2xl border border-stone-200 p-3.5 sm:p-4 shadow-2xs space-y-3">
+          <h4 className="text-xs sm:text-sm font-bold text-stone-900 text-center uppercase tracking-wider">
             4 Jaminan Keaslian SRA ALLKURMA
           </h4>
-          <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-            <div className="flex items-start gap-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 text-[11px]">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-blue-50/50 border border-blue-100">
               <ShieldCheck className="w-4 h-4 text-[#1E3A8A] shrink-0 mt-0.5" />
               <div>
-                <strong className="text-stone-900 block text-[10px]">100% Impor Resmi</strong>
-                <span className="text-[10px] text-stone-500 leading-tight block">
+                <strong className="text-stone-900 block text-[10px] sm:text-[11px]">100% Impor Resmi</strong>
+                <span className="text-[9px] sm:text-[10px] text-stone-500 leading-tight block mt-0.5">
                   Langsung dari Madinah, Al-Qassim, Mesir & Tunisia.
                 </span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-2 rounded-xl bg-emerald-50/50 border border-emerald-100">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
               <Award className="w-4 h-4 text-[#009A44] shrink-0 mt-0.5" />
               <div>
-                <strong className="text-stone-900 block text-[10px]">Halal Kemenag</strong>
-                <span className="text-[10px] text-stone-500 leading-tight block">
+                <strong className="text-stone-900 block text-[10px] sm:text-[11px]">Halal Kemenag</strong>
+                <span className="text-[9px] sm:text-[10px] text-stone-500 leading-tight block mt-0.5">
                   Uji laboratorium & karantina bebas residu kimia.
                 </span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-2 rounded-xl bg-amber-50/50 border border-amber-100">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50/50 border border-amber-100">
               <Package className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div>
-                <strong className="text-stone-900 block text-[10px]">Cold Storage</strong>
-                <span className="text-[10px] text-stone-500 leading-tight block">
+                <strong className="text-stone-900 block text-[10px] sm:text-[11px]">Cold Storage</strong>
+                <span className="text-[9px] sm:text-[10px] text-stone-500 leading-tight block mt-0.5">
                   Disimpan pada suhu terkontrol bebas kutu & jamur.
                 </span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-2 rounded-xl bg-rose-50/50 border border-rose-100">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-rose-50/50 border border-rose-100">
               <Percent className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div>
-                <strong className="text-stone-900 block text-[10px]">Garansi Retur 100%</strong>
-                <span className="text-[10px] text-stone-500 leading-tight block">
+                <strong className="text-stone-900 block text-[10px] sm:text-[11px]">Garansi Retur 100%</strong>
+                <span className="text-[9px] sm:text-[10px] text-stone-500 leading-tight block mt-0.5">
                   Ganti baru bila kurma busuk atau rusak di jalan.
                 </span>
               </div>
@@ -1648,19 +1716,19 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 13. Testimoni Pembeli Terverifikasi */}
-      <div className="px-4 py-2">
+      <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-xs font-bold text-stone-900">
+          <h3 className="text-xs sm:text-sm font-bold text-stone-900">
             Ulasan & Testimoni Pelanggan
           </h3>
-          <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold">
-            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+          <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-amber-600 font-bold">
+            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-500 text-amber-500" />
             <span>4.9 / 5.0 (2.400+ Ulasan)</span>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs shadow-2xs space-y-1.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="p-3.5 bg-white rounded-xl border border-stone-200 text-xs shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-blue-100 text-[#1E3A8A] font-bold text-[10px] flex items-center justify-center">
@@ -1686,7 +1754,7 @@ export const HomeScreen: React.FC = () => {
             </p>
           </div>
 
-          <div className="p-3 bg-white rounded-xl border border-stone-200 text-xs shadow-2xs space-y-1.5">
+          <div className="p-3.5 bg-white rounded-xl border border-stone-200 text-xs shadow-2xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#009A44] font-bold text-[10px] flex items-center justify-center">
@@ -1715,21 +1783,21 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* 14. WhatsApp & Konsultasi Hotline Banner */}
-      <div className="px-4 py-3">
+      <div className="px-3 sm:px-4 py-2">
         <div className="bg-gradient-to-r from-[#009A44] via-emerald-600 to-[#1E3A8A] text-white rounded-2xl p-4 shadow-sm flex items-center justify-between border border-emerald-400/20">
           <div className="space-y-0.5">
             <span className="text-[10px] text-emerald-100 font-bold uppercase tracking-wider flex items-center gap-1">
               <MessageCircle className="w-3 h-3" />
               <span>Customer Care 24/7</span>
             </span>
-            <h4 className="font-bold text-xs">Konsultasi Kurma & Custom Hampers</h4>
+            <h4 className="font-bold text-xs sm:text-sm">Konsultasi Kurma & Custom Hampers</h4>
             <p className="text-[10px] text-white/90">
               Butuh bantuan memilih varietas kurma atau kirim sample?
             </p>
           </div>
           <button
             onClick={() => setIsChatOpen(true)}
-            className="px-3.5 py-2 bg-white hover:bg-emerald-50 active:scale-95 text-[#009A44] text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
+            className="px-3.5 sm:px-4 py-2 bg-white hover:bg-emerald-50 active:scale-95 text-[#009A44] text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
           >
             Chat CS
           </button>
