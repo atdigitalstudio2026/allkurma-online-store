@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Boxes, 
@@ -24,21 +24,31 @@ export const BUNDLE_DEALS = INITIAL_BUNDLE_DEALS;
 interface PromoBundlingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialBundleId?: string;
 }
 
-export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, onClose }) => {
-  const { addToCart, showToast, setCurrentView, bundlingDeals } = useApp();
+export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, onClose, initialBundleId }) => {
+  const { addToCart, showToast, setCurrentView, setSelectedProductId, bundlingDeals, products } = useApp();
   const availableDeals = (bundlingDeals && bundlingDeals.length > 0 ? bundlingDeals : INITIAL_BUNDLE_DEALS)
     .filter(b => b.active !== false);
   const displayDeals = availableDeals.length > 0 ? availableDeals : INITIAL_BUNDLE_DEALS;
 
-  const [selectedBundleId, setSelectedBundleId] = useState<string>(() => displayDeals[0]?.id || '');
+  const [selectedBundleId, setSelectedBundleId] = useState<string>(() => initialBundleId || displayDeals[0]?.id || '');
+
+  // Keep selected bundle in sync when initialBundleId changes or modal opens
+  useEffect(() => {
+    if (initialBundleId && displayDeals.some(b => b.id === initialBundleId)) {
+      setSelectedBundleId(initialBundleId);
+    } else if (displayDeals.length > 0 && !displayDeals.some(b => b.id === selectedBundleId)) {
+      setSelectedBundleId(displayDeals[0]?.id || '');
+    }
+  }, [initialBundleId, displayDeals]);
 
   if (!isOpen) return null;
 
   const activeBundle = displayDeals.find(b => b.id === selectedBundleId) || displayDeals[0];
 
-  const handleAddBundleToCart = (bundle: BundleDeal) => {
+  const handleAddBundleToCart = (bundle: BundleDeal, directCheckout = false) => {
     // Create a bundle product representation
     const bundleProduct: Product = {
       id: `bundle-prod-${bundle.id}`,
@@ -48,26 +58,42 @@ export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, 
       description: `${bundle.subtitle}. Berisi: ${bundle.items.map(i => `${i.title} (${i.qty})`).join(', ')}.`,
       regularPrice: bundle.originalPrice,
       discountPrice: bundle.bundlePrice,
-      rating: bundle.rating,
-      reviewCount: bundle.soldCount,
-      soldCount: bundle.soldCount,
-      stock: 45,
+      rating: bundle.rating || 5.0,
+      reviewCount: bundle.soldCount || 120,
+      soldCount: bundle.soldCount || 120,
+      stock: 50,
       minStockAlert: 5,
       warehouseLocation: 'Jakarta Cold Storage',
       weightGram: 1500,
-      images: [bundle.image],
-      badge: bundle.badge,
+      images: [bundle.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80'],
+      badge: bundle.badge || 'HEMAT 30%',
       origin: 'Arab Saudi & Nusantara',
       isFlashSale: false,
       wholesalePrices: [
-        { minQty: 5, pricePerUnit: bundle.bundlePrice - 15000 },
-        { minQty: 20, pricePerUnit: bundle.bundlePrice - 30000 }
+        { minQty: 5, pricePerUnit: Math.max(1000, bundle.bundlePrice - 15000) },
+        { minQty: 20, pricePerUnit: Math.max(1000, bundle.bundlePrice - 30000) }
       ],
       variations: []
     };
 
     addToCart(bundleProduct, 1);
-    showToast(`Paket "${bundle.name}" berhasil ditambahkan ke keranjang belanja! Hemat Rp ${bundle.savings.toLocaleString('id-ID')}`, 'success');
+    if (directCheckout) {
+      onClose();
+      setCurrentView('cart');
+      showToast(`Paket "${bundle.name}" ditambahkan. Menuju ke Checkout...`, 'success');
+    } else {
+      showToast(`Paket "${bundle.name}" berhasil masuk ke keranjang! Hemat Rp ${bundle.savings.toLocaleString('id-ID')}`, 'success');
+    }
+  };
+
+  const handleViewItemDetail = (productId?: string) => {
+    if (!productId) return;
+    const match = products.find(p => p.id === productId);
+    if (match) {
+      setSelectedProductId(productId);
+      setCurrentView('product-detail');
+      onClose();
+    }
   };
 
   return (
@@ -182,27 +208,54 @@ export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, 
             </div>
 
             <div className="space-y-2">
-              {activeBundle.items.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="p-2.5 bg-white rounded-xl border border-blue-100 flex items-start gap-2 shadow-2xs"
-                >
-                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-[#009A44] flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
-                    ✓
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-bold text-slate-900 text-xs truncate">{item.title}</h5>
-                      <span className="text-[10px] font-extrabold text-[#1E3A8A] bg-blue-50 px-1.5 py-0.2 rounded-sm shrink-0 ml-1">
-                        {item.qty}
+              {activeBundle.items.map((item, idx) => {
+                const matchedProduct = item.productId ? products.find(p => p.id === item.productId) : null;
+                const itemImage = item.image || matchedProduct?.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=150';
+
+                return (
+                  <div 
+                    key={idx} 
+                    className="p-2.5 bg-white rounded-xl border border-blue-100 flex items-center gap-3 shadow-2xs hover:border-blue-300 transition-colors"
+                  >
+                    <div className="relative shrink-0">
+                      <img
+                        src={itemImage}
+                        alt={item.title}
+                        className="w-12 h-12 rounded-lg object-cover border border-stone-200"
+                      />
+                      <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[9px]">
+                        ✓
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
-                      {item.description}
-                    </p>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h5 className="font-bold text-slate-900 text-xs truncate">{item.title}</h5>
+                        <span className="text-[10px] font-extrabold text-[#1E3A8A] bg-blue-50 px-2 py-0.5 rounded-full shrink-0 border border-blue-100">
+                          {item.qty}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                        {item.description}
+                      </p>
+                      <div className="flex items-center justify-between mt-1 pt-1 border-t border-stone-100">
+                        <span className="text-[10px] text-stone-500">
+                          {item.price ? `Nilai: Rp ${item.price.toLocaleString('id-ID')}` : (matchedProduct?.discountPrice ? `Rp ${matchedProduct.discountPrice.toLocaleString('id-ID')}` : 'Termasuk dalam paket')}
+                        </span>
+                        {(item.productId || matchedProduct) && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewItemDetail(item.productId || matchedProduct?.id)}
+                            className="text-[10px] font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer"
+                          >
+                            Lihat Produk &gt;
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -223,27 +276,41 @@ export const PromoBundlingModal: React.FC<PromoBundlingModalProps> = ({ isOpen, 
 
         </div>
 
-        {/* Modal Footer Bar with Direct Add to Cart Button */}
-        <div className="p-3.5 bg-white border-t border-slate-200 flex items-center gap-2.5">
-          <div className="min-w-0 flex-1">
-            <span className="text-[10px] text-slate-500 block leading-none">Harga Spesial Paket</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-base font-black text-[#1E3A8A] leading-none">
+        {/* Modal Footer Bar with Direct Add to Cart and Instant Checkout Buttons */}
+        <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] text-slate-500 block leading-none">Harga Total Paket Bundling</span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-base sm:text-lg font-black text-[#1E3A8A] leading-none">
                 Rp {activeBundle.bundlePrice.toLocaleString('id-ID')}
               </span>
-              <span className="text-[10px] text-slate-400 line-through leading-none">
+              <span className="text-[11px] text-slate-400 line-through leading-none">
                 Rp {activeBundle.originalPrice.toLocaleString('id-ID')}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-sm">
+                Hemat Rp {activeBundle.savings.toLocaleString('id-ID')}
               </span>
             </div>
           </div>
 
-          <button
-            onClick={() => handleAddBundleToCart(activeBundle)}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#009A44] to-[#047857] hover:from-[#047857] hover:to-[#065f46] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>+ Beli Paket Hemat</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleAddBundleToCart(activeBundle, false)}
+              className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-[#009A44] border border-[#009A44] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>+ Keranjang</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddBundleToCart(activeBundle, true)}
+              className="flex-1 sm:flex-initial px-4 py-2.5 bg-gradient-to-r from-[#009A44] to-[#047857] hover:from-[#047857] hover:to-[#065f46] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+            >
+              <span>Beli Sekarang &gt;</span>
+            </button>
+          </div>
         </div>
 
       </div>

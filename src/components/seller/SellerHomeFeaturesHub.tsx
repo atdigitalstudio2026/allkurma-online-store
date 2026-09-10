@@ -27,7 +27,8 @@ import {
   Zap,
   Check,
   X,
-  RotateCcw
+  RotateCcw,
+  ShoppingBag
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Product, BundleDeal, BundleDealItem } from '../../types';
@@ -67,6 +68,11 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
   // --- 1. Promo Bundling State ---
   const [isAddBundleModalOpen, setIsAddBundleModalOpen] = useState(false);
   const [editingBundleId, setEditingBundleId] = useState<string | null>(null);
+  const [bundleModalStep, setBundleModalStep] = useState<'products' | 'pricing' | 'details' | 'preview'>('products');
+  const [bundleProductSearch, setBundleProductSearch] = useState('');
+  const [bundleCategoryFilter, setBundleCategoryFilter] = useState('all');
+  const [bundleVariationSelections, setBundleVariationSelections] = useState<Record<string, string>>({});
+  const [bundleQtySelections, setBundleQtySelections] = useState<Record<string, number>>({});
   const [bundleForm, setBundleForm] = useState<{
     name: string;
     subtitle: string;
@@ -98,6 +104,7 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemQty, setNewItemQty] = useState('');
   const [newItemDesc, setNewItemDesc] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState<number>(0);
   const [newBenefitText, setNewBenefitText] = useState('');
 
   // --- 2. New Product 2026 Filter & Search ---
@@ -132,21 +139,22 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
   // Handlers for Bundling
   const handleOpenCreateBundle = () => {
     setEditingBundleId(null);
+    setBundleModalStep('products');
+    setBundleProductSearch('');
+    setBundleCategoryFilter('all');
     setBundleForm({
       name: '',
       subtitle: '',
       badge: 'HEMAT 30%',
-      tag: 'Paket Spesial',
-      originalPrice: 300000,
-      bundlePrice: 210000,
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-      items: [
-        { title: 'Kurma Ajwa Madinah Grade VIP', qty: '1 Box (500 gram)', description: 'Kurma nabi kaya khasiat' },
-        { title: 'Madu Murni Yaman Habbatussauda', qty: '1 Toples (250 gram)', description: 'Madu herbal kaya enzim' }
-      ],
+      tag: 'Paket Hemat',
+      originalPrice: 0,
+      bundlePrice: 0,
+      image: '',
+      items: [],
       benefits: [
-        'Harga paket bundling jauh lebih hemat dibanding beli terpisah',
-        'Bonus kartu ucapan Ramadhan & tas ramah lingkungan SRA'
+        'Harga paket bundling jauh lebih hemat dibanding beli eceran satuan',
+        'Garansi 100% kurma asli segar berkualitas & bersertifikat resmi SRA',
+        'Kompilasi produk premium higienis dengan proteksi kemasan ganda'
       ]
     });
     setIsAddBundleModalOpen(true);
@@ -154,6 +162,9 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
 
   const handleEditBundle = (bundle: BundleDeal) => {
     setEditingBundleId(bundle.id);
+    setBundleModalStep('products');
+    setBundleProductSearch('');
+    setBundleCategoryFilter('all');
     setBundleForm({
       name: bundle.name,
       subtitle: bundle.subtitle,
@@ -168,14 +179,158 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
     setIsAddBundleModalOpen(true);
   };
 
+  // Toggle Etalase Product into Bundle
+  const handleToggleEtalaseProduct = (product: Product) => {
+    const selectedVarId = bundleVariationSelections[product.id];
+    const selectedVar = product.variations?.find(v => v.id === selectedVarId) || product.variations?.[0];
+    const qty = bundleQtySelections[product.id] || 1;
+
+    const existingIndex = bundleForm.items.findIndex(
+      it => it.productId === product.id && (!selectedVarId || it.variationId === selectedVarId)
+    );
+
+    if (existingIndex >= 0) {
+      // Remove product from bundle
+      const updatedItems = bundleForm.items.filter((_, i) => i !== existingIndex);
+      const totalOriginal = updatedItems.reduce((acc, curr) => acc + (curr.price || 0), 0);
+      setBundleForm(prev => ({
+        ...prev,
+        items: updatedItems,
+        originalPrice: totalOriginal > 0 ? totalOriginal : (updatedItems.length === 0 ? 0 : prev.originalPrice),
+        bundlePrice: totalOriginal > 0 ? Math.round((totalOriginal * 0.7) / 1000) * 1000 : (updatedItems.length === 0 ? 0 : prev.bundlePrice)
+      }));
+      showToast(`Produk "${product.name}" dihapus dari paket`, 'info');
+    } else {
+      // Add product to bundle
+      const unitPrice = selectedVar ? (selectedVar.discountPrice || selectedVar.regularPrice) : (product.discountPrice || product.regularPrice);
+      const itemTitle = selectedVar ? `${product.name} (${selectedVar.name})` : product.name;
+      const itemQty = `${qty} ${selectedVar ? selectedVar.name : 'Pcs'}`;
+      const itemPrice = unitPrice * qty;
+
+      const newItem: BundleDealItem = {
+        productId: product.id,
+        variationId: selectedVar?.id,
+        title: itemTitle,
+        qty: itemQty,
+        description: product.description?.slice(0, 70) || (product.origin ? `Asal: ${product.origin}` : 'Produk Pilihan SRA'),
+        price: itemPrice,
+        image: product.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300'
+      };
+
+      const updatedItems = [...bundleForm.items, newItem];
+      const totalOriginal = updatedItems.reduce((acc, curr) => acc + (curr.price || 0), 0);
+      const suggestedBundlePrice = Math.round((totalOriginal * 0.7) / 1000) * 1000;
+
+      // Smart suggestions for name & cover image if empty
+      const suggestedName = bundleForm.name.trim() !== '' 
+        ? bundleForm.name 
+        : `Paket Kombo: ${updatedItems.map(i => i.title.replace(/^Kurma\s+/i, '').split(' ')[0]).slice(0, 3).join(' + ')}`;
+      const suggestedCover = bundleForm.image.trim() !== ''
+        ? bundleForm.image
+        : (product.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800');
+
+      setBundleForm(prev => ({
+        ...prev,
+        items: updatedItems,
+        originalPrice: totalOriginal,
+        bundlePrice: prev.bundlePrice === 0 || prev.originalPrice === 0 ? suggestedBundlePrice : prev.bundlePrice,
+        name: prev.name.trim() === '' ? suggestedName : prev.name,
+        image: prev.image.trim() === '' ? suggestedCover : prev.image,
+        subtitle: prev.subtitle.trim() === '' ? `Kombinasi hemat ${updatedItems.length} produk pilihan dari etalase toko` : prev.subtitle
+      }));
+      showToast(`Produk "${product.name}" berhasil ditambahkan ke bundling!`, 'success');
+    }
+  };
+
+  const handleSetProductQty = (productId: string, delta: number) => {
+    setBundleQtySelections(prev => {
+      const current = prev[productId] || 1;
+      const next = Math.max(1, Math.min(20, current + delta));
+      return { ...prev, [productId]: next };
+    });
+  };
+
+  const handleSetProductVariation = (productId: string, varId: string) => {
+    setBundleVariationSelections(prev => ({ ...prev, [productId]: varId }));
+  };
+
+  const handleApplyDiscountPreset = (pct: number) => {
+    if (bundleForm.originalPrice <= 0) {
+      showToast('Tentukan harga normal terlebih dahulu!', 'error');
+      return;
+    }
+    const discounted = Math.round((bundleForm.originalPrice * (1 - pct / 100)) / 1000) * 1000;
+    setBundleForm(prev => ({
+      ...prev,
+      bundlePrice: Math.max(1000, discounted),
+      badge: `HEMAT ${pct}%`
+    }));
+  };
+
+  const handleApplyNominalSavings = (nominal: number) => {
+    if (bundleForm.originalPrice <= nominal) {
+      showToast(`Harga normal harus lebih dari Rp ${nominal.toLocaleString('id-ID')}`, 'error');
+      return;
+    }
+    const discounted = bundleForm.originalPrice - nominal;
+    const pct = Math.round((nominal / bundleForm.originalPrice) * 100);
+    setBundleForm(prev => ({
+      ...prev,
+      bundlePrice: discounted,
+      badge: `HEMAT Rp ${Math.round(nominal / 1000)}RB`
+    }));
+  };
+
+  const handleAutoGenerateBundleName = () => {
+    if (bundleForm.items.length === 0) {
+      showToast('Pilih minimal 1 produk dari etalase terlebih dahulu!', 'error');
+      return;
+    }
+    const parts = bundleForm.items.map(i => i.title.replace(/^Kurma\s+/i, '').split(' ')[0]).filter(Boolean);
+    const autoTitle = `Paket Berkah: ${parts.slice(0, 3).join(' + ')}`;
+    setBundleForm(prev => ({
+      ...prev,
+      name: autoTitle,
+      subtitle: `Kombinasi istimewa ${bundleForm.items.length} produk etalase dengan harga jauh lebih hemat`
+    }));
+    showToast('Nama paket otomatis berhasil diperbarui!', 'success');
+  };
+
+  const handleRecalculateOriginalPrice = () => {
+    const totalOriginal = bundleForm.items.reduce((acc, curr) => acc + (curr.price || 0), 0);
+    if (totalOriginal > 0) {
+      setBundleForm(prev => ({
+        ...prev,
+        originalPrice: totalOriginal,
+        bundlePrice: Math.round((totalOriginal * 0.7) / 1000) * 1000,
+        badge: 'HEMAT 30%'
+      }));
+      showToast('Harga normal berhasil disinkronkan dengan total harga produk etalase!', 'success');
+    } else {
+      showToast('Tidak ada produk yang memiliki estimasi harga!', 'error');
+    }
+  };
+
   const handleSaveBundle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bundleForm.name.trim()) {
       showToast('Nama paket bundling wajib diisi!', 'error');
+      setBundleModalStep('details');
       return;
     }
     if (bundleForm.items.length === 0) {
-      showToast('Minimal harus ada 1 item produk dalam paket!', 'error');
+      showToast('Minimal harus memilih 1 produk dari etalase!', 'error');
+      setBundleModalStep('products');
+      return;
+    }
+    if (bundleForm.originalPrice <= 0 || bundleForm.bundlePrice <= 0) {
+      showToast('Harga normal dan harga bundling harus lebih dari Rp 0!', 'error');
+      setBundleModalStep('pricing');
+      return;
+    }
+    if (bundleForm.bundlePrice >= bundleForm.originalPrice) {
+      showToast('Harga spesial bundling harus lebih murah dari harga normal agar pembeli hemat!', 'error');
+      setBundleModalStep('pricing');
       return;
     }
 
@@ -183,27 +338,29 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
     const discountPct = bundleForm.originalPrice > 0 
       ? Math.round((savings / bundleForm.originalPrice) * 100) 
       : 0;
+    const finalBadge = bundleForm.badge?.trim() || `HEMAT ${discountPct}%`;
+    const finalImage = bundleForm.image?.trim() || bundleForm.items[0]?.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80';
 
     if (editingBundleId) {
       updateBundleDeal(editingBundleId, {
         name: bundleForm.name,
-        subtitle: bundleForm.subtitle,
-        badge: bundleForm.badge || `HEMAT ${discountPct}%`,
+        subtitle: bundleForm.subtitle || `Kombinasi hemat ${bundleForm.items.length} produk etalase`,
+        badge: finalBadge,
         tag: bundleForm.tag || 'Paket Hemat',
         originalPrice: Number(bundleForm.originalPrice),
         bundlePrice: Number(bundleForm.bundlePrice),
         discountPct,
         savings,
-        image: bundleForm.image,
+        image: finalImage,
         items: bundleForm.items,
         benefits: bundleForm.benefits
       });
-      showToast('Paket bundling berhasil diperbarui!', 'success');
+      showToast('Paket bundling berhasil diperbarui dan tersinkronisasi ke Beranda!', 'success');
     } else {
       addBundleDeal({
         name: bundleForm.name,
-        subtitle: bundleForm.subtitle,
-        badge: bundleForm.badge || `HEMAT ${discountPct}%`,
+        subtitle: bundleForm.subtitle || `Kombinasi hemat ${bundleForm.items.length} produk etalase`,
+        badge: finalBadge,
         tag: bundleForm.tag || 'Paket Hemat',
         originalPrice: Number(bundleForm.originalPrice),
         bundlePrice: Number(bundleForm.bundlePrice),
@@ -211,39 +368,53 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
         savings,
         rating: 5.0,
         soldCount: 0,
-        image: bundleForm.image,
+        image: finalImage,
         items: bundleForm.items,
         benefits: bundleForm.benefits,
         active: true
       });
-      showToast('Paket bundling baru berhasil dipublikasikan dan aktif di Beranda!', 'success');
+      showToast('Paket bundling baru berhasil dipublikasikan dari etalase toko!', 'success');
     }
     setIsAddBundleModalOpen(false);
   };
 
   const handleAddItemToBundle = () => {
     if (!newItemTitle.trim()) return;
-    setBundleForm(prev => ({
-      ...prev,
-      items: [
-        ...prev.items,
-        {
-          title: newItemTitle.trim(),
-          qty: newItemQty.trim() || '1 Pcs',
-          description: newItemDesc.trim() || 'Kualitas terjamin'
-        }
-      ]
-    }));
+    const price = newItemPrice > 0 ? newItemPrice : 0;
+    const newItem: BundleDealItem = {
+      title: newItemTitle.trim(),
+      qty: newItemQty.trim() || '1 Pcs',
+      description: newItemDesc.trim() || 'Item bonus & pelengkap paket',
+      price: price > 0 ? price : undefined,
+      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=200'
+    };
+
+    setBundleForm(prev => {
+      const updated = [...prev.items, newItem];
+      const newTotal = updated.reduce((acc, c) => acc + (c.price || 0), 0);
+      return {
+        ...prev,
+        items: updated,
+        originalPrice: newTotal > prev.originalPrice ? newTotal : prev.originalPrice
+      };
+    });
     setNewItemTitle('');
     setNewItemQty('');
     setNewItemDesc('');
+    setNewItemPrice(0);
+    showToast(`Bonus/Item manual "${newItem.title}" ditambahkan ke paket`, 'success');
   };
 
   const handleRemoveItemFromBundle = (index: number) => {
-    setBundleForm(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
+    setBundleForm(prev => {
+      const updated = prev.items.filter((_, i) => i !== index);
+      const newTotal = updated.reduce((acc, c) => acc + (c.price || 0), 0);
+      return {
+        ...prev,
+        items: updated,
+        originalPrice: newTotal > 0 ? newTotal : prev.originalPrice
+      };
+    });
   };
 
   const handleAddBenefit = () => {
@@ -1537,186 +1708,799 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
       )}
 
       {/* =========================================================
-          MODAL: ADD / EDIT PROMO BUNDLING DEAL
+          MODAL: ADD / EDIT PROMO BUNDLING DEAL (ETALASE SINKRON)
          ========================================================= */}
       {isAddBundleModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-stone-200 flex flex-col max-h-[92vh] overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-2 text-red-600">
-                <Boxes className="w-5 h-5" />
-                <h3 className="font-bold text-base text-stone-900">
-                  {editingBundleId ? 'Edit Paket Promo Bundling' : 'Buat Paket Promo Bundling Baru'}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl border border-stone-200 flex flex-col max-h-[94vh] overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold">
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-base text-stone-900">
+                      {editingBundleId ? 'Edit Paket Promo Bundling' : 'Buat Paket Promo Bundling Baru'}
+                    </h3>
+                    <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Terdeteksi {products.filter(p => !p.isDraft).length} Produk di Etalase
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Pilih langsung produk-produk yang sudah ada di etalase toko untuk digabungkan menjadi paket kombo hemat
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={() => setIsAddBundleModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveBundle} className="space-y-4 pt-3 overflow-y-auto pr-1 text-xs">
-              <div>
-                <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                  Nama Paket Bundling *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Paket Berkah Ramadhan 3-in-1"
-                  value={bundleForm.name}
-                  onChange={(e) => setBundleForm({ ...bundleForm, name: e.target.value })}
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                  Sub-judul / Keterangan Singkat
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Kombinasi kurma nabi + madu murni lebih untung"
-                  value={bundleForm.subtitle}
-                  onChange={(e) => setBundleForm({ ...bundleForm, subtitle: e.target.value })}
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                    Label Badge (e.g. HEMAT 40%)
-                  </label>
-                  <input
-                    type="text"
-                    value={bundleForm.badge}
-                    onChange={(e) => setBundleForm({ ...bundleForm, badge: e.target.value })}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                    Tag Promosi
-                  </label>
-                  <input
-                    type="text"
-                    value={bundleForm.tag}
-                    onChange={(e) => setBundleForm({ ...bundleForm, tag: e.target.value })}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                    Harga Normal Asli (Rp) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1000}
-                    value={bundleForm.originalPrice}
-                    onChange={(e) => setBundleForm({ ...bundleForm, originalPrice: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                    Harga Spesial Bundling (Rp) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1000}
-                    value={bundleForm.bundlePrice}
-                    onChange={(e) => setBundleForm({ ...bundleForm, bundlePrice: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-red-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">
-                  URL Gambar Foto Paket
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={bundleForm.image}
-                  onChange={(e) => setBundleForm({ ...bundleForm, image: e.target.value })}
-                  className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
-                />
-              </div>
-
-              {/* Items List Management */}
-              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-                <span className="text-[10px] font-bold text-stone-500 uppercase block">
-                  Daftar Isi Produk Dalam Paket:
+            {/* Stepper Navigation Pills */}
+            <div className="py-2.5 px-1 flex items-center gap-2 border-b border-stone-100 overflow-x-auto scrollbar-none shrink-0 text-xs">
+              <button
+                type="button"
+                onClick={() => setBundleModalStep('products')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  bundleModalStep === 'products'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span>1. Pilih Produk Etalase</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  bundleModalStep === 'products' ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-800'
+                }`}>
+                  {bundleForm.items.length}
                 </span>
-                <div className="space-y-1.5">
-                  {bundleForm.items.map((it, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-xl border border-stone-200 text-xs">
-                      <div>
-                        <div className="font-bold text-stone-900">{it.title}</div>
-                        <span className="text-[10px] text-stone-500">{it.qty} • {it.description}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBundleModalStep('pricing')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  bundleModalStep === 'pricing'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                <span>2. Atur Harga & Diskon</span>
+                {bundleForm.originalPrice > 0 && bundleForm.bundlePrice > 0 && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
+                    {Math.round(((bundleForm.originalPrice - bundleForm.bundlePrice) / bundleForm.originalPrice) * 100)}% OFF
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBundleModalStep('details')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  bundleModalStep === 'details'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>3. Detail & Foto Sampul</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBundleModalStep('preview')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  bundleModalStep === 'preview'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>4. Preview Pembeli</span>
+              </button>
+            </div>
+
+            {/* Modal Body Container */}
+            <div className="flex-1 overflow-y-auto py-3 space-y-4 text-xs pr-1">
+
+              {/* ==============================================================
+                  STEP 1: DETECT & SELECT ETALASE PRODUCTS
+                 ============================================================== */}
+              {bundleModalStep === 'products' && (
+                <div className="space-y-4">
+                  
+                  {/* Etalase Search & Filter Toolbar */}
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Cari nama produk etalase atau SKU..."
+                        value={bundleProductSearch}
+                        onChange={(e) => setBundleProductSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                      {bundleProductSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setBundleProductSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Category Filter Chips */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none pb-1 sm:pb-0">
+                      {['all', ...Array.from(new Set(products.filter(p => !p.isDraft).map(p => p.category).filter(Boolean)))].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setBundleCategoryFilter(cat)}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold shrink-0 transition-colors cursor-pointer capitalize ${
+                            bundleCategoryFilter === cat
+                              ? 'bg-stone-900 text-white'
+                              : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200'
+                          }`}
+                        >
+                          {cat === 'all' ? 'Semua Produk' : cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Selected Items Quick Strip */}
+                  {bundleForm.items.length > 0 && (
+                    <div className="p-3 bg-red-50/70 rounded-2xl border border-red-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-red-900 text-xs flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-red-600" />
+                          <span>Produk Terpilih untuk Bundling ({bundleForm.items.length} item):</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRecalculateOriginalPrice}
+                          className="text-[10px] font-bold text-red-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Zap className="w-3 h-3" />
+                          <span>Sinkronkan Total Harga (Rp {bundleForm.items.reduce((acc, c) => acc + (c.price || 0), 0).toLocaleString('id-ID')})</span>
+                        </button>
                       </div>
+
+                      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+                        {bundleForm.items.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2 bg-white rounded-xl border border-red-200 flex items-center gap-2 shrink-0 shadow-2xs"
+                          >
+                            <img
+                              src={item.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=100'}
+                              alt={item.title}
+                              className="w-8 h-8 rounded-lg object-cover border border-stone-200"
+                            />
+                            <div className="max-w-[140px]">
+                              <div className="font-bold text-stone-900 text-[11px] truncate">{item.title}</div>
+                              <div className="text-[10px] text-stone-500">{item.qty} • {item.price ? `Rp ${item.price.toLocaleString('id-ID')}` : 'Bonus'}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItemFromBundle(idx)}
+                              className="w-5 h-5 rounded-full bg-stone-100 hover:bg-red-100 hover:text-red-600 text-stone-400 flex items-center justify-center cursor-pointer ml-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Etalase Products Grid */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-stone-500 text-[11px]">
+                      <span>Katalog Produk Etalase Toko SRA:</span>
+                      <span>Klik produk untuk memasukkan ke paket bundling</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {products
+                        .filter(p => !p.isDraft)
+                        .filter(p => {
+                          const matchesSearch = !bundleProductSearch.trim() || 
+                            p.name.toLowerCase().includes(bundleProductSearch.toLowerCase()) || 
+                            p.sku.toLowerCase().includes(bundleProductSearch.toLowerCase());
+                          const matchesCategory = bundleCategoryFilter === 'all' || p.category === bundleCategoryFilter;
+                          return matchesSearch && matchesCategory;
+                        })
+                        .map((product) => {
+                          const isSelected = bundleForm.items.some(it => it.productId === product.id);
+                          const currentQty = bundleQtySelections[product.id] || 1;
+                          const selectedVarId = bundleVariationSelections[product.id];
+                          const selectedVar = product.variations?.find(v => v.id === selectedVarId) || product.variations?.[0];
+                          const effectivePrice = selectedVar ? (selectedVar.discountPrice || selectedVar.regularPrice) : (product.discountPrice || product.regularPrice);
+
+                          return (
+                            <div
+                              key={product.id}
+                              className={`p-3 rounded-2xl border transition-all flex flex-col justify-between space-y-2.5 ${
+                                isSelected
+                                  ? 'bg-red-50/50 border-red-400 shadow-xs ring-1 ring-red-400'
+                                  : 'bg-white border-stone-200 hover:border-stone-300 hover:shadow-2xs'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex gap-2.5 items-start">
+                                  <img
+                                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=150'}
+                                    alt={product.name}
+                                    className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0 bg-stone-100"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1 flex-wrap mb-1">
+                                      <span className="text-[9px] font-bold bg-stone-100 text-stone-600 px-1.5 py-0.2 rounded-md">
+                                        {product.category}
+                                      </span>
+                                      <span className="text-[9px] font-medium text-stone-400">
+                                        SKU: {product.sku}
+                                      </span>
+                                    </div>
+                                    <h5 className="font-bold text-stone-900 text-xs line-clamp-2 leading-tight">
+                                      {product.name}
+                                    </h5>
+                                    <div className="flex items-baseline gap-1.5 mt-1">
+                                      <span className="font-black text-red-600 text-xs">
+                                        Rp {effectivePrice.toLocaleString('id-ID')}
+                                      </span>
+                                      {product.discountPrice && product.discountPrice < product.regularPrice && (
+                                        <span className="text-[10px] text-stone-400 line-through">
+                                          Rp {product.regularPrice.toLocaleString('id-ID')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Variation selector if product has variations */}
+                                {product.variations && product.variations.length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-stone-100">
+                                    <label className="text-[10px] text-stone-500 font-semibold block mb-0.5">
+                                      Pilih Varian Kemasan:
+                                    </label>
+                                    <select
+                                      value={selectedVarId || product.variations[0]?.id}
+                                      onChange={(e) => handleSetProductVariation(product.id, e.target.value)}
+                                      className="w-full p-1.5 bg-stone-50 border border-stone-200 rounded-lg text-[11px] font-medium"
+                                    >
+                                      {product.variations.map((v) => (
+                                        <option key={v.id} value={v.id}>
+                                          {v.name} (Rp {(v.discountPrice || v.regularPrice).toLocaleString('id-ID')})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Footer Controls for Product: Qty Stepper & Toggle Button */}
+                              <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+                                <div className="flex items-center border border-stone-200 rounded-lg bg-stone-50 overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetProductQty(product.id, -1)}
+                                    className="px-2 py-1 text-stone-600 hover:bg-stone-200 font-bold"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="px-2 font-bold text-[11px] text-stone-800">
+                                    {currentQty}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetProductQty(product.id, 1)}
+                                    className="px-2 py-1 text-stone-600 hover:bg-stone-200 font-bold"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleEtalaseProduct(product)}
+                                  className={`flex-1 py-1.5 px-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
+                                      : 'bg-stone-900 hover:bg-stone-800 text-white'
+                                  }`}
+                                >
+                                  {isSelected ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Terpilih di Paket</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="w-3.5 h-3.5" />
+                                      <span>+ Tambah ke Bundling</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Optional Manual Custom/Bonus Item Section */}
+                  <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2.5">
+                    <span className="text-[11px] font-bold text-stone-700 uppercase flex items-center gap-1.5">
+                      <Gift className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Tambah Item Bonus / Tambahan Khusus (Non-Etalase):</span>
+                    </span>
+                    <p className="text-[10px] text-stone-500">
+                      Gunakan formulir ini jika ingin menyertakan bonus khusus (contoh: Gratis Tas Spunbond Ramadhan, Greeting Card, dll).
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nama bonus (e.g. Tas Spunbond SRA)"
+                        value={newItemTitle}
+                        onChange={(e) => setNewItemTitle(e.target.value)}
+                        className="p-2 bg-white border border-stone-200 rounded-xl text-xs sm:col-span-2"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Jumlah (e.g. 1 Pcs Free)"
+                        value={newItemQty}
+                        onChange={(e) => setNewItemQty(e.target.value)}
+                        className="p-2 bg-white border border-stone-200 rounded-xl text-xs"
+                      />
                       <button
                         type="button"
-                        onClick={() => handleRemoveItemFromBundle(idx)}
-                        className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                        onClick={handleAddItemToBundle}
+                        className="py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Bonus</span>
                       </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
-                  <input
-                    type="text"
-                    placeholder="Nama produk (e.g. Kurma Ajwa)"
-                    value={newItemTitle}
-                    onChange={(e) => setNewItemTitle(e.target.value)}
-                    className="p-2 bg-white border border-stone-200 rounded-xl text-xs"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Jumlah (e.g. 1 Box 500g)"
-                    value={newItemQty}
-                    onChange={(e) => setNewItemQty(e.target.value)}
-                    className="p-2 bg-white border border-stone-200 rounded-xl text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddItemToBundle}
-                    className="py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    + Tambah Item
-                  </button>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+              {/* ==============================================================
+                  STEP 2: PRICING & AUTO DISCOUNT CALCULATION
+                 ============================================================== */}
+              {bundleModalStep === 'pricing' && (
+                <div className="space-y-4">
+                  
+                  {/* Selected Products Calculation Helper */}
+                  <div className="p-4 bg-gradient-to-r from-red-50 to-amber-50 rounded-2xl border border-red-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-stone-800">
+                        Total Nilai Asli Produk Terpilih:
+                      </span>
+                      <span className="text-sm font-black text-stone-900">
+                        Rp {bundleForm.items.reduce((acc, curr) => acc + (curr.price || 0), 0).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-stone-600">
+                      Klik tombol cepat di bawah untuk langsung menetapkan diskon menarik bagi pembeli:
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {[10, 15, 20, 25, 30, 35, 40].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => handleApplyDiscountPreset(pct)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-red-600 hover:text-white border border-red-200 text-red-700 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                        >
+                          Diskon {pct}% OFF
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => handleApplyNominalSavings(50000)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-600 hover:text-white border border-emerald-200 text-emerald-700 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                      >
+                        Hemat Rp 50.000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyNominalSavings(100000)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-600 hover:text-white border border-emerald-200 text-emerald-700 font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                      >
+                        Hemat Rp 100.000
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pricing Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                        Harga Normal Eceran Asli (Rp) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1000}
+                        value={bundleForm.originalPrice}
+                        onChange={(e) => setBundleForm({ ...bundleForm, originalPrice: Number(e.target.value) })}
+                        className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                      <span className="text-[10px] text-stone-400">Total nilai jika produk dibeli eceran terpisah</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                        Harga Spesial Paket Bundling (Rp) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1000}
+                        value={bundleForm.bundlePrice}
+                        onChange={(e) => setBundleForm({ ...bundleForm, bundlePrice: Number(e.target.value) })}
+                        className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-black text-red-600 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                      <span className="text-[10px] text-stone-400">Harga promo yang dibayar oleh customer</span>
+                    </div>
+                  </div>
+
+                  {/* Savings Preview Box */}
+                  <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-emerald-700 font-bold uppercase block">
+                        Penghematan Pembeli:
+                      </span>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <span className="text-base font-black text-emerald-800">
+                          Rp {Math.max(0, bundleForm.originalPrice - bundleForm.bundlePrice).toLocaleString('id-ID')}
+                        </span>
+                        {bundleForm.originalPrice > 0 && (
+                          <span className="text-xs font-bold text-emerald-600">
+                            ({Math.round(((bundleForm.originalPrice - bundleForm.bundlePrice) / bundleForm.originalPrice) * 100)}% Lebih Hemat)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] text-stone-500 font-bold block mb-1">
+                        Teks Badge Promo:
+                      </span>
+                      <input
+                        type="text"
+                        value={bundleForm.badge}
+                        onChange={(e) => setBundleForm({ ...bundleForm, badge: e.target.value })}
+                        className="p-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-extrabold text-red-600 text-center w-28"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ==============================================================
+                  STEP 3: BUNDLE DETAILS, COVER PHOTO & BENEFITS
+                 ============================================================== */}
+              {bundleModalStep === 'details' && (
+                <div className="space-y-4">
+                  
+                  {/* Name Generator & Title */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-stone-600 uppercase">
+                        Nama Paket Bundling *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAutoGenerateBundleName}
+                        className="text-[11px] font-bold text-red-600 hover:text-red-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>✨ Buat Nama Otomatis dari Produk</span>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Paket Berkah Ramadhan 3-in-1"
+                      value={bundleForm.name}
+                      onChange={(e) => setBundleForm({ ...bundleForm, name: e.target.value })}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                        Sub-judul / Keterangan Singkat
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Kombinasi kurma nabi + madu murni lebih untung"
+                        value={bundleForm.subtitle}
+                        onChange={(e) => setBundleForm({ ...bundleForm, subtitle: e.target.value })}
+                        className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                        Tag Promosi (e.g. Paket Spesial, Best Seller)
+                      </label>
+                      <input
+                        type="text"
+                        value={bundleForm.tag}
+                        onChange={(e) => setBundleForm({ ...bundleForm, tag: e.target.value })}
+                        className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Photo Cover Selector from Chosen Products */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                      Foto Sampul Paket Bundling:
+                    </label>
+
+                    {bundleForm.items.length > 0 && (
+                      <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-1.5">
+                        <span className="text-[10px] text-stone-500 font-semibold block">
+                          Pilih foto sampul dari salah satu produk terpilih:
+                        </span>
+                        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+                          {bundleForm.items.filter(i => i.image).map((it, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setBundleForm({ ...bundleForm, image: it.image! })}
+                              className={`relative rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                                bundleForm.image === it.image ? 'border-red-600 ring-2 ring-red-200 scale-102' : 'border-stone-200 hover:border-stone-400'
+                              }`}
+                            >
+                              <img
+                                src={it.image}
+                                alt={it.title}
+                                className="w-16 h-16 object-cover"
+                              />
+                              {bundleForm.image === it.image && (
+                                <span className="absolute bottom-0 inset-x-0 bg-red-600 text-white text-[8px] font-black text-center py-0.2">
+                                  SAMPUL
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <input
+                      type="text"
+                      placeholder="Atau masukkan URL foto khusus (https://...)"
+                      value={bundleForm.image}
+                      onChange={(e) => setBundleForm({ ...bundleForm, image: e.target.value })}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium text-stone-900 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Benefits Checklist */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-600 uppercase block">
+                      Keunggulan & Benefit Paket:
+                    </label>
+
+                    <div className="space-y-1.5">
+                      {bundleForm.benefits.map((b, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="text-stone-700">{b}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBenefit(idx)}
+                            className="text-stone-400 hover:text-red-500 p-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Tambah keunggulan (e.g. Bonus kartu ucapan & tas ramah lingkungan)"
+                        value={newBenefitText}
+                        onChange={(e) => setNewBenefitText(e.target.value)}
+                        className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddBenefit}
+                        className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl font-bold text-xs cursor-pointer shrink-0"
+                      >
+                        + Tambah
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ==============================================================
+                  STEP 4: LIVE SHOPPING PREVIEW (SHOPEE-LIKE)
+                 ============================================================== */}
+              {bundleModalStep === 'preview' && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs">
+                    💡 Ini adalah tampilan live bagaimana paket bundling Anda akan tampil di mata calon pembeli di Beranda dan Modal Promo:
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Preview 1: Home Carousel Card */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                        Preview di Beranda Toko:
+                      </span>
+                      <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm max-w-[270px] mx-auto">
+                        <div className="relative aspect-16/10 bg-stone-100">
+                          <img
+                            src={bundleForm.image || bundleForm.items[0]?.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400'}
+                            alt={bundleForm.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute top-2 left-2 text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-md">
+                            {bundleForm.badge}
+                          </span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                          <h5 className="font-bold text-stone-900 text-xs leading-snug">
+                            {bundleForm.name || 'Nama Paket Bundling'}
+                          </h5>
+                          <p className="text-[10px] text-stone-500 line-clamp-1">
+                            {bundleForm.subtitle || bundleForm.items.map(i => i.title).join(' + ')}
+                          </p>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-black text-[#1E3A8A]">
+                              Rp {bundleForm.bundlePrice.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-[10px] text-stone-400 line-through">
+                              Rp {bundleForm.originalPrice.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="w-full py-1.5 bg-[#009A44] text-white text-[10px] font-bold rounded-lg"
+                          >
+                            Beli Paket Bundling
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview 2: Item List Breakdown */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                        Daftar Isi Paket ({bundleForm.items.length} Produk):
+                      </span>
+                      <div className="space-y-2 bg-stone-50 p-3 rounded-2xl border border-stone-200">
+                        {bundleForm.items.map((it, idx) => (
+                          <div key={idx} className="p-2 bg-white rounded-xl border border-stone-200 flex items-center gap-2.5">
+                            <img
+                              src={it.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=100'}
+                              alt={it.title}
+                              className="w-9 h-9 rounded-lg object-cover border border-stone-200 shrink-0"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-stone-900 text-xs truncate">{it.title}</div>
+                              <div className="text-[10px] text-stone-500">{it.qty} • Nilai: Rp {(it.price || 0).toLocaleString('id-ID')}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddBundleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer"
                 >
                   Batal
                 </button>
+                {bundleModalStep !== 'products' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bundleModalStep === 'pricing') setBundleModalStep('products');
+                      else if (bundleModalStep === 'details') setBundleModalStep('pricing');
+                      else if (bundleModalStep === 'preview') setBundleModalStep('details');
+                    }}
+                    className="px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-700 font-bold text-xs cursor-pointer"
+                  >
+                    &lt; Kembali
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {bundleModalStep === 'products' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bundleForm.items.length === 0) {
+                        showToast('Pilih minimal 1 produk dari etalase untuk bundling!', 'error');
+                        return;
+                      }
+                      setBundleModalStep('pricing');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Lanjut: Atur Harga</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {bundleModalStep === 'pricing' && (
+                  <button
+                    type="button"
+                    onClick={() => setBundleModalStep('details')}
+                    className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Lanjut: Detail Paket</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {bundleModalStep === 'details' && (
+                  <button
+                    type="button"
+                    onClick={() => setBundleModalStep('preview')}
+                    className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Lanjut: Preview Pembeli</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
                 <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer shadow-xs"
+                  type="button"
+                  onClick={handleSaveBundle}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1.5"
                 >
-                  {editingBundleId ? 'Simpan Perubahan' : 'Publikasikan Paket'}
+                  <Check className="w-4 h-4" />
+                  <span>{editingBundleId ? 'Simpan Perubahan' : 'Publikasikan Paket'}</span>
                 </button>
               </div>
-            </form>
+            </div>
+
           </div>
         </div>
       )}

@@ -97,5 +97,10 @@ service cloud.firestore {
     match /categories/{categoryId} {
       allow read, write: if true;
     }
+
+    // Bundle Deals Collection (Public Read & Write for multi-device sync)
+    match /bundle_deals/{dealId} {
+      allow read, write: if true;
+    }
   }
 }

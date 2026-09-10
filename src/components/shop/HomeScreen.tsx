@@ -95,6 +95,7 @@ export const HomeScreen: React.FC = () => {
 
   // Promo Bundling Modal State
   const [isBundlingModalOpen, setIsBundlingModalOpen] = useState(false);
+  const [selectedBundleModalId, setSelectedBundleModalId] = useState<string | undefined>(undefined);
 
   // Auto slide effect
   useEffect(() => {
@@ -1057,46 +1058,85 @@ export const HomeScreen: React.FC = () => {
 
           {/* Bundling Cards Horizontal Scroll */}
           <div className="flex gap-3 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-            {activeBundlingDeals.slice(0, 4).map((bundle) => (
+            {activeBundlingDeals.slice(0, 6).map((bundle) => (
               <div
                 key={bundle.id}
-                className="min-w-[210px] sm:min-w-[240px] max-w-[210px] sm:max-w-[240px] bg-white rounded-xl p-3 sm:p-3.5 border border-amber-200/90 shrink-0 snap-start flex flex-col justify-between space-y-2.5 hover:border-amber-400 hover:shadow-xs transition-all shadow-2xs"
+                onClick={() => {
+                  setSelectedBundleModalId(bundle.id);
+                  setIsBundlingModalOpen(true);
+                }}
+                className="min-w-[240px] sm:min-w-[270px] max-w-[240px] sm:max-w-[270px] bg-white rounded-2xl border border-amber-200/90 shrink-0 snap-start flex flex-col justify-between overflow-hidden hover:border-amber-400 hover:shadow-md transition-all shadow-2xs cursor-pointer group"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[8px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded-sm shadow-2xs">
-                      {bundle.badge}
+                {/* Bundle Image Header */}
+                <div className="relative aspect-16/10 w-full bg-stone-100 overflow-hidden">
+                  <img
+                    src={bundle.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400'}
+                    alt={bundle.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1">
+                    <span className="text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-md shadow-xs">
+                      {bundle.badge || `HEMAT ${bundle.discountPct}%`}
                     </span>
-                    <div className="flex items-center gap-0.5 text-[9px] text-amber-600 font-bold">
-                      <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                      <span>{bundle.rating}</span>
-                    </div>
                   </div>
 
-                  <h5 className="font-bold text-slate-900 text-xs leading-tight line-clamp-1">
-                    {bundle.name}
-                  </h5>
-                  <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
-                    {bundle.items.map(i => i.title).join(' + ')}
-                  </p>
-
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xs sm:text-sm font-black text-[#1E3A8A]">
-                      Rp {bundle.bundlePrice.toLocaleString('id-ID')}
-                    </span>
-                    <span className="text-[9px] text-slate-400 line-through">
-                      Rp {bundle.originalPrice.toLocaleString('id-ID')}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-[10px]">
+                    <div className="flex items-center gap-1 bg-black/50 backdrop-blur-xs px-1.5 py-0.5 rounded-md">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span className="font-bold">{bundle.rating || 5.0}</span>
+                    </div>
+                    <span className="bg-[#009A44]/90 backdrop-blur-xs px-2 py-0.5 rounded-md font-bold">
+                      {bundle.items.length} Produk SRA
                     </span>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleAddBundleDirect(bundle)}
-                  className="w-full py-1.5 bg-gradient-to-r from-[#009A44] to-emerald-600 hover:from-emerald-600 hover:to-[#009A44] active:scale-95 text-white font-bold text-[10px] rounded-lg flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Beli Paket Bundling</span>
-                </button>
+                <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h5 className="font-bold text-stone-900 text-xs sm:text-sm leading-snug line-clamp-1 group-hover:text-amber-700 transition-colors">
+                      {bundle.name}
+                    </h5>
+                    <p className="text-[10px] text-stone-500 line-clamp-1 mt-0.5">
+                      {bundle.subtitle || bundle.items.map(i => i.title).join(' + ')}
+                    </p>
+
+                    {/* Preview product mini badges */}
+                    <div className="flex items-center gap-1 mt-2 flex-wrap">
+                      {bundle.items.slice(0, 3).map((it, idx) => (
+                        <span key={idx} className="text-[9px] font-medium bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded-md border border-amber-200/60 truncate max-w-[120px]">
+                          • {it.title}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-2.5 flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-sm sm:text-base font-black text-[#1E3A8A]">
+                        Rp {bundle.bundlePrice.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-[10px] text-stone-400 line-through">
+                        Rp {bundle.originalPrice.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-xs border border-emerald-200">
+                        Hemat Rp {bundle.savings.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddBundleDirect(bundle);
+                    }}
+                    className="w-full py-2 bg-gradient-to-r from-[#009A44] to-emerald-600 hover:from-emerald-600 hover:to-[#009A44] active:scale-95 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Beli Paket Bundling</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1887,7 +1927,11 @@ export const HomeScreen: React.FC = () => {
       {/* MODAL 2: Interactive Promo Bundling Modal */}
       <PromoBundlingModal
         isOpen={isBundlingModalOpen}
-        onClose={() => setIsBundlingModalOpen(false)}
+        onClose={() => {
+          setIsBundlingModalOpen(false);
+          setSelectedBundleModalId(undefined);
+        }}
+        initialBundleId={selectedBundleModalId}
       />
 
       {/* MODAL 3: Interactive Shipping Calculator Modal */}

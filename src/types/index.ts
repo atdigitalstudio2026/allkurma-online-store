@@ -510,9 +510,13 @@ export interface AppHeroBanner {
 }
 
 export interface BundleDealItem {
+  productId?: string;
   title: string;
   qty: string;
   description: string;
+  price?: number;
+  image?: string;
+  variationId?: string;
 }
 
 export interface BundleDeal {

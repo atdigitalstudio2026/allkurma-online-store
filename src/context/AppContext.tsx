@@ -70,7 +70,10 @@ import {
   saveReturnToFirestore,
   updateReturnStatusInFirestore,
   listenToAllChatMessagesFromFirestore,
-  saveChatMessageToFirestore
+  saveChatMessageToFirestore,
+  listenToBundleDealsFromFirestore,
+  saveBundleDealToFirestore,
+  deleteBundleDealFromFirestore
 } from '../firebase/db';
 import { generateAiChatResponse } from '../services/aiChatService';
 import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
@@ -963,6 +966,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
       (err) => {
         console.warn('Firestore chats listener warning:', err);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Real-time synchronization of bundle deals across all devices using Firestore
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = listenToBundleDealsFromFirestore(
+      (cloudBundles) => {
+        if (!isSubscribed) return;
+        if (cloudBundles && cloudBundles.length > 0) {
+          setBundlingDeals(cloudBundles);
+          try {
+            localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(cloudBundles));
+          } catch (e) {
+            console.warn('Failed to cache bundle deals to localStorage:', e);
+          }
+        }
+      },
+      (err) => {
+        console.warn('Firestore bundle deals listener warning:', err);
       }
     );
 
@@ -2115,37 +2145,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `bundle-${Date.now().toString(36)}`,
       active: deal.active !== undefined ? deal.active : true
     };
-    setBundlingDeals(prev => [newDeal, ...prev]);
+    setBundlingDeals(prev => {
+      const updated = [newDeal, ...prev];
+      localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(updated));
+      return updated;
+    });
+    saveBundleDealToFirestore(newDeal).catch(e => console.warn('Cloud sync error for bundle:', e));
     showToast(`Paket "${newDeal.name}" berhasil dibuat dan langsung aktif!`, 'success');
   };
 
   const updateBundleDeal = (id: string, updates: Partial<BundleDeal>) => {
-    setBundlingDeals(prev =>
-      prev.map(b => (b.id === id ? { ...b, ...updates } : b))
-    );
+    setBundlingDeals(prev => {
+      const updated = prev.map(b => (b.id === id ? { ...b, ...updates } : b));
+      localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(updated));
+      const target = updated.find(b => b.id === id);
+      if (target) {
+        saveBundleDealToFirestore(target).catch(e => console.warn('Cloud update error for bundle:', e));
+      }
+      return updated;
+    });
     showToast('Paket Promo Bundling berhasil diperbarui!', 'success');
   };
 
   const deleteBundleDeal = (id: string) => {
-    setBundlingDeals(prev => prev.filter(b => b.id !== id));
+    setBundlingDeals(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(updated));
+      return updated;
+    });
+    deleteBundleDealFromFirestore(id).catch(e => console.warn('Cloud delete error for bundle:', e));
     showToast('Paket Promo Bundling berhasil dihapus.', 'info');
   };
 
   const toggleBundleDealActive = (id: string) => {
-    setBundlingDeals(prev =>
-      prev.map(b => {
+    setBundlingDeals(prev => {
+      const updated = prev.map(b => {
         if (b.id === id) {
           const next = !(b.active !== false);
           showToast(`Paket "${b.name}" ${next ? 'diaktifkan' : 'dinonaktifkan'}`, 'info');
-          return { ...b, active: next };
+          const mod = { ...b, active: next };
+          saveBundleDealToFirestore(mod).catch(e => console.warn('Cloud status sync error for bundle:', e));
+          return mod;
         }
         return b;
-      })
-    );
+      });
+      localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const resetBundleDeals = () => {
     setBundlingDeals(INITIAL_BUNDLE_DEALS);
+    localStorage.setItem('allkurma_bundle_deals_v1', JSON.stringify(INITIAL_BUNDLE_DEALS));
+    INITIAL_BUNDLE_DEALS.forEach(deal => {
+      saveBundleDealToFirestore(deal).catch(e => console.warn('Reset seed bundle error:', e));
+    });
     showToast('Paket Promo Bundling dikembalikan ke template awal.', 'info');
   };
 

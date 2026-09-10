@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest, ChatMessage } from '../types';
+import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest, ChatMessage, BundleDeal } from '../types';
 
 // Recursively remove undefined values for Firestore serialization safety
 export function sanitizeForFirestore<T>(data: T): T {
@@ -608,5 +608,65 @@ export const deleteCategoryFromFirestore = async (categoryId: string): Promise<v
     throw error;
   }
 };
+
+// ==========================================
+// Promo Bundling Deals Real-time Sync & Management
+// ==========================================
+
+export const listenToBundleDealsFromFirestore = (
+  onSuccess: (deals: BundleDeal[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const coll = collection(db, 'bundle_deals');
+    const unsubscribe = onSnapshot(
+      coll,
+      (snapshot) => {
+        const items: BundleDeal[] = [];
+        snapshot.forEach((docSnap) => {
+          items.push({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<BundleDeal, 'id'>)
+          });
+        });
+        onSuccess(items);
+      },
+      (error) => {
+        console.warn('Firestore listenToBundleDeals snapshot warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach bundle_deals listener:', err);
+    return () => {};
+  }
+};
+
+export const saveBundleDealToFirestore = async (deal: BundleDeal): Promise<void> => {
+  try {
+    const dealRef = doc(db, 'bundle_deals', deal.id);
+    const sanitized = sanitizeForFirestore({
+      ...deal,
+      updatedAt: new Date().toISOString()
+    });
+    await setDoc(dealRef, sanitized, { merge: true });
+    console.log('[Firestore] Successfully synced bundle deal:', deal.id, deal.name);
+  } catch (error) {
+    console.error('[Firestore] Failed to save bundle deal to Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteBundleDealFromFirestore = async (dealId: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'bundle_deals', dealId));
+    console.log('[Firestore] Successfully deleted bundle deal from Firestore:', dealId);
+  } catch (error) {
+    console.error('[Firestore] Failed to delete bundle deal from Firestore:', error);
+    throw error;
+  }
+};
+
 
 
