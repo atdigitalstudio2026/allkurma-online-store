@@ -8,10 +8,6 @@ import {
   Check, 
   Eye, 
   EyeOff, 
-  ChevronRight,
-  Tv,
-  Play,
-  Store,
   Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -44,10 +40,10 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
   // Form state for editing
   const [formVideoUrl, setFormVideoUrl] = useState(homeVideoBanner?.videoUrl || '');
   const [formTitle, setFormTitle] = useState(homeVideoBanner?.title || '');
-  const [formSubtitle, setFormSubtitle] = useState(homeVideoBanner?.subtitle || '');
+  const [formSubtitle, setFormSubtitle] = useState('');
   const [formBadge, setFormBadge] = useState(homeVideoBanner?.badge || 'Video Resmi Toko');
   const [formCtaText, setFormCtaText] = useState(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
-  const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? false);
+  const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? true);
   const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? true);
   const [formLoop, setFormLoop] = useState(homeVideoBanner?.loop ?? true);
   const [formEnabled, setFormEnabled] = useState(homeVideoBanner?.enabled ?? true);
@@ -56,10 +52,10 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     e.stopPropagation();
     setFormVideoUrl(homeVideoBanner?.videoUrl || '');
     setFormTitle(homeVideoBanner?.title || '');
-    setFormSubtitle(homeVideoBanner?.subtitle || '');
+    setFormSubtitle('');
     setFormBadge(homeVideoBanner?.badge || 'Video Resmi Toko');
     setFormCtaText(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
-    setFormAutoPlay(homeVideoBanner?.autoPlay ?? false);
+    setFormAutoPlay(homeVideoBanner?.autoPlay ?? true);
     setFormMuted(homeVideoBanner?.muted ?? true);
     setFormLoop(homeVideoBanner?.loop ?? true);
     setFormEnabled(homeVideoBanner?.enabled ?? true);
@@ -71,12 +67,12 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     updateHomeVideoBanner({
       videoUrl: formVideoUrl.trim(),
       title: formTitle.trim() || 'Video Promosi Kurma',
-      subtitle: formSubtitle.trim(),
+      subtitle: '',
       badge: formBadge.trim() || 'Video Resmi',
       ctaText: formCtaText.trim() || 'Lihat Katalog',
-      autoPlay: formAutoPlay,
-      muted: formMuted,
-      loop: formLoop,
+      autoPlay: true,
+      muted: true,
+      loop: true,
       enabled: formEnabled
     });
     setIsEditModalOpen(false);
@@ -85,12 +81,17 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
   const handleApplyPreset = (preset: typeof VIDEO_BANNER_PRESETS[0]) => {
     setFormVideoUrl(preset.url);
     setFormTitle(preset.title);
-    setFormSubtitle(preset.subtitle);
+    setFormSubtitle('');
     setFormBadge(preset.badge);
   };
 
-  // If disabled, show compact pill to re-enable
-  if (!homeVideoBanner?.enabled) {
+  // If disabled and not seller, do not display to regular users/public
+  if (!homeVideoBanner?.enabled && !isSeller) {
+    return null;
+  }
+
+  // If disabled and is seller, show compact pill to re-enable
+  if (!homeVideoBanner?.enabled && isSeller) {
     return (
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-amber-50 border border-dashed border-amber-300 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-700 shadow-2xs">
@@ -99,8 +100,8 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
               <EyeOff className="w-4 h-4" />
             </span>
             <div>
-              <p className="font-bold text-stone-800">Banner Video 16:9 Sedang Dinonaktifkan</p>
-              <p className="text-[11px] text-stone-500">Banner video YouTube di bawah slider tidak tampil ke pembeli.</p>
+              <p className="font-bold text-stone-800">Banner Video 16:9 Sedang Dinonaktifkan (Mode Seller)</p>
+              <p className="text-[11px] text-stone-500">Banner video YouTube di bawah slider tidak tampil ke pembeli umum.</p>
             </div>
           </div>
           <button
@@ -118,154 +119,89 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
   const rawUrl = homeVideoBanner?.videoUrl || '';
   const isYoutube = isYouTubeUrl(rawUrl);
   const isDirect = isDirectVideoUrl(rawUrl);
+
+  // If no video configured and not seller, don't show empty box
+  if (!rawUrl && !isSeller) {
+    return null;
+  }
+
+  // Pastikan video otomatis berputar (autoPlay) dan looping berulang-ulang tanpa harus diklik play
   const embedUrl = isYoutube 
     ? getYouTubeEmbedUrl(rawUrl, { 
-        autoPlay: homeVideoBanner?.autoPlay, 
-        muted: homeVideoBanner?.muted, 
-        loop: homeVideoBanner?.loop 
+        autoPlay: true, 
+        muted: true, 
+        loop: true 
       }) 
     : rawUrl;
 
   return (
     <div className="px-3 sm:px-4 py-2">
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-amber-200/90 shadow-2xs overflow-hidden transition-all duration-300 hover:border-amber-300">
+      <div className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xs border border-stone-200/80 bg-black group">
         
-        {/* Header Bar Banner Video */}
-        <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-stone-900 via-[#1E3A8A] to-[#009A44] text-white flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-600/90 text-white shadow-xs shrink-0 ring-1 ring-white/20">
-              <Tv className="w-4 h-4 text-white" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  {homeVideoBanner.badge || 'Video Resmi'}
-                </span>
-                <span className="text-[10px] sm:text-xs text-amber-200 font-bold hidden xs:inline">
-                  Landscape 16:9 HD
-                </span>
-              </div>
-              <h4 className="text-xs sm:text-sm md:text-base font-black truncate text-white mt-0.5">
-                {homeVideoBanner.title || 'Dokumenter Panen Kurma'}
-              </h4>
-            </div>
-          </div>
+        {/* Transparent Shield to prevent YouTube link/title overlays & navigation */}
+        <div className="absolute inset-0 z-10 bg-transparent cursor-default pointer-events-auto" />
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Quick Button for Settings - Always Accessible */}
+        {/* Tombol Atur Video (16:9) - HANYA UNTUK AKUN SELLER (TIDAK UNTUK UMUM) */}
+        {isSeller && (
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
             <button
               onClick={openEditModal}
-              title="Kelola Video Banner 16:9 (Ganti link YouTube / MP4)"
-              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-black rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-amber-300"
+              title="Pengaturan Banner Video 16:9 (Khusus Akun Seller)"
+              className="px-3 py-1.5 bg-black/75 hover:bg-black text-white text-xs font-bold rounded-xl backdrop-blur-md transition-all flex items-center gap-1.5 shadow-md border border-white/25 cursor-pointer pointer-events-auto"
             >
-              <Settings className="w-3.5 h-3.5 text-stone-950" />
-              <span>Atur Video (16:9)</span>
+              <Settings className="w-3.5 h-3.5 text-amber-400" />
+              <span>Atur Video (Seller)</span>
             </button>
-
-            {/* CTA action button */}
-            <button
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentView('catalog');
-              }}
-              className="px-3 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0 border border-white/20"
-            >
-              <span>{homeVideoBanner.ctaText || 'Katalog'}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-amber-300" />
-            </button>
-          </div>
-        </div>
-
-        {/* 16:9 Landscape Video Container (Dimensi Standard YouTube Widescreen) */}
-        <div className="relative w-full aspect-video bg-black overflow-hidden group">
-          {isYoutube ? (
-            <iframe
-              src={embedUrl}
-              title={homeVideoBanner.title}
-              className="w-full h-full border-0 absolute inset-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : isDirect ? (
-            <video
-              src={rawUrl}
-              controls
-              playsInline
-              autoPlay={homeVideoBanner.autoPlay}
-              muted={homeVideoBanner.muted}
-              loop={homeVideoBanner.loop}
-              className="w-full h-full object-cover"
-            />
-          ) : rawUrl ? (
-            // Generic Embed iframe fallback
-            <iframe
-              src={rawUrl}
-              title={homeVideoBanner.title}
-              className="w-full h-full border-0 absolute inset-0"
-              allowFullScreen
-            />
-          ) : (
-            // Placeholder when no video is configured
-            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-stone-400 bg-stone-900">
-              <div className="w-14 h-14 rounded-full bg-stone-800 flex items-center justify-center mb-2">
-                <Video className="w-7 h-7 text-stone-400" />
-              </div>
-              <p className="text-sm font-bold text-stone-200">Belum Ada Video Dikonfigurasi</p>
-              <p className="text-xs text-stone-500 mt-1 max-w-sm">
-                Masukkan tautan video YouTube (16:9) atau tautan langsung MP4 melalui tombol &quot;Atur Video (16:9)&quot;.
-              </p>
-              <button
-                onClick={openEditModal}
-                className="mt-3 px-4 py-2 bg-[#1E3A8A] hover:bg-blue-900 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Settings className="w-3.5 h-3.5 text-amber-400" />
-                <span>Atur Video Sekarang</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Subtitle / Description Footer */}
-        {homeVideoBanner.subtitle && (
-          <div className="px-3.5 sm:px-5 py-2.5 bg-gradient-to-b from-amber-50/40 to-white flex items-center justify-between gap-3 text-xs text-stone-600 border-t border-amber-100">
-            <p className="text-[11px] sm:text-xs text-stone-600 line-clamp-1 flex-1">
-              ✨ {homeVideoBanner.subtitle}
-            </p>
-            <span className="text-[10px] font-mono text-stone-400 shrink-0 hidden sm:inline">
-              Rasio Layar 16:9
-            </span>
           </div>
         )}
 
-        {/* Quick Settings & Help Strip */}
-        <div className="px-3.5 sm:px-5 py-2 bg-stone-50 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 text-stone-600 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
-            <span>Dimensi: <strong>YouTube 16:9 Widescreen</strong></span>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* 16:9 Landscape Video (Clean tanpa tulisan header / footer & tanpa link YouTube) */}
+        {isYoutube ? (
+          <iframe
+            src={embedUrl}
+            title={homeVideoBanner.title || 'Video Banner'}
+            className="w-full h-full border-0 absolute inset-0 pointer-events-none"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : isDirect ? (
+          <video
+            src={rawUrl}
+            playsInline
+            autoPlay
+            muted
+            loop
+            className="w-full h-full object-cover pointer-events-none"
+          />
+        ) : rawUrl ? (
+          <iframe
+            src={rawUrl}
+            title={homeVideoBanner.title || 'Video Banner'}
+            className="w-full h-full border-0 absolute inset-0 pointer-events-none"
+            allowFullScreen
+          />
+        ) : isSeller ? (
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-stone-400 bg-stone-900 z-20 relative">
+            <div className="w-14 h-14 rounded-full bg-stone-800 flex items-center justify-center mb-2">
+              <Video className="w-7 h-7 text-stone-400" />
+            </div>
+            <p className="text-sm font-bold text-stone-200">Belum Ada Video Dikonfigurasi</p>
+            <p className="text-xs text-stone-500 mt-1 max-w-sm">
+              Tautan video YouTube (16:9) belum diatur. Masukkan URL video melalui tombol di bawah.
+            </p>
             <button
               onClick={openEditModal}
-              className="text-stone-800 hover:text-[#1E3A8A] font-bold text-xs flex items-center gap-1.5 bg-white hover:bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-300 transition-all cursor-pointer shadow-2xs"
+              className="mt-3 px-4 py-2 bg-[#1E3A8A] hover:bg-blue-900 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs pointer-events-auto"
             >
-              <Settings className="w-3.5 h-3.5 text-amber-600" />
-              <span>Pengaturan Banner Video</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('seller-dashboard')}
-              className="text-[#1E3A8A] hover:text-blue-900 font-bold text-xs flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-xl border border-blue-200 transition-all cursor-pointer shadow-2xs"
-              title="Buka Seller Center"
-            >
-              <Store className="w-3.5 h-3.5 text-[#009A44]" />
-              <span>Seller Center</span>
+              <Settings className="w-3.5 h-3.5 text-amber-400" />
+              <span>Atur Video Sekarang</span>
             </button>
           </div>
-        </div>
+        ) : null}
       </div>
 
-      {/* MODAL: Kelola Video Banner (Khusus Seller / Toko) */}
-      {isEditModalOpen && (
+      {/* MODAL: Kelola Video Banner (Hanya untuk Seller) */}
+      {isSeller && isEditModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
           <div 
             className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200"
@@ -371,20 +307,6 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="Contoh: Dokumenter Panen Raya Kurma Ajwa 2026"
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
-                />
-              </div>
-
-              {/* Subtitle / Keterangan */}
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-stone-800">
-                  Keterangan / Subtitle (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={formSubtitle}
-                  onChange={(e) => setFormSubtitle(e.target.value)}
-                  placeholder="Contoh: Dipetik segar dari perkebunan pilihan Madinah Al-Munawwarah"
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
                 />
               </div>

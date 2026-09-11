@@ -34,10 +34,10 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
 
   const [formVideoUrl, setFormVideoUrl] = useState(homeVideoBanner?.videoUrl || '');
   const [formTitle, setFormTitle] = useState(homeVideoBanner?.title || '');
-  const [formSubtitle, setFormSubtitle] = useState(homeVideoBanner?.subtitle || '');
+  const [formSubtitle, setFormSubtitle] = useState('');
   const [formBadge, setFormBadge] = useState(homeVideoBanner?.badge || 'Video Resmi Toko');
   const [formCtaText, setFormCtaText] = useState(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
-  const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? false);
+  const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? true);
   const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? true);
   const [formLoop, setFormLoop] = useState(homeVideoBanner?.loop ?? true);
   const [formEnabled, setFormEnabled] = useState(homeVideoBanner?.enabled ?? true);
@@ -47,10 +47,10 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
     if (homeVideoBanner) {
       setFormVideoUrl(homeVideoBanner.videoUrl || '');
       setFormTitle(homeVideoBanner.title || '');
-      setFormSubtitle(homeVideoBanner.subtitle || '');
+      setFormSubtitle('');
       setFormBadge(homeVideoBanner.badge || 'Video Resmi Toko');
       setFormCtaText(homeVideoBanner.ctaText || 'Lihat Katalog Panen');
-      setFormAutoPlay(homeVideoBanner.autoPlay ?? false);
+      setFormAutoPlay(homeVideoBanner.autoPlay ?? true);
       setFormMuted(homeVideoBanner.muted ?? true);
       setFormLoop(homeVideoBanner.loop ?? true);
       setFormEnabled(homeVideoBanner.enabled ?? true);
@@ -62,12 +62,12 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
     updateHomeVideoBanner({
       videoUrl: formVideoUrl.trim(),
       title: formTitle.trim() || 'Video Promosi Kurma',
-      subtitle: formSubtitle.trim(),
+      subtitle: '',
       badge: formBadge.trim() || 'Video Resmi',
       ctaText: formCtaText.trim() || 'Lihat Katalog',
-      autoPlay: formAutoPlay,
-      muted: formMuted,
-      loop: formLoop,
+      autoPlay: true,
+      muted: true,
+      loop: true,
       enabled: formEnabled
     });
     showToast('Banner video 16:9 berhasil disimpan!', 'success');
@@ -76,7 +76,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
   const handleApplyPreset = (preset: typeof VIDEO_BANNER_PRESETS[0]) => {
     setFormVideoUrl(preset.url);
     setFormTitle(preset.title);
-    setFormSubtitle(preset.subtitle);
+    setFormSubtitle('');
     setFormBadge(preset.badge);
     showToast(`Template "${preset.title}" diterapkan ke form!`, 'info');
   };
@@ -85,9 +85,9 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
   const isDirect = isDirectVideoUrl(formVideoUrl);
   const embedUrl = isYoutube 
     ? getYouTubeEmbedUrl(formVideoUrl, { 
-        autoPlay: formAutoPlay, 
-        muted: formMuted, 
-        loop: formLoop 
+        autoPlay: true, 
+        muted: true, 
+        loop: true 
       }) 
     : formVideoUrl;
 
@@ -236,7 +236,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
               </div>
             </div>
 
-            {/* Judul & Keterangan */}
+            {/* Judul Banner */}
             <div className="space-y-3 pt-2">
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-stone-800">
@@ -247,19 +247,6 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="Contoh: Dokumenter Eksklusif: Panen Raya Kurma Ajwa & Sukari 2026"
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-stone-800">
-                  Keterangan / Subtitle (Tampil di bawah video)
-                </label>
-                <input
-                  type="text"
-                  value={formSubtitle}
-                  onChange={(e) => setFormSubtitle(e.target.value)}
-                  placeholder="Contoh: Saksikan langsung proses petik segar dari perkebunan pilihan Madinah Al-Munawwarah"
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
                 />
               </div>
@@ -419,13 +406,6 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
                   </div>
                 )}
               </div>
-
-              {/* Subtitle Footer */}
-              {formSubtitle && (
-                <div className="px-3 py-2 bg-gradient-to-b from-amber-50/50 to-white text-[11px] text-stone-600 border-t border-amber-100 line-clamp-1">
-                  ✨ {formSubtitle}
-                </div>
-              )}
             </div>
 
             {/* Helper Tips */}

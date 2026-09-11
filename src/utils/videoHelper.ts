@@ -28,12 +28,18 @@ export function getYouTubeEmbedUrl(
   const id = getYouTubeVideoId(url);
   if (!id) return url;
 
-  const { autoPlay = false, muted = true, loop = true } = options;
+  // Default autoPlay=true, muted=true, loop=true, controls=0 for seamless clean looping
+  const { autoPlay = true, muted = true, loop = true } = options;
   const params = new URLSearchParams({
     rel: '0',
+    controls: '0',
     modestbranding: '1',
     playsinline: '1',
     iv_load_policy: '3',
+    enablejsapi: '1',
+    disablekb: '1',
+    fs: '0',
+    showinfo: '0',
   });
 
   if (autoPlay) {

@@ -1054,11 +1054,11 @@ export const INITIAL_HOME_VIDEO_BANNER: HomeVideoBanner = {
   enabled: true,
   videoUrl: 'https://www.youtube.com/watch?v=0k2G3b_uSsc',
   title: 'Dokumenter Eksklusif: Panen Raya Kurma Ajwa & Sukari 2026',
-  subtitle: 'Saksikan langsung proses petik segar dari perkebunan pilihan Madinah Al-Munawwarah & Al-Qassim',
+  subtitle: '',
   badge: 'Video Resmi Toko',
   ctaText: 'Lihat Katalog Panen 2026',
   ctaLink: 'catalog',
-  autoPlay: false,
+  autoPlay: true,
   muted: true,
   loop: true,
 };

@@ -637,7 +637,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') return { ...INITIAL_HOME_VIDEO_BANNER, ...parsed };
+        if (parsed && typeof parsed === 'object') {
+          return { 
+            ...INITIAL_HOME_VIDEO_BANNER, 
+            ...parsed,
+            // Hapus teks subtitle sesuai instruksi user
+            subtitle: '',
+            // Pastikan video otomatis berputar & looping tanpa klik
+            autoPlay: true,
+            muted: true,
+            loop: true
+          };
+        }
       } catch (e) {
         console.error('Failed to parse allkurma_home_video_banner_v1:', e);
       }
@@ -2206,7 +2217,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Home Video Banner (Landscape 16:9 YouTube / Video)
   const updateHomeVideoBanner = (updates: Partial<HomeVideoBanner>) => {
     setHomeVideoBanner(prev => {
-      const updated = { ...prev, ...updates };
+      const updated = { 
+        ...prev, 
+        ...updates,
+        subtitle: '',
+        autoPlay: true,
+        muted: true,
+        loop: true,
+      };
       localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(updated));
       return updated;
     });
