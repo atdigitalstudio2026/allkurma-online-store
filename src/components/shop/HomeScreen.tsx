@@ -396,13 +396,13 @@ export const HomeScreen: React.FC = () => {
                 setCurrentView('catalog');
               }
             }}
-            className="relative w-full aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[2.9/1] lg:aspect-[3.2/1] rounded-2xl overflow-hidden bg-stone-950 text-white shadow-md border border-stone-200/80 transition-all duration-500 flex flex-col justify-between cursor-pointer group"
+            className="relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-stone-950 text-white shadow-md border border-stone-200/80 transition-all duration-500 flex flex-col justify-between cursor-pointer group"
           >
             {/* 100% Full Image without gradient color tint or wash */}
             <img 
               src={normalizeImageUrl(activeBanner.image)} 
               alt={activeBanner.title} 
-              className={`absolute inset-0 w-full h-full ${activeBanner.objectFit === 'contain' ? 'object-contain bg-stone-950' : 'object-cover'} block transition-transform duration-700 group-hover:scale-[1.02]`} 
+              className={`absolute inset-0 w-full h-full ${activeBanner.objectFit === 'contain' ? 'object-contain bg-stone-950' : 'object-cover'} block transition-opacity duration-500`} 
             />
 
             {/* Seller Shortcut to Banner Management */}
@@ -494,7 +494,7 @@ export const HomeScreen: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className={`relative w-full aspect-[2/1] sm:aspect-[2.5/1] md:aspect-[2.9/1] lg:aspect-[3.2/1] rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-3.5 sm:p-5 md:p-6 shadow-md border border-white/20 transition-all duration-500 flex flex-col justify-between`}>
+          <div className={`relative w-full aspect-[2/1] rounded-2xl overflow-hidden bg-gradient-to-r ${activeBanner.bgGradient} text-white p-3.5 sm:p-5 md:p-6 shadow-md border border-white/20 transition-all duration-500 flex flex-col justify-between`}>
             {/* Seller Shortcut to Banner Management */}
             {user?.role === 'seller' && (
               <button
