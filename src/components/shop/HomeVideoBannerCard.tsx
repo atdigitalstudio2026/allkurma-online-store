@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Video, 
   Settings, 
@@ -8,7 +8,10 @@ import {
   Check, 
   Eye, 
   EyeOff, 
-  Info
+  Info,
+  Tv,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -37,6 +40,11 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
   const isSeller = user?.role === 'seller';
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Audio state & DOM references for flawless playback across all devices
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isAudioActive, setIsAudioActive] = useState(true);
+
   // Form state for editing
   const [formVideoUrl, setFormVideoUrl] = useState(homeVideoBanner?.videoUrl || '');
   const [formTitle, setFormTitle] = useState(homeVideoBanner?.title || '');
@@ -44,9 +52,82 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
   const [formBadge, setFormBadge] = useState(homeVideoBanner?.badge || 'Video Resmi Toko');
   const [formCtaText, setFormCtaText] = useState(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
   const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? true);
-  const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? true);
+  const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? false);
   const [formLoop, setFormLoop] = useState(homeVideoBanner?.loop ?? true);
   const [formEnabled, setFormEnabled] = useState(homeVideoBanner?.enabled ?? true);
+
+  // Send message to YouTube iframe or video to ensure sound is unmuted and playing
+  const triggerAudioPlayback = useCallback(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'unMute', args: [] }),
+          '*'
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }),
+          '*'
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
+          '*'
+        );
+      } catch (e) {
+        // Cross-origin safe
+      }
+    }
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1.0;
+      videoRef.current.play().catch(() => {});
+    }
+    setIsAudioActive(true);
+  }, []);
+
+  const toggleAudio = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isAudioActive) {
+      // Mute audio
+      if (iframeRef.current?.contentWindow) {
+        try {
+          iframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'mute', args: [] }),
+            '*'
+          );
+        } catch (e) {}
+      }
+      if (videoRef.current) {
+        videoRef.current.muted = true;
+      }
+      setIsAudioActive(false);
+    } else {
+      triggerAudioPlayback();
+    }
+  }, [isAudioActive, triggerAudioPlayback]);
+
+  // Ensure unmuted playback across desktop & mobile
+  useEffect(() => {
+    // Initial attempt when component mounts
+    const t1 = setTimeout(triggerAudioPlayback, 800);
+    const t2 = setTimeout(triggerAudioPlayback, 2000);
+
+    // Mobile browsers (iOS Safari / Android Chrome) require 1 user gesture to unlock Web Audio context
+    const handleFirstGesture = () => {
+      triggerAudioPlayback();
+    };
+
+    window.addEventListener('touchstart', handleFirstGesture, { passive: true });
+    window.addEventListener('click', handleFirstGesture, { passive: true });
+    window.addEventListener('scroll', handleFirstGesture, { passive: true, once: true });
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('touchstart', handleFirstGesture);
+      window.removeEventListener('click', handleFirstGesture);
+      window.removeEventListener('scroll', handleFirstGesture);
+    };
+  }, [triggerAudioPlayback, homeVideoBanner?.videoUrl]);
 
   const openEditModal = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +137,7 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     setFormBadge(homeVideoBanner?.badge || 'Video Resmi Toko');
     setFormCtaText(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
     setFormAutoPlay(homeVideoBanner?.autoPlay ?? true);
-    setFormMuted(homeVideoBanner?.muted ?? true);
+    setFormMuted(homeVideoBanner?.muted ?? false);
     setFormLoop(homeVideoBanner?.loop ?? true);
     setFormEnabled(homeVideoBanner?.enabled ?? true);
     setIsEditModalOpen(true);
@@ -71,7 +152,7 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
       badge: formBadge.trim() || 'Video Resmi',
       ctaText: formCtaText.trim() || 'Lihat Katalog',
       autoPlay: true,
-      muted: true,
+      muted: false, // Musik selalu dalam keadaan ON sesuai instruksi user
       loop: true,
       enabled: formEnabled
     });
@@ -125,11 +206,11 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     return null;
   }
 
-  // Pastikan video otomatis berputar (autoPlay) dan looping berulang-ulang tanpa harus diklik play
+  // Pastikan video otomatis berputar (autoPlay), looping berulang-ulang, dan musik selalu ON (muted: false)
   const embedUrl = isYoutube 
     ? getYouTubeEmbedUrl(rawUrl, { 
         autoPlay: true, 
-        muted: true, 
+        muted: false, 
         loop: true 
       }) 
     : rawUrl;
@@ -138,8 +219,12 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     <div className="px-3 sm:px-4 py-2">
       <div className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xs border border-stone-200/80 bg-black group">
         
-        {/* Transparent Shield to prevent YouTube link/title overlays & navigation */}
-        <div className="absolute inset-0 z-10 bg-transparent cursor-default pointer-events-auto" />
+        {/* Transparent Shield to prevent YouTube link/title overlays & navigation, with audio trigger on tap */}
+        <div 
+          onClick={triggerAudioPlayback}
+          className="absolute inset-0 z-10 bg-transparent cursor-default pointer-events-auto"
+          title="Ketuk layar untuk memastikan musik video aktif"
+        />
 
         {/* Tombol Atur Video (16:9) - HANYA UNTUK AKUN SELLER (TIDAK UNTUK UMUM) */}
         {isSeller && (
@@ -155,29 +240,57 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
           </div>
         )}
 
+        {/* Floating Audio Pill (Minimalist Instagram/TikTok Reels style - Musik Video Selalu ON) */}
+        {rawUrl && (
+          <div className="absolute bottom-3 right-3 z-20 flex items-center">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              title={isAudioActive ? 'Musik Video Aktif (Klik untuk mute)' : 'Nyalakan Musik Video'}
+              className="px-2.5 py-1.5 bg-black/65 hover:bg-black/85 backdrop-blur-md rounded-full border border-white/20 text-white flex items-center gap-1.5 transition-all shadow-md cursor-pointer pointer-events-auto"
+            >
+              {isAudioActive ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-200 tracking-wide">Musik ON</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5 text-stone-300" />
+                  <span className="text-[10px] font-medium text-stone-300">Nyalakan Musik</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* 16:9 Landscape Video (Clean tanpa tulisan header / footer & tanpa link YouTube) */}
         {isYoutube ? (
           <iframe
+            ref={iframeRef}
             src={embedUrl}
             title={homeVideoBanner.title || 'Video Banner'}
             className="w-full h-full border-0 absolute inset-0 pointer-events-none"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
         ) : isDirect ? (
           <video
+            ref={videoRef}
             src={rawUrl}
             playsInline
             autoPlay
-            muted
+            muted={false}
             loop
             className="w-full h-full object-cover pointer-events-none"
           />
         ) : rawUrl ? (
           <iframe
+            ref={iframeRef}
             src={rawUrl}
             title={homeVideoBanner.title || 'Video Banner'}
             className="w-full h-full border-0 absolute inset-0 pointer-events-none"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
         ) : isSeller ? (
@@ -344,11 +457,11 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
                 <span className="text-xs font-bold text-stone-800 block">Opsi Pemutaran (Playback):</span>
                 
                 <div className="flex items-center justify-between text-xs text-stone-700">
-                  <span>Mute Audio (Dianjurkan untuk kenyamanan pengunjung)</span>
+                  <span>Musik / Audio Selalu Aktif (ON)</span>
                   <input
                     type="checkbox"
-                    checked={formMuted}
-                    onChange={(e) => setFormMuted(e.target.checked)}
+                    checked={!formMuted}
+                    onChange={(e) => setFormMuted(!e.target.checked)}
                     className="w-4 h-4 text-[#1E3A8A] rounded-sm focus:ring-[#1E3A8A]"
                   />
                 </div>

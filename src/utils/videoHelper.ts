@@ -28,8 +28,8 @@ export function getYouTubeEmbedUrl(
   const id = getYouTubeVideoId(url);
   if (!id) return url;
 
-  // Default autoPlay=true, muted=true, loop=true, controls=0 for seamless clean looping
-  const { autoPlay = true, muted = true, loop = true } = options;
+  // Default autoPlay=true, muted=false (Music Video Selalu ON), loop=true
+  const { autoPlay = true, muted = false, loop = true } = options;
   const params = new URLSearchParams({
     rel: '0',
     controls: '0',
@@ -47,10 +47,16 @@ export function getYouTubeEmbedUrl(
   }
   if (muted) {
     params.set('mute', '1');
+  } else {
+    params.set('mute', '0');
   }
   if (loop) {
     params.set('loop', '1');
     params.set('playlist', id);
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    params.set('origin', window.location.origin);
   }
 
   return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;

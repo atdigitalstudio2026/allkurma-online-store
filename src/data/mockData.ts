@@ -1059,7 +1059,7 @@ export const INITIAL_HOME_VIDEO_BANNER: HomeVideoBanner = {
   ctaText: 'Lihat Katalog Panen 2026',
   ctaLink: 'catalog',
   autoPlay: true,
-  muted: true,
+  muted: false,
   loop: true,
 };
 

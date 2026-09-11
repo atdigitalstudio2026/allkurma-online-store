@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest, ChatMessage, BundleDeal } from '../types';
+import { UserProfile, Address, Order, Product, CategoryItem, ReturnRequest, ChatMessage, BundleDeal, HomeVideoBanner, AppHeroBanner } from '../types';
 
 // Recursively remove undefined values for Firestore serialization safety
 export function sanitizeForFirestore<T>(data: T): T {
@@ -667,6 +667,100 @@ export const deleteBundleDealFromFirestore = async (dealId: string): Promise<voi
     throw error;
   }
 };
+
+// ==========================================
+// Home Video Banner (16:9) Real-time Sync across all Devices
+// ==========================================
+
+export const listenToHomeVideoBannerFromFirestore = (
+  onSuccess: (banner: HomeVideoBanner | null) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const bannerDocRef = doc(db, 'store_settings', 'home_video_banner');
+    const unsubscribe = onSnapshot(
+      bannerDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onSuccess(docSnap.data() as HomeVideoBanner);
+        } else {
+          onSuccess(null);
+        }
+      },
+      (error) => {
+        console.warn('Firestore listenToHomeVideoBanner warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach home_video_banner listener:', err);
+    return () => {};
+  }
+};
+
+export const saveHomeVideoBannerToFirestore = async (banner: HomeVideoBanner): Promise<void> => {
+  try {
+    const bannerDocRef = doc(db, 'store_settings', 'home_video_banner');
+    const sanitized = sanitizeForFirestore({
+      ...banner,
+      updatedAt: new Date().toISOString()
+    });
+    await setDoc(bannerDocRef, sanitized, { merge: true });
+    console.log('[Firestore] Successfully synced home video banner to cloud');
+  } catch (error) {
+    console.error('[Firestore] Failed to save home video banner to Firestore:', error);
+    throw error;
+  }
+};
+
+// ==========================================
+// Hero Promo Banners Real-time Sync across all Devices
+// ==========================================
+
+export const listenToHeroBannersFromFirestore = (
+  onSuccess: (banners: AppHeroBanner[]) => void,
+  onError?: (error: Error) => void
+): (() => void) => {
+  try {
+    const bannersDocRef = doc(db, 'store_settings', 'hero_banners');
+    const unsubscribe = onSnapshot(
+      bannersDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && Array.isArray(data.items)) {
+            onSuccess(data.items as AppHeroBanner[]);
+          }
+        }
+      },
+      (error) => {
+        console.warn('Firestore listenToHeroBanners warning:', error);
+        if (onError) onError(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.warn('Failed to attach hero_banners listener:', err);
+    return () => {};
+  }
+};
+
+export const saveHeroBannersToFirestore = async (banners: AppHeroBanner[]): Promise<void> => {
+  try {
+    const bannersDocRef = doc(db, 'store_settings', 'hero_banners');
+    const sanitized = sanitizeForFirestore({
+      items: banners,
+      updatedAt: new Date().toISOString()
+    });
+    await setDoc(bannersDocRef, sanitized, { merge: true });
+    console.log('[Firestore] Successfully synced hero banners to cloud');
+  } catch (error) {
+    console.error('[Firestore] Failed to save hero banners to Firestore:', error);
+    throw error;
+  }
+};
+
 
 
 

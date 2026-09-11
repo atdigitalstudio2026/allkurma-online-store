@@ -38,7 +38,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
   const [formBadge, setFormBadge] = useState(homeVideoBanner?.badge || 'Video Resmi Toko');
   const [formCtaText, setFormCtaText] = useState(homeVideoBanner?.ctaText || 'Lihat Katalog Panen');
   const [formAutoPlay, setFormAutoPlay] = useState(homeVideoBanner?.autoPlay ?? true);
-  const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? true);
+  const [formMuted, setFormMuted] = useState(homeVideoBanner?.muted ?? false);
   const [formLoop, setFormLoop] = useState(homeVideoBanner?.loop ?? true);
   const [formEnabled, setFormEnabled] = useState(homeVideoBanner?.enabled ?? true);
 
@@ -51,7 +51,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
       setFormBadge(homeVideoBanner.badge || 'Video Resmi Toko');
       setFormCtaText(homeVideoBanner.ctaText || 'Lihat Katalog Panen');
       setFormAutoPlay(homeVideoBanner.autoPlay ?? true);
-      setFormMuted(homeVideoBanner.muted ?? true);
+      setFormMuted(homeVideoBanner.muted ?? false);
       setFormLoop(homeVideoBanner.loop ?? true);
       setFormEnabled(homeVideoBanner.enabled ?? true);
     }
@@ -66,7 +66,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
       badge: formBadge.trim() || 'Video Resmi',
       ctaText: formCtaText.trim() || 'Lihat Katalog',
       autoPlay: true,
-      muted: true,
+      muted: formMuted,
       loop: true,
       enabled: formEnabled
     });
@@ -86,7 +86,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
   const embedUrl = isYoutube 
     ? getYouTubeEmbedUrl(formVideoUrl, { 
         autoPlay: true, 
-        muted: true, 
+        muted: formMuted, 
         loop: true 
       }) 
     : formVideoUrl;
@@ -286,11 +286,11 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
               <span className="text-xs font-bold text-stone-800 block">Opsi Pemutaran (Playback):</span>
               
               <label className="flex items-center justify-between text-xs text-stone-700 cursor-pointer">
-                <span>Mute Audio (Dianjurkan agar tidak mengejutkan pengunjung)</span>
+                <span>Musik / Audio Video Selalu Aktif (ON)</span>
                 <input
                   type="checkbox"
-                  checked={formMuted}
-                  onChange={(e) => setFormMuted(e.target.checked)}
+                  checked={!formMuted}
+                  onChange={(e) => setFormMuted(!e.target.checked)}
                   className="w-4 h-4 text-[#1E3A8A] rounded-sm focus:ring-[#1E3A8A]"
                 />
               </label>
@@ -378,7 +378,7 @@ export const SellerVideoBannerTab: React.FC<SellerVideoBannerTabProps> = ({ setC
                     src={embedUrl}
                     title={formTitle}
                     className="w-full h-full border-0 absolute inset-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : isDirect ? (

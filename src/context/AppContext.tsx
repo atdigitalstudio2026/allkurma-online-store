@@ -75,7 +75,11 @@ import {
   saveChatMessageToFirestore,
   listenToBundleDealsFromFirestore,
   saveBundleDealToFirestore,
-  deleteBundleDealFromFirestore
+  deleteBundleDealFromFirestore,
+  listenToHomeVideoBannerFromFirestore,
+  saveHomeVideoBannerToFirestore,
+  listenToHeroBannersFromFirestore,
+  saveHeroBannersToFirestore
 } from '../firebase/db';
 import { generateAiChatResponse } from '../services/aiChatService';
 import { OFFICIAL_SRA_LOGO_URL } from '../components/common/SRALogo';
@@ -643,9 +647,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...parsed,
             // Hapus teks subtitle sesuai instruksi user
             subtitle: '',
-            // Pastikan video otomatis berputar & looping tanpa klik
+            // Pastikan video otomatis berputar & looping tanpa klik, musik selalu ON
             autoPlay: true,
-            muted: true,
+            muted: false,
             loop: true
           };
         }
@@ -917,6 +921,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Real-time synchronization of 16:9 Video Banner across all devices (PC, Mac, Mobile Phone)
+  useEffect(() => {
+    let isSubscribed = true;
+    const unsubscribe = listenToHomeVideoBannerFromFirestore(async (cloudBanner) => {
+      if (!isSubscribed) return;
+      if (cloudBanner) {
+        setHomeVideoBanner(prev => ({
+          ...prev,
+          ...cloudBanner,
+          subtitle: '',
+          autoPlay: true,
+          muted: false,
+          loop: true,
+        }));
+        localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(cloudBanner));
+      } else {
+        // If not in cloud yet, seed with current banner so other devices get it immediately
+        try {
+          const current = localStorage.getItem('allkurma_home_video_banner_v1');
+          const toSeed = current ? JSON.parse(current) : INITIAL_HOME_VIDEO_BANNER;
+          await saveHomeVideoBannerToFirestore(toSeed);
+        } catch (e) {
+          console.warn('Failed seeding home video banner to cloud:', e);
+        }
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Real-time synchronization of Hero Promo Banners across all devices
+  useEffect(() => {
+    let isSubscribed = true;
+    const unsubscribe = listenToHeroBannersFromFirestore(async (cloudBanners) => {
+      if (!isSubscribed) return;
+      if (cloudBanners && Array.isArray(cloudBanners) && cloudBanners.length > 0) {
+        setHeroBanners(cloudBanners);
+        localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(cloudBanners));
+      } else {
+        // Seed default hero banners if cloud is empty
+        try {
+          await saveHeroBannersToFirestore(INITIAL_HERO_BANNERS);
+        } catch (e) {
+          console.warn('Failed seeding hero banners to cloud:', e);
+        }
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, []);
 
   // Real-time synchronization of product categories across all devices using Firestore
@@ -2193,28 +2254,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `banner-${Date.now()}`,
       active: bannerData.active !== undefined ? bannerData.active : true
     };
-    setHeroBanners(prev => [newBanner, ...prev]);
+    setHeroBanners(prev => {
+      const updated = [newBanner, ...prev];
+      localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(updated));
+      saveHeroBannersToFirestore(updated).catch(e => console.warn('Failed syncing hero banners to cloud:', e));
+      return updated;
+    });
     showToast('Banner promosi baru berhasil ditambahkan!', 'success');
   };
 
   const updateHeroBanner = (id: string | number, updates: Partial<AppHeroBanner>) => {
-    setHeroBanners(prev =>
-      prev.map(b => (String(b.id) === String(id) ? { ...b, ...updates } : b))
-    );
+    setHeroBanners(prev => {
+      const updated = prev.map(b => (String(b.id) === String(id) ? { ...b, ...updates } : b));
+      localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(updated));
+      saveHeroBannersToFirestore(updated).catch(e => console.warn('Failed syncing hero banners to cloud:', e));
+      return updated;
+    });
     showToast('Banner promosi berhasil diperbarui!', 'success');
   };
 
   const deleteHeroBanner = (id: string | number) => {
-    setHeroBanners(prev => prev.filter(b => String(b.id) !== String(id)));
+    setHeroBanners(prev => {
+      const updated = prev.filter(b => String(b.id) !== String(id));
+      localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(updated));
+      saveHeroBannersToFirestore(updated).catch(e => console.warn('Failed syncing hero banners to cloud:', e));
+      return updated;
+    });
     showToast('Banner promosi berhasil dihapus.', 'info');
   };
 
   const resetHeroBanners = () => {
     setHeroBanners(INITIAL_HERO_BANNERS);
+    localStorage.setItem('allkurma_hero_banners_v1', JSON.stringify(INITIAL_HERO_BANNERS));
+    saveHeroBannersToFirestore(INITIAL_HERO_BANNERS).catch(e => console.warn('Failed syncing hero banners to cloud:', e));
     showToast('Banner promosi dikembalikan ke template awal.', 'info');
   };
 
-  // Home Video Banner (Landscape 16:9 YouTube / Video)
+  // Home Video Banner (Landscape 16:9 YouTube / Video) Real-time Sync
   const updateHomeVideoBanner = (updates: Partial<HomeVideoBanner>) => {
     setHomeVideoBanner(prev => {
       const updated = { 
@@ -2222,10 +2298,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...updates,
         subtitle: '',
         autoPlay: true,
-        muted: true,
+        muted: false,
         loop: true,
       };
       localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(updated));
+      // Save directly to Firestore for instant real-time sync across all devices
+      saveHomeVideoBannerToFirestore(updated).catch(e => {
+        console.warn('Failed syncing home video banner to cloud:', e);
+      });
       return updated;
     });
     showToast('Banner video beranda berhasil diperbarui!', 'success');
@@ -2234,6 +2314,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetHomeVideoBanner = () => {
     setHomeVideoBanner(INITIAL_HOME_VIDEO_BANNER);
     localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(INITIAL_HOME_VIDEO_BANNER));
+    saveHomeVideoBannerToFirestore(INITIAL_HOME_VIDEO_BANNER).catch(e => {
+      console.warn('Failed resetting home video banner on cloud:', e);
+    });
     showToast('Banner video dikembalikan ke video awal.', 'info');
   };
 
