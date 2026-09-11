@@ -32,15 +32,15 @@ interface WriteReviewModalProps {
 const SAMPLE_PHOTO_PRESETS = [
   {
     label: 'Kurma Segar',
-    url: 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=600&auto=format&fit=crop&q=80'
+    url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80'
   },
   {
     label: 'Kemasan Box',
-    url: 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=600&auto=format&fit=crop&q=80'
+    url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80'
   },
   {
     label: 'Unboxing Paket',
-    url: 'https://images.unsplash.com/photo-1577705998148-6da4f3963bc8?w=600&auto=format&fit=crop&q=80'
+    url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=600&auto=format&fit=crop&q=80'
   }
 ];
 
@@ -224,7 +224,7 @@ export const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
         {/* Product Target Info */}
         <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-stone-50 border border-stone-200">
           <img 
-            src={product.image || 'https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=200&auto=format&fit=crop&q=80'} 
+            src={product.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=200&auto=format&fit=crop&q=80'} 
             alt={product.name} 
             className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 bg-white"
           />

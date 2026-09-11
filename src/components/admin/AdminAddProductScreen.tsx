@@ -130,7 +130,7 @@ export const AdminAddProductScreen: React.FC = () => {
                 const sampleImgs = [
                   'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
                   'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
-                  'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80'
+                  'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80'
                 ];
                 setImages(prev => [...prev, sampleImgs[prev.length % sampleImgs.length]]);
               }}

@@ -60,21 +60,21 @@ export const INITIAL_CATEGORIES: CategoryItem[] = [
   {
     id: 'Madu',
     name: 'Madu & Herbal',
-    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=160&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80',
     description: 'Madu murni Yaman, Habbatussauda, Minyak Zaitun murni',
     isSystem: true
   },
   {
     id: 'Grosir',
     name: 'Paket Grosir',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=160&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80',
     description: 'Kartonan partai besar harga reseller agen kurma',
     isSystem: true
   },
   {
     id: 'Hampers',
     name: 'Hampers & Parcel',
-    image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=160&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80',
     description: 'Bingkisan mewah & parcel Idul Fitri / Ramadhan eksklusif',
     isSystem: true
   }
@@ -200,7 +200,7 @@ export const INITIAL_ORDERS: Order[] = [
         productId: 'prod-06',
         productName: 'Madu Murni Akasia Royal 500g',
         sku: 'MD-AKS-500',
-        image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80',
+        image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80',
         unitPrice: 85000,
         quantity: 1,
         lineTotal: 85000
@@ -299,7 +299,7 @@ export const INITIAL_ORDERS: Order[] = [
         productId: 'prod-06',
         productName: 'Madu Murni Akasia Royal 500g',
         sku: 'MD-AKS-500',
-        image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80',
+        image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80',
         unitPrice: 85000,
         quantity: 1,
         lineTotal: 85000
@@ -463,7 +463,7 @@ export const INITIAL_REWARDS: RewardItem[] = [
     title: 'Organic Sidr Honey (250g)',
     category: 'Products',
     pointsCost: 800,
-    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80',
     description: 'Madu Sidr murni kualitas premium dengan aroma wangi nektar bunga liar yang menenangkan.',
     stock: 60,
     badge: 'ORGANIC'
@@ -473,7 +473,7 @@ export const INITIAL_REWARDS: RewardItem[] = [
     title: 'Store Discount Rp 250.000 Off Voucher',
     category: 'Vouchers',
     pointsCost: 500,
-    image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=400&auto=format&fit=crop&q=80',
     description: 'Voucher belanja senilai Rp 250.000 dapat digunakan untuk semua produk tanpa syarat minimum.',
     stock: 999,
     badge: 'BEST VALUE'
@@ -929,7 +929,7 @@ export const INITIAL_HERO_BANNERS: AppHeroBanner[] = [
     cta: 'Buka Portal Grosir',
     targetView: 'b2b-portal',
     bgGradient: 'from-blue-700 via-[#1E3A8A] to-indigo-800',
-    image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80',
     tagColor: 'bg-white/20 text-white border-white/30',
     active: true
   },

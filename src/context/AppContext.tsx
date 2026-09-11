@@ -425,7 +425,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Ensure any legacy simulation/placeholder links are updated to authentic kurma photos
+          return parsed.map((cat: CategoryItem) => {
+            if (cat.image && (
+              cat.image.includes('photo-1586528116311-ad8dd3c8310d') || 
+              cat.image.includes('photo-1549465220-1a8b9238cd48') || 
+              cat.image.includes('photo-1587049352846-4a222e784d38') || 
+              cat.image.includes('photo-1546548970-71785318a17b') ||
+              cat.image.includes('photo-1543362906-acfc16c67564')
+            )) {
+              return {
+                ...cat,
+                image: cat.id === 'Grosir'
+                  ? 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80'
+                  : cat.id === 'Madu'
+                  ? 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'
+                  : 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80'
+              };
+            }
+            return cat;
+          });
+        }
       } catch (e) {
         console.error('Failed to parse allkurma_categories:', e);
       }
@@ -879,8 +900,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn('Initial categories seed error:', e);
           }
         } else {
-          setCategories(cloudCategories);
-          localStorage.setItem('allkurma_categories', JSON.stringify(cloudCategories));
+          const sanitizedCategories = cloudCategories.map((cat: CategoryItem) => {
+            if (cat.image && (
+              cat.image.includes('photo-1586528116311-ad8dd3c8310d') || 
+              cat.image.includes('photo-1549465220-1a8b9238cd48') || 
+              cat.image.includes('photo-1587049352846-4a222e784d38') || 
+              cat.image.includes('photo-1546548970-71785318a17b') ||
+              cat.image.includes('photo-1543362906-acfc16c67564')
+            )) {
+              return {
+                ...cat,
+                image: cat.id === 'Grosir'
+                  ? 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80'
+                  : cat.id === 'Madu'
+                  ? 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'
+                  : 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80'
+              };
+            }
+            return cat;
+          });
+          setCategories(sanitizedCategories);
+          localStorage.setItem('allkurma_categories', JSON.stringify(sanitizedCategories));
         }
       },
       (error) => {

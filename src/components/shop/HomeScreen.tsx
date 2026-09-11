@@ -161,8 +161,8 @@ export const HomeScreen: React.FC = () => {
       id: 'story-keaslian',
       title: '100% Asli & Halal',
       subtitle: 'Sertifikasi Kemenag RI, Lab Kemenkes & Uji Karantina',
-      avatar: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop&q=80',
+      avatar: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=200&auto=format&fit=crop&q=80',
+      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
       content: 'PT Exindokarsa Agung menjamin seluruh produk berizin edar resmi, bersertifikat Halal Kemenag RI, serta lolos uji karantina tumbuhan bebas hama kutu.',
       badge: 'MUTU RESMI',
       ctaText: 'Lihat Semua Katalog',
@@ -183,8 +183,8 @@ export const HomeScreen: React.FC = () => {
       id: 'story-b2b',
       title: 'Gudang Kontainer',
       subtitle: 'Cold Storage kapasitas 100+ ton siap kirim se-Indonesia',
-      avatar: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop&q=80',
+      avatar: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80',
+      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
       content: 'Melayani pasokan kartonan & kontainer untuk distributor herbal, jaringan minimarket, toko oleh-oleh haji, dan masjid dengan invoice tempo & harga pabrik termurah.',
       badge: 'GROSIR RESELLER',
       ctaText: 'Buka Portal Grosir B2B',
@@ -405,7 +405,7 @@ export const HomeScreen: React.FC = () => {
     { id: 'Medjool', name: 'Medjool', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80' },
     { id: 'Tunisia', name: 'Tunisia', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
     { id: 'Khalas', name: 'Khalas', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Madu', name: 'Madu & Herbal', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=160&auto=format&fit=crop&q=80' },
+    { id: 'Madu', name: 'Madu & Herbal', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
   ];
 
   const flashSaleProducts = products.filter(p => p.isFlashSale);

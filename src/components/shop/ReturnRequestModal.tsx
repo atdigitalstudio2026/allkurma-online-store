@@ -22,8 +22,8 @@ interface ReturnRequestModalProps {
 }
 
 const SAMPLE_EVIDENCE_PHOTOS = [
-  'https://images.unsplash.com/photo-1546548970-71785318a17b?w=400&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80'
+  'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80'
 ];
 
 export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({

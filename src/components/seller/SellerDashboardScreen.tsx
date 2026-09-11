@@ -97,7 +97,7 @@ const BANNER_IMAGE_PRESETS = [
   { label: 'Banner Penuh Widescreen (1200x600)', url: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&h=600&auto=format&fit=crop&q=80' },
   { label: 'Paket Kombo Bundling (1200x600)', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&auto=format&fit=crop&q=80' },
   { label: 'Panen Perdana 2026 (1200x600)', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80' },
-  { label: 'Gudang Grosir B2B (1200x600)', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&auto=format&fit=crop&q=80' }
+  { label: 'Gudang Grosir B2B (1200x600)', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&auto=format&fit=crop&q=80' }
 ];
 
 const HEADER_BG_PRESETS = [
@@ -123,7 +123,7 @@ const HEADER_BG_PRESETS = [
   },
   {
     name: 'Gudang Grosir & Distribusi B2B',
-    url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80',
     desc: 'Fasilitas modern pasokan kurma resmi'
   },
   {
@@ -210,10 +210,10 @@ export const SellerDashboardScreen: React.FC = () => {
     { label: 'Kurma Sukari', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
     { label: 'Kurma Medjool', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=400&auto=format&fit=crop&q=80' },
     { label: 'Kurma Tunisia', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
-    { label: 'Kurma Ruthob', url: 'https://images.unsplash.com/photo-1543362906-acfc16c67564?w=400&auto=format&fit=crop&q=80' },
-    { label: 'Madu & Herbal', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80' },
-    { label: 'Hampers & Parcel', url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=400&auto=format&fit=crop&q=80' },
-    { label: 'Grosir Kartonan', url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&auto=format&fit=crop&q=80' }
+    { label: 'Kurma Ruthob', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Madu & Herbal', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Hampers & Parcel', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400&auto=format&fit=crop&q=80' },
+    { label: 'Grosir Kartonan', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=400&auto=format&fit=crop&q=80' }
   ];
 
   // Hero Banner Management State
@@ -2601,7 +2601,7 @@ export const SellerDashboardScreen: React.FC = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                         {[
                           { name: 'Panen Sukari', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=1200&h=600&fit=crop&q=80' },
-                          { name: 'Gudang Grosir', url: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=1200&h=600&fit=crop&q=80' },
+                          { name: 'Gudang Grosir', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=1200&h=600&fit=crop&q=80' },
                           { name: 'Ajwa Al-Aliya VIP', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=1200&h=600&fit=crop&q=80' },
                           { name: 'Oasis Padang Pasir', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&h=600&fit=crop&q=80' }
                         ].map((preset, idx) => (
@@ -2747,7 +2747,7 @@ export const SellerDashboardScreen: React.FC = () => {
                           { name: 'Kurma Emas Royal', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80' },
                           { name: 'Emblem Sunnah Hijau', url: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=300&h=300&fit=crop&q=80' },
                           { name: 'Pohon Kurma Al-Madinah', url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300&h=300&fit=crop&q=80' },
-                          { name: 'Gold Palm Luxury', url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=300&h=300&fit=crop&q=80' }
+                          { name: 'Kurma Ajwa Hitam', url: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=300&h=300&fit=crop&q=80' }
                         ].map((preset, idx) => (
                           <button
                             key={idx}

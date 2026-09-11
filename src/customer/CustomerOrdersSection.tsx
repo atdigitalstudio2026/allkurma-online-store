@@ -227,7 +227,7 @@ export const CustomerOrdersSection: React.FC<CustomerOrdersSectionProps> = ({
                 {/* Order Items */}
                 <div className="p-4 space-y-3">
                   {order.items.map((item, idx) => {
-                    const itemImg = item.image || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1546548970-71785318a17b?w=200&auto=format&fit=crop&q=80';
+                    const itemImg = item.image || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=200&auto=format&fit=crop&q=80';
                     const itemName = item.productName || item.product?.name || 'Kurma Premium';
                     const itemPrice = item.unitPrice || item.product?.discountPrice || item.product?.regularPrice || 0;
                     const isItemReviewed = reviews.some(r => r.productId === (item.productId || item.product?.id) && (r.orderId === order.invoiceCode || r.orderId === order.orderNumber || r.orderId === order.id));

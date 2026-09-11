@@ -1570,7 +1570,7 @@ export const SellerHomeFeaturesHub: React.FC<SellerHomeFeaturesHubProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <img
-                        src={p.images?.[0] || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=100'}
+                        src={p.images?.[0] || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=150&auto=format&fit=crop&q=80'}
                         alt={p.name}
                         className="w-14 h-14 rounded-xl object-cover border border-stone-200 shrink-0"
                       />
