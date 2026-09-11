@@ -10,7 +10,9 @@ import {
   EyeOff, 
   ChevronRight,
   Tv,
-  Play
+  Play,
+  Store,
+  Info
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -87,26 +89,26 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
     setFormBadge(preset.badge);
   };
 
-  // If disabled and not seller, don't show
-  if (!homeVideoBanner?.enabled && !isSeller) {
-    return null;
-  }
-
-  // If disabled and seller, show compact pill to re-enable
-  if (!homeVideoBanner?.enabled && isSeller) {
+  // If disabled, show compact pill to re-enable
+  if (!homeVideoBanner?.enabled) {
     return (
-      <div className="px-3 sm:px-4 py-1.5">
-        <div className="bg-stone-100 border border-dashed border-stone-300 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-stone-600">
-          <div className="flex items-center gap-2">
-            <EyeOff className="w-4 h-4 text-stone-400" />
-            <span>Banner Video 16:9 sedang <strong>dinonaktifkan</strong> (Hanya terlihat oleh Seller).</span>
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-amber-50 border border-dashed border-amber-300 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-700 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-amber-200/70 text-amber-900 shrink-0">
+              <EyeOff className="w-4 h-4" />
+            </span>
+            <div>
+              <p className="font-bold text-stone-800">Banner Video 16:9 Sedang Dinonaktifkan</p>
+              <p className="text-[11px] text-stone-500">Banner video YouTube di bawah slider tidak tampil ke pembeli.</p>
+            </div>
           </div>
           <button
             onClick={openEditModal}
-            className="px-3 py-1 bg-[#1E3A8A] hover:bg-blue-900 text-white rounded-lg font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+            className="px-4 py-2 bg-[#1E3A8A] hover:bg-blue-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors self-end sm:self-auto"
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>Atur & Aktifkan</span>
+            <Settings className="w-3.5 h-3.5 text-amber-400" />
+            <span>Atur & Aktifkan Video</span>
           </button>
         </div>
       </div>
@@ -151,17 +153,15 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Quick Button for Seller */}
-            {isSeller && (
-              <button
-                onClick={openEditModal}
-                title="Kelola Video Banner 16:9"
-                className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-white/20 hover:bg-white text-white hover:text-stone-900 text-xs font-bold rounded-xl backdrop-blur-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-white/30"
-              >
-                <Settings className="w-3.5 h-3.5 text-amber-300 group-hover:text-stone-900" />
-                <span className="hidden sm:inline">Kelola Video</span>
-              </button>
-            )}
+            {/* Quick Button for Settings - Always Accessible */}
+            <button
+              onClick={openEditModal}
+              title="Kelola Video Banner 16:9 (Ganti link YouTube / MP4)"
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-black rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border border-amber-300"
+            >
+              <Settings className="w-3.5 h-3.5 text-stone-950" />
+              <span>Atur Video (16:9)</span>
+            </button>
 
             {/* CTA action button */}
             <button
@@ -169,10 +169,10 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
                 setSelectedCategory(null);
                 setCurrentView('catalog');
               }}
-              className="px-3 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-stone-950 font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0"
+              className="px-3 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 cursor-pointer shrink-0 border border-white/20"
             >
               <span>{homeVideoBanner.ctaText || 'Katalog'}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5 text-amber-300" />
             </button>
           </div>
         </div>
@@ -213,16 +213,15 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
               </div>
               <p className="text-sm font-bold text-stone-200">Belum Ada Video Dikonfigurasi</p>
               <p className="text-xs text-stone-500 mt-1 max-w-sm">
-                Masukkan tautan video YouTube (16:9) atau tautan langsung MP4 melalui tombol &quot;Kelola Video&quot;.
+                Masukkan tautan video YouTube (16:9) atau tautan langsung MP4 melalui tombol &quot;Atur Video (16:9)&quot;.
               </p>
-              {isSeller && (
-                <button
-                  onClick={openEditModal}
-                  className="mt-3 px-4 py-1.5 bg-[#1E3A8A] text-white text-xs font-bold rounded-xl hover:bg-blue-800 transition-colors"
-                >
-                  Atur Video Sekarang
-                </button>
-              )}
+              <button
+                onClick={openEditModal}
+                className="mt-3 px-4 py-2 bg-[#1E3A8A] hover:bg-blue-900 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Settings className="w-3.5 h-3.5 text-amber-400" />
+                <span>Atur Video Sekarang</span>
+              </button>
             </div>
           )}
         </div>
@@ -238,6 +237,31 @@ export const HomeVideoBannerCard: React.FC<HomeVideoBannerCardProps> = ({
             </span>
           </div>
         )}
+
+        {/* Quick Settings & Help Strip */}
+        <div className="px-3.5 sm:px-5 py-2 bg-stone-50 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-stone-600 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
+            <span>Dimensi: <strong>YouTube 16:9 Widescreen</strong></span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={openEditModal}
+              className="text-stone-800 hover:text-[#1E3A8A] font-bold text-xs flex items-center gap-1.5 bg-white hover:bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-300 transition-all cursor-pointer shadow-2xs"
+            >
+              <Settings className="w-3.5 h-3.5 text-amber-600" />
+              <span>Pengaturan Banner Video</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('seller-dashboard')}
+              className="text-[#1E3A8A] hover:text-blue-900 font-bold text-xs flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-xl border border-blue-200 transition-all cursor-pointer shadow-2xs"
+              title="Buka Seller Center"
+            >
+              <Store className="w-3.5 h-3.5 text-[#009A44]" />
+              <span>Seller Center</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL: Kelola Video Banner (Khusus Seller / Toko) */}

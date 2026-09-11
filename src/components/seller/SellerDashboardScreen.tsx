@@ -1205,17 +1205,40 @@ export const SellerDashboardScreen: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab('banners')}
+              onClick={() => {
+                setActiveTab('banners');
+                setBannerSubTab('carousel');
+              }}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
-                activeTab === 'banners'
+                activeTab === 'banners' && bannerSubTab === 'carousel'
                   ? 'bg-amber-500 text-stone-950 shadow-xs'
                   : 'text-stone-300 hover:bg-stone-800 hover:text-white'
               }`}
             >
               <ImageIcon className="w-4 h-4 text-amber-400" />
-              <span>Kelola Banner Beranda ({heroBanners.length})</span>
+              <span>Slider Banner Beranda ({heroBanners.length})</span>
               <span className="bg-amber-400 text-stone-950 text-[9px] font-black px-1.5 py-0.2 rounded-full">
-                SLIDER
+                1:2
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('banners');
+                setBannerSubTab('video-16-9');
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap relative ${
+                activeTab === 'banners' && bannerSubTab === 'video-16-9'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-stone-300 hover:bg-stone-800 hover:text-white'
+              }`}
+            >
+              <Tv className="w-4 h-4 text-red-400" />
+              <span>Banner Video YouTube (16:9)</span>
+              <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                homeVideoBanner?.enabled ? 'bg-emerald-500 text-white' : 'bg-stone-700 text-stone-400'
+              }`}>
+                {homeVideoBanner?.enabled ? 'AKTIF' : 'OFF'}
               </span>
             </button>
 
@@ -1775,30 +1798,68 @@ export const SellerDashboardScreen: React.FC = () => {
                 </button>
               </div>
 
-              {/* Promo Banner Fast Link */}
-              <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-blue-500/10 to-emerald-500/15 border border-amber-300/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center shrink-0 shadow-xs">
-                    <ImageIcon className="w-5 h-5" />
+              {/* Promo Banner Fast Links: Slider & Video 16:9 */}
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-blue-500/10 to-emerald-500/15 border border-amber-300/60 flex flex-col justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center shrink-0 shadow-xs">
+                      <ImageIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-stone-900">
+                        Banner Slider Carousel (1:2)
+                      </h4>
+                      <p className="text-[11px] text-stone-600 mt-0.5">
+                        Kelola foto produk & promo slider bergerak di beranda ({heroBanners.length} Slide).
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-stone-900">
-                      Kelola Banner Slider & Promosi Beranda Aplikasi
-                    </h4>
-                    <p className="text-[11px] text-stone-600">
-                      Ubah slide promo carousel yang dilihat pembeli di beranda: foto produk, diskon panen, kombo bundling, dan event Ramadan.
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('banners');
+                      setBannerSubTab('carousel');
+                    }}
+                    className="self-start sm:self-auto flex items-center justify-between text-xs font-bold bg-[#1E3A8A] hover:bg-[#172554] text-white px-3.5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <span>Buka Slider Carousel</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('banners')}
-                  className="shrink-0 flex items-center gap-1.5 text-xs font-bold bg-[#1E3A8A] hover:bg-[#172554] text-white px-3.5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Buka Kelola Banner Beranda ({heroBanners.length})</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-600/15 via-rose-500/10 to-amber-500/15 border border-red-300/60 flex flex-col justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Tv className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs font-black text-stone-900">
+                          Banner Video YouTube (16:9)
+                        </h4>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                          homeVideoBanner?.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          {homeVideoBanner?.enabled ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 mt-0.5">
+                        Video landscape 16:9 tepat di bawah slider beranda (dukung link YouTube & MP4).
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('banners');
+                      setBannerSubTab('video-16-9');
+                    }}
+                    className="self-start sm:self-auto flex items-center justify-between text-xs font-bold bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <span>Atur Video Banner 16:9</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Visual Identitas Toko: Multi-Tab Branding Center */}
