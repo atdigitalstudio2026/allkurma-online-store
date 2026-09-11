@@ -26,7 +26,8 @@ import {
   ShopeeNotification,
   AppHeroBanner,
   CategoryItem,
-  BundleDeal
+  BundleDeal,
+  HomeVideoBanner
 } from '../types';
 import {
   INITIAL_USER,
@@ -48,7 +49,8 @@ import {
   INITIAL_CHAT_MESSAGES,
   INITIAL_SELLER_STORE,
   INITIAL_HERO_BANNERS,
-  INITIAL_BUNDLE_DEALS
+  INITIAL_BUNDLE_DEALS,
+  INITIAL_HOME_VIDEO_BANNER
 } from '../data/mockData';
 import { normalizeImageUrl } from '../utils/imageUrlHelper';
 import { listenToAuthState, logoutFirebase } from '../firebase/auth';
@@ -295,6 +297,11 @@ interface AppContextType {
   updateHeroBanner: (id: string | number, updates: Partial<AppHeroBanner>) => void;
   deleteHeroBanner: (id: string | number) => void;
   resetHeroBanners: () => void;
+
+  // Video Banner (Landscape 16:9 Youtube / Video)
+  homeVideoBanner: HomeVideoBanner;
+  updateHomeVideoBanner: (updates: Partial<HomeVideoBanner>) => void;
+  resetHomeVideoBanner: () => void;
 
   // Bundling Promo Deals Management
   bundlingDeals: BundleDeal[];
@@ -623,6 +630,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('allkurma_hero_banners_v1');
     return saved ? JSON.parse(saved) : INITIAL_HERO_BANNERS;
   });
+
+  // Video Banner (Landscape 16:9 YouTube / Video Beranda)
+  const [homeVideoBanner, setHomeVideoBanner] = useState<HomeVideoBanner>(() => {
+    const saved = localStorage.getItem('allkurma_home_video_banner_v1');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return { ...INITIAL_HOME_VIDEO_BANNER, ...parsed };
+      } catch (e) {
+        console.error('Failed to parse allkurma_home_video_banner_v1:', e);
+      }
+    }
+    return INITIAL_HOME_VIDEO_BANNER;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(homeVideoBanner));
+  }, [homeVideoBanner]);
 
   // Bundling Deals State (Promo Bundling Paket Hemat)
   const [bundlingDeals, setBundlingDeals] = useState<BundleDeal[]>(() => {
@@ -2178,6 +2203,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Banner promosi dikembalikan ke template awal.', 'info');
   };
 
+  // Home Video Banner (Landscape 16:9 YouTube / Video)
+  const updateHomeVideoBanner = (updates: Partial<HomeVideoBanner>) => {
+    setHomeVideoBanner(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Banner video beranda berhasil diperbarui!', 'success');
+  };
+
+  const resetHomeVideoBanner = () => {
+    setHomeVideoBanner(INITIAL_HOME_VIDEO_BANNER);
+    localStorage.setItem('allkurma_home_video_banner_v1', JSON.stringify(INITIAL_HOME_VIDEO_BANNER));
+    showToast('Banner video dikembalikan ke video awal.', 'info');
+  };
+
   // Bundling Promo Deals Management
   const addBundleDeal = (deal: Omit<BundleDeal, 'id'>) => {
     const newDeal: BundleDeal = {
@@ -2688,6 +2729,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateHeroBanner,
         deleteHeroBanner,
         resetHeroBanners,
+        // Video Banner (16:9 Landscape)
+        homeVideoBanner,
+        updateHomeVideoBanner,
+        resetHomeVideoBanner,
         // Bundling Promo Deals Management
         bundlingDeals,
         addBundleDeal,

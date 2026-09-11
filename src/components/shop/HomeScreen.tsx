@@ -35,6 +35,7 @@ import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
 import { PromoBundlingModal, BUNDLE_DEALS, BundleDeal } from './PromoBundlingModal';
 import { StoreFollowHeader } from './StoreFollowHeader';
+import { HomeVideoBannerCard } from './HomeVideoBannerCard';
 import { normalizeImageUrl } from '../../utils/imageUrlHelper';
 
 export const HomeScreen: React.FC = () => {
@@ -583,6 +584,12 @@ export const HomeScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* NEW: 16:9 Landscape Video Banner (Standar Dimensi YouTube) */}
+      <HomeVideoBannerCard
+        setCurrentView={setCurrentView}
+        setSelectedCategory={setSelectedCategory}
+      />
 
       {/* 4. 8 Quick Action Icons Grid (DIPERBARUI: Promo Bundling & New Product) */}
       <div className="px-3 sm:px-4 py-2">

@@ -512,6 +512,20 @@ export interface AppHeroBanner {
   objectFit?: 'cover' | 'contain';
 }
 
+export interface HomeVideoBanner {
+  enabled: boolean;
+  videoUrl: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  thumbnailUrl?: string;
+  autoPlay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+}
+
 export interface BundleDealItem {
   productId?: string;
   title: string;

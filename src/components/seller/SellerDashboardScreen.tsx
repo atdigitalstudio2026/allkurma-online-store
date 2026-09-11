@@ -28,6 +28,7 @@ import {
   Image as ImageIcon,
   Send,
   Sparkles,
+  Tv,
   ToggleLeft,
   ToggleRight,
   ExternalLink,
@@ -82,6 +83,13 @@ import { OrderFulfillModal } from './OrderFulfillModal';
 import { ShopeeThermalLabelModal } from './ShopeeThermalLabelModal';
 import { SellerReturnManagementModal } from './SellerReturnManagementModal';
 import { SellerChatManagementTab } from './SellerChatManagementTab';
+import { SellerVideoBannerTab } from './SellerVideoBannerTab';
+import { 
+  VIDEO_BANNER_PRESETS, 
+  getYouTubeEmbedUrl, 
+  isYouTubeUrl, 
+  isDirectVideoUrl 
+} from '../../utils/videoHelper';
 
 const BANNER_GRADIENT_PRESETS = [
   { name: 'Royal Blue & Emerald (Resmi)', value: 'from-[#1E3A8A] via-blue-700 to-[#009A44]', tag: 'bg-white/20 text-emerald-100 border-white/30' },
@@ -167,6 +175,9 @@ export const SellerDashboardScreen: React.FC = () => {
     updateHeroBanner,
     deleteHeroBanner,
     resetHeroBanners,
+    homeVideoBanner,
+    updateHomeVideoBanner,
+    resetHomeVideoBanner,
     getProductShareUrl,
     categories,
     addCategory,
@@ -318,6 +329,9 @@ export const SellerDashboardScreen: React.FC = () => {
 
   // Active sub-tab for visual store branding: 'shopee-header' | 'wide-banner' | 'logo'
   const [visualBrandingTab, setVisualBrandingTab] = useState<'shopee-header' | 'wide-banner' | 'logo'>('shopee-header');
+
+  // Sub-tab for Banner Management: 'carousel' (1:2 Landscape) or 'video-16-9' (16:9 Landscape YouTube Video)
+  const [bannerSubTab, setBannerSubTab] = useState<'carousel' | 'video-16-9'>('carousel');
 
   // Fullscreen Preview Lightbox Modal for Banner or Logo
   const [fullscreenImageModal, setFullscreenImageModal] = useState<{
@@ -5408,9 +5422,54 @@ export const SellerDashboardScreen: React.FC = () => {
           </div>
         )}
 
-        {/* 9. TAB: KELOLA BANNER PROMOSI BERANDA (CAROUSEL) */}
+        {/* 9. TAB: KELOLA BANNER PROMOSI BERANDA (CAROUSEL & VIDEO 16:9) */}
         {activeTab === 'banners' && (
           <div className="space-y-6">
+            {/* Sub-Navigation: Banner Slider (1:2) vs Banner Video YouTube (16:9) */}
+            <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-2xl border border-stone-200 w-fit flex-wrap">
+              <button
+                type="button"
+                onClick={() => setBannerSubTab('carousel')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  bannerSubTab === 'carousel'
+                    ? 'bg-[#1E3A8A] text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>Slider Carousel Beranda (Landscape 1:2)</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  bannerSubTab === 'carousel' ? 'bg-blue-800 text-white' : 'bg-stone-200 text-stone-700'
+                }`}>
+                  {heroBanners.length} Slide
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBannerSubTab('video-16-9')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  bannerSubTab === 'video-16-9'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
+                }`}
+              >
+                <Tv className="w-4 h-4" />
+                <span>Banner Video YouTube (Landscape 16:9)</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  homeVideoBanner?.enabled
+                    ? (bannerSubTab === 'video-16-9' ? 'bg-red-800 text-white' : 'bg-emerald-100 text-emerald-800')
+                    : 'bg-stone-200 text-stone-500'
+                }`}>
+                  {homeVideoBanner?.enabled ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </button>
+            </div>
+
+            {bannerSubTab === 'video-16-9' ? (
+              <SellerVideoBannerTab setCurrentView={setCurrentView} />
+            ) : (
+              <div className="space-y-6">
             {/* Header & Quick Action Buttons */}
             <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-2xs">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -5911,6 +5970,8 @@ export const SellerDashboardScreen: React.FC = () => {
                 })}
               </div>
             </div>
+              </div>
+            )}
           </div>
         )}
 
