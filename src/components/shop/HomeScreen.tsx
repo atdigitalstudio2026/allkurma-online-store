@@ -20,7 +20,6 @@ import {
   Boxes,
   ShoppingBag,
   CheckCircle2,
-  Calculator,
   MessageCircle,
   X,
   Award,
@@ -37,21 +36,6 @@ import { Product } from '../../types';
 import { PromoBundlingModal, BUNDLE_DEALS, BundleDeal } from './PromoBundlingModal';
 import { StoreFollowHeader } from './StoreFollowHeader';
 import { normalizeImageUrl } from '../../utils/imageUrlHelper';
-
-interface StoryItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  avatar: string;
-  image: string;
-  content: string;
-  badge: string;
-  ctaText: string;
-  targetView?: string;
-  targetCategory?: string;
-  isBundling?: boolean;
-  isNewArrival?: boolean;
-}
 
 export const HomeScreen: React.FC = () => {
   const { 
@@ -133,78 +117,6 @@ export const HomeScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Stories Highlight Data
-  const stories: StoryItem[] = [
-    {
-      id: 'story-bundling',
-      title: 'Promo Bundling',
-      subtitle: 'Paket Kombo Sehat Berkah Hemat s/d 40%',
-      avatar: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-      content: 'Beli kurma lebih hemat dalam paket bundling! Dapatkan kombinasi kurma Ajwa Madinah Grade VIP + Madu Yaman Asli + Air Zamzam dengan potongan diskon hingga Rp 111.000.',
-      badge: 'PROMO BUNDLING',
-      ctaText: 'Buka Promo Bundling',
-      isBundling: true
-    },
-    {
-      id: 'story-panen',
-      title: 'Panen Madinah 2026',
-      subtitle: 'Langsung dari kebun kurma binaan di Madinah Al-Munawwarah',
-      avatar: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
-      content: 'Kurma Ajwa SRA ALLKURMA dipetik saat tingkat kematangan sempurna (tamr). Setiap butir disortir manual, dibersihkan higienis, dan dikemas vakum tanpa tambahan glukosa atau pengawet buatan.',
-      badge: 'PANEN SEGAR',
-      ctaText: 'Beli Kurma Ajwa Asli',
-      targetCategory: 'Ajwa'
-    },
-    {
-      id: 'story-keaslian',
-      title: '100% Asli & Halal',
-      subtitle: 'Sertifikasi Kemenag RI, Lab Kemenkes & Uji Karantina',
-      avatar: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
-      content: 'PT Exindokarsa Agung menjamin seluruh produk berizin edar resmi, bersertifikat Halal Kemenag RI, serta lolos uji karantina tumbuhan bebas hama kutu.',
-      badge: 'MUTU RESMI',
-      ctaText: 'Lihat Semua Katalog',
-      targetCategory: 'Semua'
-    },
-    {
-      id: 'story-nabeez',
-      title: 'Resep Air Nabeez',
-      subtitle: 'Minuman sunnah infused water kurma penambah stamina',
-      avatar: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
-      content: 'Cara membuat: Masukkan 3-7 butir kurma Ajwa ke dalam air matang 500ml, tutup rapat dan diamkan 8-12 jam. Minum airnya di pagi hari untuk alkali tubuh alami & pencernaan sehat.',
-      badge: 'TIPS KESEHATAN',
-      ctaText: 'Beli Kurma Ajwa',
-      targetCategory: 'Ajwa'
-    },
-    {
-      id: 'story-b2b',
-      title: 'Gudang Kontainer',
-      subtitle: 'Cold Storage kapasitas 100+ ton siap kirim se-Indonesia',
-      avatar: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=800&auto=format&fit=crop&q=80',
-      content: 'Melayani pasokan kartonan & kontainer untuk distributor herbal, jaringan minimarket, toko oleh-oleh haji, dan masjid dengan invoice tempo & harga pabrik termurah.',
-      badge: 'GROSIR RESELLER',
-      ctaText: 'Buka Portal Grosir B2B',
-      targetView: 'b2b-portal'
-    },
-    {
-      id: 'story-newproduct',
-      title: 'New Product 2026',
-      subtitle: 'Rilis varian baru Sukari Platinum & Kurma Cokelat Almond',
-      avatar: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=200&auto=format&fit=crop&q=80',
-      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=800&auto=format&fit=crop&q=80',
-      content: 'Sambut panen perdana 2026! Hadir Kurma Ajwa Jumbo Al-Aliya, Kurma Sukari Platinum Chilled dalam kemasan kedap udara higienis, dan kreasi Cokelat Kurma Almond Lapis Emas.',
-      badge: 'NEW ARRIVAL',
-      ctaText: 'Lihat Produk Baru',
-      isNewArrival: true
-    }
-  ];
-
-  const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
-
   // Automatically detect newly submitted products from the actual inventory
   // Sorts by newest submitted or prioritizes products marked with isNewArrival === true
   const newProducts = useMemo(() => {
@@ -228,158 +140,6 @@ export const HomeScreen: React.FC = () => {
     return sorted.slice(0, 6);
   }, [products]);
 
-  // Kurma Recommendation Quiz / Finder State
-  type QuizTag = 'bumil' | 'lumer' | 'renyah' | 'diet' | 'hampers';
-  const [selectedQuizTag, setSelectedQuizTag] = useState<QuizTag>('bumil');
-
-  const quizRecommendations: Record<QuizTag, {
-    label: string;
-    icon: string;
-    productTitle: string;
-    productId: string;
-    category: string;
-    price: number;
-    originalPrice: number;
-    image: string;
-    texture: string;
-    origin: string;
-    taste: string;
-    benefits: string[];
-  }> = {
-    bumil: {
-      label: 'Ibu Hamil & Menyusui',
-      icon: '🤰',
-      productTitle: 'Kurma Ajwa Madinah Grade VIP',
-      productId: 'prod-01',
-      category: 'Ajwa',
-      price: 185000,
-      originalPrice: 220000,
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80',
-      texture: 'Padat lembut berserat halus, tidak lengket',
-      origin: 'Madinah Al-Munawwarah, Arab Saudi',
-      taste: 'Manis legit pas & aroma khas harum kurma nabi',
-      benefits: [
-        'Kaya asam folat, zat besi & kalsium alami untuk janin',
-        'Membantu merangsang kontraksi rahim secara alami saat persalinan',
-        'Mempercepat pemulihan pasca melahirkan & melancarkan ASI'
-      ]
-    },
-    lumer: {
-      label: 'Tekstur Lembut Lumer',
-      icon: '🍯',
-      productTitle: 'Kurma Sukari Al-Qassim Basah (Rutob)',
-      productId: 'prod-02',
-      category: 'Sukari',
-      price: 95000,
-      originalPrice: 120000,
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80',
-      texture: 'Sangat basah & lumer langsung di lidah (melt in mouth)',
-      origin: 'Al-Qassim, Arab Saudi',
-      taste: 'Manis karamel alami seperti toffee mentega',
-      benefits: [
-        'Sumber energi instan alami tanpa kolesterol',
-        'Sangat disukai anak-anak dan lansia karena empuk tanpa gigi sakit',
-        'Cocok disajikan dingin dari freezer/chiller'
-      ]
-    },
-    renyah: {
-      label: 'Renyah Manis Pas',
-      icon: '🌴',
-      productTitle: 'Kurma Tunisia Deglet Nour Tangkai',
-      productId: 'prod-04',
-      category: 'Tunisia',
-      price: 85000,
-      originalPrice: 105000,
-      image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80',
-      texture: 'Semi-kering, renyah kenyal berserat elegan',
-      origin: 'Tozeur, Tunisia',
-      taste: 'Manis madu ringan, segar dan tidak enek',
-      benefits: [
-        'Kandungan gula alami seimbang dengan serat tinggi',
-        'Masih menempel pada tangkai alami pohon kurma',
-        'Paling nikmat untuk camilan harian dan pendamping teh/kopi'
-      ]
-    },
-    diet: {
-      label: 'Diet Rendah Gula',
-      icon: '🥗',
-      productTitle: 'Kurma Khalas Saad Premium',
-      productId: 'prod-05',
-      category: 'Khalas',
-      price: 65000,
-      originalPrice: 80000,
-      image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80',
-      texture: 'Kenyal padat dengan kulit luar tipis mengkilap',
-      origin: 'Al-Kharj, Arab Saudi',
-      taste: 'Manis gurih alami dengan aftertaste seperti kurma panggang',
-      benefits: [
-        'Indeks glikemik lebih rendah, aman untuk diabetes terkontrol',
-        'Kaya kalium & serat larut menjaga rasa kenyang lebih lama',
-        'Ideal sebagai pengganti gula pasir dan bahan smoothies diet'
-      ]
-    },
-    hampers: {
-      label: 'Hampers & Souvenir',
-      icon: '🎁',
-      productTitle: 'Kurma Medjool Jumbo Premium Grade A',
-      productId: 'prod-03',
-      category: 'Medjool',
-      price: 245000,
-      originalPrice: 290000,
-      image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=600&auto=format&fit=crop&q=80',
-      texture: 'Super tebal, daging buah melimpah & empuk juicy',
-      origin: 'Jericho / California Grade A',
-      taste: 'Kaya cita rasa manis karamel mewah dan legit',
-      benefits: [
-        'Dikenal sebagai "King of Dates" dengan ukuran super jumbo',
-        'Dikemas dalam box eksklusif sangat mewah untuk relasi & kolega',
-        'Pilihan utama untuk bingkisan hari raya dan oleh-oleh premium'
-      ]
-    }
-  };
-
-  // Wholesale Profit Calculator State
-  const [cartonCount, setCartonCount] = useState<number>(20);
-
-  const getWholesaleCalculation = (cartons: number) => {
-    let tierName = 'Silver Partner';
-    let discountPercent = 10;
-    let pricePerBox = 75000;
-    const regularRetailPrice = 110000;
-
-    if (cartons >= 100) {
-      tierName = 'Distributor Utama';
-      discountPercent = 25;
-      pricePerBox = 62000;
-    } else if (cartons >= 50) {
-      tierName = 'Platinum Partner';
-      discountPercent = 20;
-      pricePerBox = 66000;
-    } else if (cartons >= 20) {
-      tierName = 'Gold Partner';
-      discountPercent = 15;
-      pricePerBox = 70000;
-    }
-
-    const totalBoxes = cartons * 10; // 1 karton = 10 box
-    const totalModal = totalBoxes * pricePerBox;
-    const totalRetailValue = totalBoxes * regularRetailPrice;
-    const estimatedProfit = totalRetailValue - totalModal;
-    const totalSavings = (totalBoxes * regularRetailPrice) * (discountPercent / 100);
-
-    return {
-      tierName,
-      discountPercent,
-      totalBoxes,
-      totalModal,
-      totalSavings,
-      estimatedProfit,
-      pricePerBox
-    };
-  };
-
-  const wholesaleCalc = getWholesaleCalculation(cartonCount);
-
   // Interactive Shipping Calculator Modal State
   const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
   const [shippingDestCity, setShippingDestCity] = useState('Surabaya');
@@ -400,12 +160,12 @@ export const HomeScreen: React.FC = () => {
   const currentShippingRate = shippingRates[shippingDestCity] || shippingRates['Surabaya'];
 
   const categories = appCategories && appCategories.length > 0 ? appCategories : [
-    { id: 'Ajwa', name: 'Kurma Ajwa', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Sukari', name: 'Sukari', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Medjool', name: 'Medjool', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Tunisia', name: 'Tunisia', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Khalas', name: 'Khalas', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=160&auto=format&fit=crop&q=80' },
-    { id: 'Madu', name: 'Madu & Herbal', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80' },
+    { id: 'Ajwa', name: 'Kurma Ajwa', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80' },
+    { id: 'Sukari', name: 'Sukari', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80' },
+    { id: 'Medjool', name: 'Medjool', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=600&auto=format&fit=crop&q=80' },
+    { id: 'Tunisia', name: 'Tunisia', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80' },
+    { id: 'Khalas', name: 'Khalas', image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=600&auto=format&fit=crop&q=80' },
+    { id: 'Madu', name: 'Madu & Herbal', image: 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80' },
   ];
 
   const flashSaleProducts = products.filter(p => p.isFlashSale);
@@ -484,7 +244,6 @@ export const HomeScreen: React.FC = () => {
         image: 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=800&auto=format&fit=crop&q=80',
         tagColor: 'bg-white/20 text-emerald-100 border-white/30'
       };
-  const activeQuiz = quizRecommendations[selectedQuizTag];
 
   return (
     <div className="pb-28 w-full max-w-5xl lg:max-w-6xl mx-auto bg-slate-50 min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
@@ -825,75 +584,6 @@ export const HomeScreen: React.FC = () => {
         )}
       </div>
 
-      {/* 3b. Interactive SRA Stories Bar (Sorotan Cerita & Edukasi Kurma) */}
-      <div className="px-3 sm:px-4 py-1.5">
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-3.5 shadow-2xs overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#009A44] inline-block animate-pulse" />
-              Sorotan Informasi & Cerita Kurma
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-              Klik cerita untuk info detail & promo
-            </span>
-          </div>
-          <div className="flex items-center gap-4 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-            {stories.map((story) => (
-              <button
-                key={story.id}
-                onClick={() => {
-                  if (story.isBundling) {
-                    setIsBundlingModalOpen(true);
-                  } else if (story.isNewArrival) {
-                    const el = document.getElementById('new-arrivals-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    else {
-                      setSelectedCategory('Semua');
-                      setCurrentView('catalog');
-                    }
-                  } else {
-                    setActiveStory(story);
-                  }
-                }}
-                className="flex flex-col items-center shrink-0 snap-start group cursor-pointer focus:outline-none"
-              >
-                <div className={`relative p-0.5 rounded-full ${
-                  story.isBundling 
-                    ? 'bg-gradient-to-tr from-amber-500 via-orange-500 to-red-600' 
-                    : story.isNewArrival
-                    ? 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-[#009A44]'
-                    : 'bg-gradient-to-tr from-[#1E3A8A] via-emerald-500 to-[#009A44]'
-                }`}>
-                  <div className="w-14 h-14 rounded-full p-0.5 bg-white overflow-hidden">
-                    <img 
-                      src={story.avatar} 
-                      alt={story.title} 
-                      className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  {story.isBundling ? (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
-                      HEMAT
-                    </span>
-                  ) : story.isNewArrival ? (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#009A44] text-white text-[7px] font-black px-1.5 py-0.2 rounded-full border border-white tracking-wider">
-                      NEW
-                    </span>
-                  ) : (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#1E3A8A] text-white text-[7px] font-bold px-1 rounded-sm border border-white">
-                      SRA
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-medium text-slate-800 mt-1.5 text-center truncate max-w-[64px] group-hover:text-[#1E3A8A]">
-                  {story.title}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* 4. 8 Quick Action Icons Grid (DIPERBARUI: Promo Bundling & New Product) */}
       <div className="px-3 sm:px-4 py-2">
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 sm:gap-3">
@@ -1026,126 +716,7 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 5. Interactive Promo Bundling Showcase Section */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-md ring-2 ring-amber-300/70 shrink-0">
-                <Boxes className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight leading-tight">
-                    Paket Promo Bundling SRA
-                  </h3>
-                  <span className="text-[10px] sm:text-xs bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-2.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider animate-pulse">
-                    HEMAT S/D 40%
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-amber-950/80 font-medium mt-0.5 truncate sm:whitespace-normal">
-                  Kurma Ajwa + Madu Murni + Air Zamzam Asli
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsBundlingModalOpen(true)}
-              className="text-xs sm:text-sm font-bold text-[#009A44] hover:text-[#047857] bg-white/90 hover:bg-white border border-amber-300/80 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
-            >
-              <span>Lihat Semua</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Bundling Cards Horizontal Scroll */}
-          <div className="flex gap-3 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-            {activeBundlingDeals.slice(0, 6).map((bundle) => (
-              <div
-                key={bundle.id}
-                onClick={() => {
-                  setSelectedBundleModalId(bundle.id);
-                  setIsBundlingModalOpen(true);
-                }}
-                className="min-w-[240px] sm:min-w-[270px] max-w-[240px] sm:max-w-[270px] bg-white rounded-2xl border border-amber-200/90 shrink-0 snap-start flex flex-col justify-between overflow-hidden hover:border-amber-400 hover:shadow-md transition-all shadow-2xs cursor-pointer group"
-              >
-                {/* Bundle Image Header */}
-                <div className="relative aspect-16/10 w-full bg-stone-100 overflow-hidden">
-                  <img
-                    src={bundle.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400'}
-                    alt={bundle.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  {/* Badges */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1">
-                    <span className="text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-md shadow-xs">
-                      {bundle.badge || `HEMAT ${bundle.discountPct}%`}
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-[10px]">
-                    <div className="flex items-center gap-1 bg-black/50 backdrop-blur-xs px-1.5 py-0.5 rounded-md">
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      <span className="font-bold">{bundle.rating || 5.0}</span>
-                    </div>
-                    <span className="bg-[#009A44]/90 backdrop-blur-xs px-2 py-0.5 rounded-md font-bold">
-                      {bundle.items.length} Produk SRA
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
-                  <div>
-                    <h5 className="font-bold text-stone-900 text-xs sm:text-sm leading-snug line-clamp-1 group-hover:text-amber-700 transition-colors">
-                      {bundle.name}
-                    </h5>
-                    <p className="text-[10px] text-stone-500 line-clamp-1 mt-0.5">
-                      {bundle.subtitle || bundle.items.map(i => i.title).join(' + ')}
-                    </p>
-
-                    {/* Preview product mini badges */}
-                    <div className="flex items-center gap-1 mt-2 flex-wrap">
-                      {bundle.items.slice(0, 3).map((it, idx) => (
-                        <span key={idx} className="text-[9px] font-medium bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded-md border border-amber-200/60 truncate max-w-[120px]">
-                          • {it.title}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-2.5 flex items-baseline gap-1.5 flex-wrap">
-                      <span className="text-sm sm:text-base font-black text-[#1E3A8A]">
-                        Rp {bundle.bundlePrice.toLocaleString('id-ID')}
-                      </span>
-                      <span className="text-[10px] text-stone-400 line-through">
-                        Rp {bundle.originalPrice.toLocaleString('id-ID')}
-                      </span>
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-xs border border-emerald-200">
-                        Hemat Rp {bundle.savings.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddBundleDirect(bundle);
-                    }}
-                    className="w-full py-2 bg-gradient-to-r from-[#009A44] to-emerald-600 hover:from-emerald-600 hover:to-[#009A44] active:scale-95 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Beli Paket Bundling</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Flash Sale Section with Stock Bar */}
+      {/* 5. Flash Sale Section with Stock Bar */}
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-gradient-to-b from-red-50/50 via-amber-50/20 to-white rounded-2xl border border-red-100 p-3.5 sm:p-4 shadow-2xs space-y-3">
           <div className="flex items-center justify-between gap-2.5">
@@ -1251,7 +822,186 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. DEDICATED SECTION: New Product / Panen Raya 2026 */}
+      {/* 6. Interactive Promo Bundling Showcase Section */}
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-md ring-2 ring-amber-300/70 shrink-0">
+                <Boxes className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight leading-tight">
+                    Paket Promo Bundling SRA
+                  </h3>
+                  <span className="text-[10px] sm:text-xs bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-2.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider animate-pulse">
+                    HEMAT S/D 40%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsBundlingModalOpen(true)}
+              className="text-xs sm:text-sm font-bold text-[#009A44] hover:text-[#047857] bg-white/90 hover:bg-white border border-amber-300/80 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+            >
+              <span>Lihat Semua</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Bundling Cards Horizontal Scroll */}
+          <div className="flex gap-3 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+            {activeBundlingDeals.slice(0, 6).map((bundle) => (
+              <div
+                key={bundle.id}
+                onClick={() => {
+                  setSelectedBundleModalId(bundle.id);
+                  setIsBundlingModalOpen(true);
+                }}
+                className="min-w-[240px] sm:min-w-[270px] max-w-[240px] sm:max-w-[270px] bg-white rounded-2xl border border-amber-200/90 shrink-0 snap-start flex flex-col justify-between overflow-hidden hover:border-amber-400 hover:shadow-md transition-all shadow-2xs cursor-pointer group"
+              >
+                {/* Bundle Image Header */}
+                <div className="relative aspect-16/10 w-full bg-stone-100 overflow-hidden">
+                  <img
+                    src={bundle.image || 'https://images.unsplash.com/photo-1608755728617-aefab37d2edd?w=400'}
+                    alt={bundle.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Badges */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1">
+                    <span className="text-[9px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-md shadow-xs">
+                      {bundle.badge || `HEMAT ${bundle.discountPct}%`}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-[10px]">
+                    <div className="flex items-center gap-1 bg-black/50 backdrop-blur-xs px-1.5 py-0.5 rounded-md">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span className="font-bold">{bundle.rating || 5.0}</span>
+                    </div>
+                    <span className="bg-[#009A44]/90 backdrop-blur-xs px-2 py-0.5 rounded-md font-bold">
+                      {bundle.items.length} Produk SRA
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h5 className="font-bold text-stone-900 text-xs sm:text-sm leading-snug line-clamp-1 group-hover:text-amber-700 transition-colors">
+                      {bundle.name}
+                    </h5>
+                    <p className="text-[10px] text-stone-500 line-clamp-1 mt-0.5">
+                      {bundle.subtitle || bundle.items.map(i => i.title).join(' + ')}
+                    </p>
+
+                    {/* Preview product mini badges */}
+                    <div className="flex items-center gap-1 mt-2 flex-wrap">
+                      {bundle.items.slice(0, 3).map((it, idx) => (
+                        <span key={idx} className="text-[9px] font-medium bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded-md border border-amber-200/60 truncate max-w-[120px]">
+                          • {it.title}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-2.5 flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-sm sm:text-base font-black text-[#1E3A8A]">
+                        Rp {bundle.bundlePrice.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-[10px] text-stone-400 line-through">
+                        Rp {bundle.originalPrice.toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-xs border border-emerald-200">
+                        Hemat Rp {bundle.savings.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddBundleDirect(bundle);
+                    }}
+                    className="w-full py-2 bg-gradient-to-r from-[#009A44] to-emerald-600 hover:from-emerald-600 hover:to-[#009A44] active:scale-95 text-white font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Beli Paket Bundling</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 7. Kategori Varietas Kurma - Eye-Catching Showcase dengan Thumbnail 3x Lebih Besar */}
+      <div className="px-3 sm:px-4 py-2">
+        <div className="bg-gradient-to-br from-amber-100/90 via-orange-50/80 to-emerald-50/70 border-2 border-amber-300/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-2.5">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight">
+                  Kategori Varietas Kurma
+                </h3>
+                <span className="text-[10px] sm:text-xs bg-gradient-to-r from-amber-500 via-orange-500 to-[#009A44] text-white font-black px-2.5 py-0.5 rounded-full shadow-2xs uppercase tracking-wider">
+                  PILIHAN FAVORIT
+                </span>
+              </div>
+              <p className="text-xs text-amber-950/80 font-medium mt-0.5">
+                Pilih jenis varietas kurma premium sesuai selera & khasiat favorit Anda
+              </p>
+            </div>
+            <button
+              onClick={() => { setSelectedCategory(null); setCurrentView('catalog'); }}
+              className="text-xs sm:text-sm font-bold text-[#1E3A8A] hover:text-[#009A44] bg-white hover:bg-amber-50 border border-amber-300/90 px-3.5 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer transition-all shrink-0"
+            >
+              <span>Semua</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {categories.map((cat) => {
+              const rawImg = cat.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=600&auto=format&fit=crop&q=80';
+              const highResImg = rawImg.replace(/w=160/g, 'w=600').replace(/w=200/g, 'w=600');
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.name || cat.id)}
+                  className="bg-white/95 hover:bg-white border-2 border-amber-200/90 hover:border-[#009A44] rounded-2xl p-3 sm:p-4 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group cursor-pointer focus:outline-none transform hover:-translate-y-1"
+                >
+                  {/* Thumbnail Icon Diperbesar 3x (dari 48px menjadi 120-144px) dengan Ring Gradien Menarik */}
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full p-1.5 bg-gradient-to-tr from-amber-400 via-orange-400 to-[#009A44] shadow-md group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-stone-100 ring-2 ring-white">
+                      <img 
+                        src={highResImg} 
+                        alt={cat.name} 
+                        className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-500" 
+                      />
+                    </div>
+                  </div>
+
+                  <span className="text-sm sm:text-base font-black text-stone-900 mt-3 truncate w-full group-hover:text-[#1E3A8A] transition-colors">
+                    {cat.name}
+                  </span>
+
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full mt-1.5 group-hover:bg-[#009A44] group-hover:text-white transition-all">
+                    <span>Lihat Produk</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 8. DEDICATED SECTION: New Product / Panen Raya 2026 */}
       <div id="new-arrivals-section" className="px-3 sm:px-4 py-2 scroll-mt-20">
         <div className="bg-white rounded-2xl border border-emerald-100 p-3.5 sm:p-4 shadow-2xs space-y-3.5 bg-gradient-to-b from-emerald-50/30 to-white">
           <div className="flex items-center justify-between gap-2.5">
@@ -1268,9 +1018,6 @@ export const HomeScreen: React.FC = () => {
                     PRODUK TERBARU
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-emerald-950/80 font-medium mt-0.5 truncate sm:whitespace-normal">
-                  Stok segar baru tiba langsung dari perkebunan Madinah & Al-Qassim
-                </p>
               </div>
             </div>
 
@@ -1393,242 +1140,7 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 8. Interactive Kurma Finder / "Rekomendasi Pintar Sesuai Kebutuhan" */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="bg-white rounded-2xl border border-stone-200 p-3.5 sm:p-4 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2 text-[#1E3A8A]">
-              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
-              <h3 className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-tight text-stone-900">
-                Rekomendasi Kurma Pintar
-              </h3>
-            </div>
-            <span className="text-xs bg-blue-50 text-[#1E3A8A] font-black px-3 py-1 rounded-full border border-blue-200 shrink-0">
-              Pilihan Dokter & Ahli Gizi
-            </span>
-          </div>
-          <p className="text-[11px] text-stone-500 leading-relaxed">
-            Pilih kebutuhan kesehatan atau selera Anda untuk rekomendasi kurma terbaik:
-          </p>
-
-          {/* Quiz Tag Selector Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {(Object.keys(quizRecommendations) as QuizTag[]).map((tagKey) => {
-              const item = quizRecommendations[tagKey];
-              const isSelected = selectedQuizTag === tagKey;
-              return (
-                <button
-                  key={tagKey}
-                  onClick={() => setSelectedQuizTag(tagKey)}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-[#1E3A8A] to-[#009A44] text-white shadow-2xs scale-102'
-                      : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Spotlight Recommendation Card */}
-          <div className="bg-gradient-to-br from-stone-50 to-blue-50/40 rounded-xl p-3.5 border border-stone-200 space-y-3">
-            <div className="flex gap-3">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-white shrink-0 border border-stone-200">
-                <img 
-                  src={activeQuiz.image} 
-                  alt={activeQuiz.productTitle} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-sm">
-                  {activeQuiz.origin}
-                </span>
-                <h4 className="text-xs sm:text-sm font-bold text-stone-900 mt-1 leading-snug truncate">
-                  {activeQuiz.productTitle}
-                </h4>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-xs sm:text-sm font-bold text-[#1E3A8A]">
-                    Rp {activeQuiz.price.toLocaleString('id-ID')}
-                  </span>
-                  <span className="text-[10px] text-stone-400 line-through">
-                    Rp {activeQuiz.originalPrice.toLocaleString('id-ID')}
-                  </span>
-                </div>
-                <p className="text-[10px] text-stone-600 mt-1">
-                  <strong className="text-stone-800">Tekstur:</strong> {activeQuiz.texture}
-                </p>
-              </div>
-            </div>
-
-            {/* Benefits Checklist */}
-            <div className="space-y-1.5 pt-1 border-t border-stone-200/70">
-              {activeQuiz.benefits.map((benefit, i) => (
-                <div key={i} className="flex items-start gap-1.5 text-[11px] text-stone-700">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#009A44] shrink-0 mt-0.5" />
-                  <span className="leading-tight">{benefit}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={() => {
-                  const targetProd = products.find(p => p.id === activeQuiz.productId) || products[0];
-                  if (targetProd) addToCart(targetProd, 1);
-                }}
-                className="flex-1 py-2 bg-[#009A44] hover:bg-[#047857] active:scale-95 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Beli Sekarang</span>
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedCategory(activeQuiz.category);
-                  setCurrentView('catalog');
-                }}
-                className="px-3.5 py-2 bg-white hover:bg-stone-100 text-stone-700 text-xs font-bold rounded-xl border border-stone-200 transition-colors cursor-pointer"
-              >
-                Katalog {activeQuiz.category}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 9. Kategori Varietas Kurma Circular Avatars */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight">
-              Kategori Varietas Kurma
-            </h3>
-            <p className="text-xs text-stone-500 font-medium mt-0.5">Pilih jenis varietas kurma favorit Anda</p>
-          </div>
-          <button
-            onClick={() => { setSelectedCategory(null); setCurrentView('catalog'); }}
-            className="text-xs sm:text-sm font-bold text-[#1E3A8A] hover:text-[#009A44] bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
-          >
-            <span>Semua</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 sm:gap-4 text-center">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.name || cat.id)}
-              className="flex flex-col items-center group cursor-pointer focus:outline-none"
-            >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-stone-200 group-hover:border-[#009A44] group-active:scale-95 transition-all shadow-xs bg-stone-100 flex items-center justify-center">
-                <img 
-                  src={cat.image || 'https://images.unsplash.com/photo-1596797882870-8c33deeac224?w=160&auto=format&fit=crop&q=80'} 
-                  alt={cat.name} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                />
-              </div>
-              <span className="text-[11px] font-medium text-stone-700 mt-1.5 truncate w-full group-hover:text-[#1E3A8A]">
-                {cat.name}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 10. Kalkulator Untung Reseller & Grosir B2B Interaktif */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/40 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3.5 border border-blue-200">
-          <div className="flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-3 sm:gap-3.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-md ring-2 ring-blue-200 shrink-0">
-                <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div>
-                <h4 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight">
-                  Simulasi Untung Reseller & Grosir
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
-                  Hitung potensi margin keuntungan toko Anda
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-black bg-blue-100 text-[#1E3A8A] border border-blue-200 px-3 py-1 rounded-full shrink-0">
-              Tier: {wholesaleCalc.tierName}
-            </span>
-          </div>
-
-          {/* Quick Volume Slider Buttons */}
-          <div>
-            <div className="flex items-center justify-between text-[11px] text-slate-600 mb-1.5">
-              <span>Volume Pengambilan:</span>
-              <span className="font-bold text-[#1E3A8A]">{cartonCount} Karton ({wholesaleCalc.totalBoxes} Box)</span>
-            </div>
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-              {[5, 20, 50, 100].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setCartonCount(num)}
-                  className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    cartonCount === num
-                      ? 'bg-[#1E3A8A] text-white shadow-xs scale-102'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {num} Karton
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Output Calculation Grid */}
-          <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-blue-100 text-xs shadow-2xs">
-            <div>
-              <span className="text-[10px] text-slate-500 block">Harga Modal Reseller</span>
-              <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                Rp {wholesaleCalc.pricePerBox.toLocaleString('id-ID')}/box
-              </span>
-              <span className="text-[9px] text-[#009A44] block font-bold">
-                Diskon -{wholesaleCalc.discountPercent}%
-              </span>
-            </div>
-
-            <div>
-              <span className="text-[10px] text-slate-500 block">Estimasi Profit Laba</span>
-              <span className="text-xs sm:text-sm font-extrabold text-[#009A44]">
-                +Rp {wholesaleCalc.estimatedProfit.toLocaleString('id-ID')}
-              </span>
-              <span className="text-[9px] text-emerald-700 block">
-                Hemat Rp {wholesaleCalc.totalSavings.toLocaleString('id-ID')}
-              </span>
-            </div>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentView('b2b-portal')}
-              className="flex-1 py-2 bg-gradient-to-r from-[#009A44] to-emerald-600 hover:from-emerald-600 hover:to-[#009A44] active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
-            >
-              <span>Pesan Grosir B2B</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setIsChatOpen(true)}
-              className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>Tanya CS</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 11. Koleksi Kurma Terlaris Grid */}
+      {/* Koleksi Kurma Terlaris Grid */}
       <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -1848,86 +1360,6 @@ export const HomeScreen: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* MODAL 1: Interactive Story Viewer Modal */}
-      {activeStory && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-stone-800 relative space-y-4">
-            
-            {/* Story Image Header */}
-            <div className="relative aspect-4/3 bg-stone-900">
-              <img 
-                src={activeStory.image} 
-                alt={activeStory.title} 
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
-
-              {/* Story Top Progress / Close Bar */}
-              <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                <span className="bg-white/20 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/30">
-                  {activeStory.badge}
-                </span>
-                <button
-                  onClick={() => setActiveStory(null)}
-                  className="w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Story Header Title */}
-              <div className="absolute bottom-3 left-3 right-3 text-white">
-                <h3 className="text-base font-bold leading-tight">{activeStory.title}</h3>
-                <p className="text-[11px] text-stone-200 mt-0.5">{activeStory.subtitle}</p>
-              </div>
-            </div>
-
-            {/* Story Content Body */}
-            <div className="p-4 pt-0 space-y-4">
-              <p className="text-xs text-stone-600 leading-relaxed">
-                {activeStory.content}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const isBundling = activeStory.isBundling;
-                    const isNewArrival = activeStory.isNewArrival;
-                    const targetCategory = activeStory.targetCategory;
-                    const targetView = activeStory.targetView;
-                    setActiveStory(null);
-                    if (isBundling) {
-                      setIsBundlingModalOpen(true);
-                    } else if (isNewArrival) {
-                      const el = document.getElementById('new-arrivals-section');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    } else if (targetView) {
-                      setCurrentView(targetView as any);
-                    } else if (targetCategory && targetCategory !== 'Semua') {
-                      setSelectedCategory(targetCategory);
-                      setCurrentView('catalog');
-                    } else {
-                      setCurrentView('catalog');
-                    }
-                  }}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-[#1E3A8A] to-[#009A44] hover:from-[#172554] hover:to-[#047857] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
-                >
-                  <span>{activeStory.ctaText}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setActiveStory(null)}
-                  className="px-3.5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* MODAL 2: Interactive Promo Bundling Modal */}
       <PromoBundlingModal
