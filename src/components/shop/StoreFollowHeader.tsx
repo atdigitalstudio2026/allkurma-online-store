@@ -43,6 +43,7 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
     showToast,
     setCurrentView,
     setSearchQuery,
+    setSelectedCategory,
     products,
     user,
     isEmailAuthorizedSeller
@@ -54,7 +55,7 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const followerCount = sellerStore.followerCount || 24850;
-  const productCount = Math.max(products?.length || 0, 148);
+  const productCount = products?.length || 0;
 
   const isSeller = Boolean((user?.email && isEmailAuthorizedSeller(user.email)) || user?.role === 'seller');
 
@@ -506,6 +507,7 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
             type="button"
             onClick={() => {
               setActiveShopTab('home');
+              setCurrentView('home');
               showToast('Menampilkan Halaman Utama Toko', 'info');
             }}
             className={`py-3 transition-colors cursor-pointer relative ${
@@ -524,6 +526,8 @@ export const StoreFollowHeader: React.FC<StoreFollowHeaderProps> = ({
             type="button"
             onClick={() => {
               setActiveShopTab('all-products');
+              setSelectedCategory(null);
+              setSearchQuery('');
               setCurrentView('catalog');
             }}
             className={`py-3 transition-colors cursor-pointer relative ${

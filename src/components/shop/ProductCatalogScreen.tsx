@@ -228,6 +228,15 @@ export const ProductCatalogScreen: React.FC = () => {
 
       {/* Products 2-Column Grid (Matching Screenshot 1 screen 2) */}
       <div className="p-4">
+        <div className="flex items-center justify-between mb-3 text-xs text-stone-500">
+          <span>Menampilkan <strong className="text-stone-800 font-semibold">{filteredProducts.length}</strong> produk</span>
+          {searchQuery && (
+            <span className="text-[11px] bg-stone-200 px-2 py-0.5 rounded-full text-stone-700 truncate max-w-[150px]">
+              "{searchQuery}"
+            </span>
+          )}
+        </div>
+
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-stone-200 p-6">
             <Sparkles className="w-10 h-10 text-stone-300 mx-auto mb-2" />

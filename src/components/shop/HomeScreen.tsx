@@ -1029,19 +1029,21 @@ export const HomeScreen: React.FC = () => {
       {/* 5. Interactive Promo Bundling Showcase Section */}
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white border border-amber-200/90 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                <Boxes className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-md ring-2 ring-amber-300/70 shrink-0">
+                <Boxes className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
-                  <span>Paket Promo Bundling SRA</span>
-                  <span className="text-[8px] bg-red-600 text-white font-extrabold px-1.5 py-0.2 rounded-full shadow-2xs">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight leading-tight">
+                    Paket Promo Bundling SRA
+                  </h3>
+                  <span className="text-[10px] sm:text-xs bg-gradient-to-r from-red-600 to-rose-600 text-white font-black px-2.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider animate-pulse">
                     HEMAT S/D 40%
                   </span>
-                </h4>
-                <p className="text-[10px] text-slate-500">
+                </div>
+                <p className="text-xs sm:text-sm text-amber-950/80 font-medium mt-0.5 truncate sm:whitespace-normal">
                   Kurma Ajwa + Madu Murni + Air Zamzam Asli
                 </p>
               </div>
@@ -1049,10 +1051,10 @@ export const HomeScreen: React.FC = () => {
 
             <button
               onClick={() => setIsBundlingModalOpen(true)}
-              className="text-[11px] font-bold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 transition-colors cursor-pointer shrink-0"
+              className="text-xs sm:text-sm font-bold text-[#009A44] hover:text-[#047857] bg-white/90 hover:bg-white border border-amber-300/80 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
             >
               <span>Lihat Semua</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
@@ -1146,23 +1148,23 @@ export const HomeScreen: React.FC = () => {
       {/* 6. Flash Sale Section with Stock Bar */}
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-gradient-to-b from-red-50/50 via-amber-50/20 to-white rounded-2xl border border-red-100 p-3.5 sm:p-4 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5 text-red-600 font-bold text-xs sm:text-sm tracking-tight">
-                <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-red-600 text-red-600 animate-pulse" />
-                <span>Flash Sale Kilat</span>
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-red-600 font-black text-base sm:text-lg lg:text-xl tracking-tight leading-tight">
+                <Flame className="w-5 h-5 sm:w-6 sm:h-6 fill-red-600 text-red-600 animate-bounce shrink-0 drop-shadow-sm" />
+                <span className="drop-shadow-xs">Flash Sale Kilat</span>
               </div>
               {/* Countdown timer pill */}
-              <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-white">
-                <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm shadow-2xs">
+              <div className="flex items-center gap-1 sm:gap-1.5 font-mono text-xs sm:text-sm font-black text-white">
+                <span className="bg-gradient-to-b from-[#1E3A8A] to-blue-950 px-2 sm:px-2.5 py-1 rounded-md shadow-xs ring-1 ring-blue-900/40">
                   {timeLeft.hours.toString().padStart(2, '0')}
                 </span>
-                <span className="text-[#1E3A8A] font-bold">:</span>
-                <span className="bg-[#1E3A8A] px-1.5 py-0.5 rounded-sm shadow-2xs">
+                <span className="text-[#1E3A8A] font-black text-sm sm:text-base">:</span>
+                <span className="bg-gradient-to-b from-[#1E3A8A] to-blue-950 px-2 sm:px-2.5 py-1 rounded-md shadow-xs ring-1 ring-blue-900/40">
                   {timeLeft.minutes.toString().padStart(2, '0')}
                 </span>
-                <span className="text-[#1E3A8A] font-bold">:</span>
-                <span className="bg-red-600 px-1.5 py-0.5 rounded-sm animate-pulse shadow-2xs">
+                <span className="text-[#1E3A8A] font-black text-sm sm:text-base">:</span>
+                <span className="bg-gradient-to-r from-red-600 to-rose-600 px-2 sm:px-2.5 py-1 rounded-md shadow-xs animate-pulse ring-1 ring-red-400">
                   {timeLeft.seconds.toString().padStart(2, '0')}
                 </span>
               </div>
@@ -1170,10 +1172,10 @@ export const HomeScreen: React.FC = () => {
 
             <button
               onClick={() => setCurrentView('catalog')}
-              className="text-[11px] font-semibold text-[#1E3A8A] hover:text-[#009A44] flex items-center gap-0.5 transition-colors cursor-pointer"
+              className="text-xs sm:text-sm font-bold text-[#1E3A8A] hover:text-[#009A44] bg-white/90 hover:bg-white border border-red-200/80 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
             >
               <span>Lihat Semua</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
@@ -1252,21 +1254,21 @@ export const HomeScreen: React.FC = () => {
       {/* 7. DEDICATED SECTION: New Product / Panen Raya 2026 */}
       <div id="new-arrivals-section" className="px-3 sm:px-4 py-2 scroll-mt-20">
         <div className="bg-white rounded-2xl border border-emerald-100 p-3.5 sm:p-4 shadow-2xs space-y-3.5 bg-gradient-to-b from-emerald-50/30 to-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-[#009A44] text-white flex items-center justify-center shadow-xs shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-500 via-[#009A44] to-teal-600 text-white flex items-center justify-center shadow-md ring-2 ring-emerald-300/70 shrink-0">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="text-xs sm:text-sm font-bold text-stone-900 uppercase tracking-wider">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 uppercase tracking-tight leading-tight">
                     New Product 2026
                   </h3>
-                  <span className="text-[8px] bg-[#009A44] text-white font-extrabold px-1.5 py-0.2 rounded-full">
+                  <span className="text-[10px] sm:text-xs bg-gradient-to-r from-[#009A44] to-emerald-600 text-white font-black px-2.5 py-0.5 rounded-full shadow-xs uppercase tracking-wider">
                     PRODUK TERBARU
                   </span>
                 </div>
-                <p className="text-[10px] text-stone-500">
+                <p className="text-xs sm:text-sm text-emerald-950/80 font-medium mt-0.5 truncate sm:whitespace-normal">
                   Stok segar baru tiba langsung dari perkebunan Madinah & Al-Qassim
                 </p>
               </div>
@@ -1274,10 +1276,10 @@ export const HomeScreen: React.FC = () => {
 
             <button
               onClick={() => { setSelectedCategory(null); setCurrentView('catalog'); }}
-              className="text-[11px] font-semibold text-[#009A44] hover:text-[#047857] flex items-center gap-0.5 cursor-pointer shrink-0"
+              className="text-xs sm:text-sm font-bold text-[#009A44] hover:text-[#047857] bg-white/90 hover:bg-white border border-emerald-200/80 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1 cursor-pointer shrink-0"
             >
               <span>Semua</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
@@ -1394,14 +1396,14 @@ export const HomeScreen: React.FC = () => {
       {/* 8. Interactive Kurma Finder / "Rekomendasi Pintar Sesuai Kebutuhan" */}
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-white rounded-2xl border border-stone-200 p-3.5 sm:p-4 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[#1E3A8A]">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-stone-900">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 text-[#1E3A8A]">
+              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
+              <h3 className="text-base sm:text-lg lg:text-xl font-black uppercase tracking-tight text-stone-900">
                 Rekomendasi Kurma Pintar
               </h3>
             </div>
-            <span className="text-[10px] bg-blue-50 text-[#1E3A8A] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+            <span className="text-xs bg-blue-50 text-[#1E3A8A] font-black px-3 py-1 rounded-full border border-blue-200 shrink-0">
               Pilihan Dokter & Ahli Gizi
             </span>
           </div>
@@ -1501,15 +1503,18 @@ export const HomeScreen: React.FC = () => {
       {/* 9. Kategori Varietas Kurma Circular Avatars */}
       <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs sm:text-sm font-bold text-stone-900 tracking-tight">
-            Kategori Varietas Kurma
-          </h3>
+          <div>
+            <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight">
+              Kategori Varietas Kurma
+            </h3>
+            <p className="text-xs text-stone-500 font-medium mt-0.5">Pilih jenis varietas kurma favorit Anda</p>
+          </div>
           <button
             onClick={() => { setSelectedCategory(null); setCurrentView('catalog'); }}
-            className="text-[11px] font-semibold text-[#1E3A8A] hover:text-[#009A44] flex items-center gap-0.5 cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-[#1E3A8A] hover:text-[#009A44] bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
           >
             <span>Semua</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -1538,21 +1543,21 @@ export const HomeScreen: React.FC = () => {
       {/* 10. Kalkulator Untung Reseller & Grosir B2B Interaktif */}
       <div className="px-3 sm:px-4 py-2">
         <div className="bg-gradient-to-br from-blue-50/90 via-white to-emerald-50/40 rounded-2xl p-3.5 sm:p-4 text-slate-800 shadow-2xs space-y-3.5 border border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-xs shrink-0">
-                <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-3 sm:gap-3.5">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#1E3A8A] text-white flex items-center justify-center shadow-md ring-2 ring-blue-200 shrink-0">
+                <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                <h4 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 tracking-tight leading-tight">
                   Simulasi Untung Reseller & Grosir
                 </h4>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
                   Hitung potensi margin keuntungan toko Anda
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-bold bg-blue-100 text-[#1E3A8A] border border-blue-200 px-2.5 py-0.5 rounded-full shrink-0">
+            <span className="text-xs font-black bg-blue-100 text-[#1E3A8A] border border-blue-200 px-3 py-1 rounded-full shrink-0">
               Tier: {wholesaleCalc.tierName}
             </span>
           </div>
@@ -1627,17 +1632,17 @@ export const HomeScreen: React.FC = () => {
       <div className="px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-xs sm:text-sm font-bold text-stone-900 tracking-tight">
+            <h3 className="text-base sm:text-lg lg:text-xl font-black text-stone-900 tracking-tight">
               Koleksi Kurma Terlaris
             </h3>
-            <p className="text-[10px] text-stone-500">Pilihan kurma grade premium standar ekspor</p>
+            <p className="text-xs text-stone-500 font-medium mt-0.5">Pilihan kurma grade premium standar ekspor</p>
           </div>
           <button
             onClick={() => setCurrentView('catalog')}
-            className="text-[11px] font-semibold text-[#1E3A8A] hover:text-[#009A44] flex items-center gap-0.5 cursor-pointer transition-colors"
+            className="text-xs sm:text-sm font-bold text-[#1E3A8A] hover:text-[#009A44] bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
           >
             <span>Semua</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 

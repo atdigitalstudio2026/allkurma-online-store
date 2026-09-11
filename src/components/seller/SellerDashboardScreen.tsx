@@ -1970,7 +1970,7 @@ export const SellerDashboardScreen: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <Package className="w-4 h-4 text-stone-400 shrink-0" />
                                 <span className="text-stone-500">Produk:</span>
-                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">{Math.max(products?.length || 0, 148)}</span>
+                                <span className="font-bold text-[#ee4d2d] ml-auto sm:ml-0">{products?.length || 0}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <UserCheck className="w-4 h-4 text-stone-400 shrink-0" />
